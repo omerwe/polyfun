@@ -38,7 +38,7 @@ Below are instructions on how to use each of these approaches.
 <br><br>
 
 # Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Bionank traits
-Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the prior causal probabilities for this SNP. Do do this, use the following command:
+Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the prior causal probabilities for this SNP. To do this, use the following command:
 ```
 python extract_snpvar.py --snps <snps_file> --out <output_prefix>
 ```
