@@ -10,6 +10,7 @@ PolyFun is designed for Python 3, and requires the following freely available Py
 * [scikit-learn](http://scikit-learn.org/stable/)
 * [pandas](https://pandas.pydata.org/getpandas.html)
 * [tqdm](https://github.com/tqdm/tqdm)
+* [pyarrow](https://arrow.apache.org/docs/python/install.html)
 
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
