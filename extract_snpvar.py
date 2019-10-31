@@ -26,7 +26,11 @@ if __name__ == '__main__':
             
     #read df_meta        
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    df_meta = pd.read_parquet(os.path.join(script_dir, 'snpvar_meta.parquet'))
+    df_meta1 = pd.read_parquet(os.path.join(script_dir, 'snpvar_meta.chr1_7.parquet'))
+    df_meta2 = pd.read_parquet(os.path.join(script_dir, 'snpvar_meta.chr8_22.parquet'))
+    df_meta = pd.concat([df_meta1, df_meta2], axis=0)
+    del df_meta1
+    del df_meta2
     
     #truncate the ratio between the largest and smallest per-SNP h^2    
     min_snpvar = df_meta['snpvar_bin'].max() / args.q
