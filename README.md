@@ -45,9 +45,23 @@ python extract_snpvar.py --snps <snps_file> --out <output_prefix>
 The snps_file should be a whitespace-delimited file with a header line and at least one of the following two combinations of columns:
 1. SNP, A1, A2 - SNP name, reference allele, alternative allele
 2. CHR, BP, A1, A2 - chromosome, basepair position (in hg19 coordinates), reference allele, alternative allele
+This file can (but does not have to) be gzipped.
 
 Here is a toy example you can try:
 ```
 python extract_snpvar.py --snps snps_to_finemap.txt.gz --out snps_with_priors
+zcat snps_with_priors.snpvar.gz | head
 ```
+The output should be:
+```
+CHR  BP        SNP                    A1        A2  prior_causal_prob
+1    10000006  rs186077422            G         A   1.750133e-05
+1    10000179  1:10000179_AAAAAAAC_A  AAAAAAAC  A   1.750133e-05
+1    10000400  rs1237370              T         A   1.750133e-05
+1    10000476  rs182770070            A         T   1.750133e-05
+1    10000553  rs574892739            T         G   1.750133e-05
+1    10000732  rs563811805            T         C   1.750133e-05
+1    10000804  rs114880362            T         C   1.750133e-05
+1    10001239  rs68058227             G         T   1.750133e-05
+1    10001401  rs60132751             C         T   1.750133e-05
 ```
