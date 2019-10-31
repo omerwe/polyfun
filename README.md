@@ -8,7 +8,7 @@ PolyFun is a framework for functionally-informed fine-mapping [(see preprint)](h
 PolyFun is designed for Python 3, and requires the following freely available Python packages:
 * [numpy](http://www.numpy.org/) and [scipy](http://www.scipy.org/)
 * [scikit-learn](http://scikit-learn.org/stable/)
-* [pandas](https://pandas.pydata.org/getpandas.html)
+* [pandas](https://pandas.pydata.org/getpandas.html) (version >=0.24.0)
 * [tqdm](https://github.com/tqdm/tqdm)
 * [pyarrow](https://arrow.apache.org/docs/python/install.html)
 
