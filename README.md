@@ -44,8 +44,7 @@ python extract_snpvar.py --snps <snps_file> --out <output_prefix>
 ```
 The snps_file should be a whitespace-delimited file with a header line and at least one of the following two combinations of columns:
 1. SNP, A1, A2 - SNP name, reference allele, alternative allele
-2. CHR, BP, A1, A2 - chromosome, basepair position (in hg19 coordinates), reference allele, alternative allele
-<br>
+2. CHR, BP, A1, A2 - chromosome, basepair position (in hg19 coordinates), reference allele, alternative allele<br/>
 This file can (but does not have to) be gzipped.
 
 Here is a toy example you can try:
