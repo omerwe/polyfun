@@ -15,7 +15,7 @@ PolyFun is designed for Python 3, and requires the following freely available Py
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
 * [R version 3.5.1 or higher](https://www.r-project.org/)
-* [Ckmeans.1d.dp](https://cran.r-project.org/web/packages/Ckmeans.1d.dp/index.html) (a package for R, that will be invoked from python via the rpy2 package).
+* [Ckmeans.1d.dp](https://cran.r-project.org/web/packages/Ckmeans.1d.dp/index.html) (a package for R, that will be invoked from python via the rpy2 package).<br/>
 If these are not installed, PolyFun will fallback to sub-optimal clustering via scikit-learn.
 
 We recommend running PolyFun via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
