@@ -46,7 +46,7 @@ The snps_file should be a whitespace-delimited file with a header line and at le
 1. SNP, A1, A2 - SNP name, reference allele, alternative allele
 2. CHR, BP, A1, A2 - chromosome, basepair position (in hg19 coordinates), reference allele, alternative allele
 
-Here is a toy example:
+Here is a toy example you can try:
 ```
 python extract_snpvar.py --snps snps_to_finemap.txt.gz --out snps_with_priors
 ```
