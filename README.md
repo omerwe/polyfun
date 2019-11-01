@@ -152,7 +152,7 @@ python polyfun.py \
 
 
 #### 3. Compute LD-scores for each SNP bin
-In this stage PolyFun will compute LD-scores for each SNP bin. This is the most computationally intensive part of PolyFun. PolyFun can compute LD-scores for all chromosomes in the same run, or for only one chromosome. The second option is recommended if you can run multiple jobs on a cluster. Here is a usage example that computes LD-scores for only chromosome 1:
+In this stage PolyFun will compute LD-scores for each SNP bin. This is the most computationally intensive part of PolyFun. PolyFun can compute LD-scores for all chromosomes in the same run, or for only one chromosome at a time. The second option is recommended if you can run multiple jobs on a cluster. Here is a usage example that computes LD-scores for only chromosome 1:
 ```
 python polyfun.py \
     --compute-ldscores \
