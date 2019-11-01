@@ -32,7 +32,7 @@ git clone https://github.com/omerwe/polyfun
 <br><br>
 # Usage overview
 There are three ways to run PolyFun:
-1. **Using precomputed prior causal probabilities based on a meta-analysis of 15 [UK Biobank](https://www.ukbiobank.ac.uk) traits**. This is the simplest approach, but the prior causal probabilities may not be optimal for some traits.
+1. **Using precomputed prior causal probabilities of 19M imputed [UK Biobank](https://www.ukbiobank.ac.uk) SNPs with MAF>0.1%, based on a meta-analysis of 15 UK Biobank traits**. This is the simplest approach, but it may not include all your SNPs of interest (especially when analyzing non-European populations) and the prior causal probabilities may not be optimal for some traits.
 2. **Computing prior causal probabilities via the [baseline-LF model annotations](https://www.nature.com/articles/s41588-018-0231-8)**. This is a relatively simple approach, but the prior causal probabilities may not be robust to modeling misspecification.
 3. **Computing prior causal probabilities non-parametrically**. This is the most robust approach, but it is computationally intensive and requires access to individual-level genotypic data from a large reference panel (optimally >3,000 population-matched individuals).
 
