@@ -168,7 +168,7 @@ python polyfun.py \
 5. You can run stages 2 and 3 together by invoking `polyfun.py` with both the flags `--compute-h2-L2` and `--compute-ldscores`.
 
 #### 4. Re-estimate per-SNP heritabilities via S-LDSC 
-In this stage PolyFun will re-estimate per-SNP heritabilities by estimating the heritability causally explained by each bin. Technically, PolyFun  will estimate the heritability causally explained by SNPs in some bin that are in an even (resp. odd) target chromosome, by applying S-LDSC with non-negativity constraints to even (resp. odd) chromosomes, excluding the target chromosome, and dividing the heritability causally explained by this bin by the number of SNPs in the bin. You can only run this stage after computing LD-scores for all chromosomes. Here is a usage example:
+In this stage PolyFun will re-estimate per-SNP heritabilities robustly  by estimating the heritability causally explained by each bin, using only the chromosomes that were not used to partition SNPs into bins. Technically, PolyFun  will estimate the heritability causally explained by SNPs in each bin that are in an even (resp. odd) target chromosome, by applying S-LDSC with non-negativity constraints to even (resp. odd) chromosomes, excluding the target chromosome, and dividing the bin heritability by the number of SNPs in the bin. You can only run this stage after computing LD-scores for all chromosomes. Here is a usage example:
 ```
 python polyfun.py \
     --compute-h2-bins \
