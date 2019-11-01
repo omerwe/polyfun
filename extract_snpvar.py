@@ -81,10 +81,15 @@ if __name__ == '__main__':
         df_miss.to_csv(args.out+'.miss.gz', sep='\t', index=False, compression='gzip')
         raise ValueError('Not all SNPs in the SNPs file were found in the meta file. Wrote a list of missing SNPs to %s'%(args.out+'.miss.gz'))
         
+    #normalize the prior-causal probabilities
+    df['prior_causal_prob'] = df['snpvar_bin'] / df['snpvar_bin'].sum()
+    assert df['prior_causal_prob'].sum() == 1
+    del df['snpvar_bin']
+        
     #write output to file
     outfile = args.out+'.snpvar.gz'
     print('Writing output file to %s'%(outfile))
-    df.to_csv(outfile, sep='\t', compression='gzip')
+    df.to_csv(outfile, sep='\t', compression='gzip', index=False, float_format='%0.4e')
     
         
     

@@ -161,11 +161,11 @@ def get_file_name(args, file_type, chr_num, verify_exists=True):
     if file_type == 'ldscores':
         file_name = args.output_prefix + '.%d.l2.ldscore.parquet'%(chr_num)
     elif file_type == 'snpvar_ridge':
-        file_name = args.output_prefix + '.%d.snpvar_ridge.parquet'%(chr_num)
+        file_name = args.output_prefix + '.%d.snpvar_ridge.gz'%(chr_num)
     elif file_type == 'snpvar_ridge_constrained':
-        file_name = args.output_prefix + '.%d.snpvar_ridge_constrained.parquet'%(chr_num)        
+        file_name = args.output_prefix + '.%d.snpvar_ridge_constrained.gz'%(chr_num)        
     elif file_type == 'snpvar_constrained':
-        file_name = args.output_prefix + '.%d.snpvar_constrained.parquet'%(chr_num)        
+        file_name = args.output_prefix + '.%d.snpvar_constrained.gz'%(chr_num)        
     elif file_type == 'bins':
         file_name = args.output_prefix + '.%d.bins.parquet'%(chr_num)
     elif file_type == 'M':
@@ -507,7 +507,7 @@ class PolyFun:
             #save bins file to disk
             df_bins_chr = self.df_bins.query('CHR==%d'%(chr_num))            
             bins_chr_file = get_file_name(args, 'bins', chr_num, verify_exists=False)
-            df_bins_chr.reset_index().to_parquet(bins_chr_file)
+            df_bins_chr.reset_index().to_parquet(bins_chr_file, index=False)
             
             #save M file to disk
             M_chr_file = get_file_name(args, 'M', chr_num, verify_exists=False)
@@ -566,7 +566,7 @@ class PolyFun:
                 
             #save snpvar to file
             df_snpvar_chr = df_snpvar.query('CHR==%d'%(chr_num))
-            df_snpvar_chr.to_parquet(snpvar_chr_file)
+            df_snpvar_chr.to_csv(snpvar_chr_file, index=False, sep='\t', compression='gzip', float_format='%0.4e')
         
         
         
