@@ -101,7 +101,7 @@ python polyfun.py \
     --ref-ld-chr example_data/annotations. \
     --w-ld-chr example_data/weights.
 ```
-This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly for fine-mapping. For example, here is the contents of the top 10 SNPs in chromosome 1: (seen with `zcat zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
+This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly for fine-mapping. For example, here is the contents of the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
 ```
 CHR  BP      SNP                              A1                    A2  snpvar      Z            N
 1    737125  rs151055642                      T                     A   1.3502e-08  4.5924e-01   383290
