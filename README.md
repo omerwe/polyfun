@@ -201,7 +201,10 @@ All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heri
 ## Using prior causal probabilities in FINEMAP
 This functionality is not implemented yet - please check back soon...
 
-
+<br><br>
+# FAQ
+Q: How can I create my own annotations?
+A: Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for instructions. Note that PolyFun requires adding columns called A1,A2 to uniquely identify SNPs.
 
 <br><br>
 # Contact
