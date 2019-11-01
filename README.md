@@ -40,7 +40,7 @@ Below are instructions on how to use each of these approaches.
 
 <br><br>
 
-# Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Bionank traits
+# Approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Bionank traits
 Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the prior causal probabilities for this SNP. To do this, use the following command:
 ```
 python extract_snpvar.py --snps <snps_file> --out <output_prefix>
@@ -67,3 +67,26 @@ CHR  BP        SNP                    A1        A2  prior_causal_prob
 1    10001239  rs68058227             G         T   1.750133e-05
 1    10001401  rs60132751             C         T   1.750133e-05
 ```
+
+
+<br><br>
+
+# Approach 2: Computing prior causal probabilities via the baseline-LF model annotations
+To do this, you need to perform several stages:
+
+#### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
+To do this, use the script `munge_polyfun_sumstats.py`, which takes an input summary statistics file and creates a munged output file. The script tries to be flexible and accomodate multiple file formats and column names. It generally requires only a sample size parameter (n) and a whitespace-delimited input file with SNP rsids, chromosome and basepair info, and either a p-value, an effect size estimate and its standard error, a Z-score or a p-value.
+
+Here is a usage example:
+```
+python munge_polyfun_sumstats.py \
+  --sumstats example_data/boltlmm_sumstats.gz \
+  --n 327209 \
+  --out example_data/sumstats_munged.parquet \
+  --min-info 0.6 \
+  --min-maf 0.001
+```
+This takes the input BOLT-LMM file `example_data/boltlmm_sumstats.gz` and converts it to the parquet file `example_data/sumstats_munged.parquet`, excluding SNPs with INFO score<0.6, with MAF<0.001 or in the MHC region. It will additionally compute the [BOLT-LMM effective sample size](https://www.nature.com/articles/s41588-018-0144-6). You can see other possible arguments with the command `python munge_polyfun_sumstats.py --help`.
+
+
+
