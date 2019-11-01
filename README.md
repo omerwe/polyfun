@@ -72,7 +72,7 @@ CHR  BP        SNP                    A1        A2  prior_causal_prob
 <br><br>
 
 # Approach 2: Computing prior causal probabilities via the baseline-LF model annotations
-To do this, you need to perform several stages:
+This is done in two stages:
 
 #### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
 To do this, use the script `munge_polyfun_sumstats.py`, which takes an input summary statistics file and creates a munged output file. The script tries to be flexible and accomodate multiple file formats and column names. It generally requires only a sample size parameter (n) and a whitespace-delimited input file with SNP rsids, chromosome and basepair info, and either a p-value, an effect size estimate and its standard error, a Z-score or a p-value.
@@ -86,7 +86,19 @@ python munge_polyfun_sumstats.py \
   --min-info 0.6 \
   --min-maf 0.001
 ```
-This takes the input BOLT-LMM file `example_data/boltlmm_sumstats.gz` and converts it to the parquet file `example_data/sumstats_munged.parquet`, excluding SNPs with INFO score<0.6, with MAF<0.001 or in the MHC region. It will additionally compute the [BOLT-LMM effective sample size](https://www.nature.com/articles/s41588-018-0144-6). You can see other possible arguments with the command `python munge_polyfun_sumstats.py --help`.
+This takes the input BOLT-LMM file `example_data/boltlmm_sumstats.gz` and converts it to the parquet file `example_data/sumstats_munged.parquet`, excluding SNPs with INFO score<0.6, with MAF<0.001 or in the MHC region. It will additionally compute the [BOLT-LMM effective sample size](https://www.nature.com/articles/s41588-018-0144-6). You can see other possible arguments with the command `python munge_polyfun_sumstats.py --help`. You can see the output file by opening the parquet file through python with the command `df = pd.read_parquet('example_data/sumstats_munged.parquet')`
 
+#### 2. Run PolyFun
+To do this, run the scripy `polyfun.py`. This script handles all possible uses of PolyFun, but here we'll only compute prior causal probabilities via the baseline-LF model annotations. Here is an example command:
+```
+mkdir -p output
+
+python polyfun.py \
+    --compute-h2-L2 \
+    --output-prefix ${POLYFUN_PREFIX} \
+    --sumstats example_data/sumstats.parquet \
+    --ref-ld-chr example_data/annotations. \
+    --w-ld-chr example_data/weights.
+```
 
 
