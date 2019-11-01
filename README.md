@@ -1,7 +1,7 @@
 # PolyFun
 PolyFun (POLYgenic FUNctionally-informed fine-mapping)
 
-PolyFun is a framework for functionally-informed fine-mapping [(see preprint)](https://www.biorxiv.org/content/10.1101/807792v2). PolyFun estimates prior causal probability for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods, PolyFun can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
+This page contains the code of the method called **PolyFun**, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2). PolyFun is a framework for functionally-informed fine-mapping. PolyFun estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, PolyFun can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
 
 <br><br>
 # Installation
@@ -33,14 +33,14 @@ git clone https://github.com/omerwe/polyfun
 # Usage overview
 There are three ways to run PolyFun:
 1. **Using precomputed prior causal probabilities of 19 million imputed [UK Biobank](https://www.ukbiobank.ac.uk) SNPs with MAF>0.1%, based on a meta-analysis of 15 UK Biobank traits**. This is the simplest approach, but it may not include all your SNPs of interest (especially when analyzing non-European populations) and the prior causal probabilities may not be optimal for some traits.
-2. **Computing prior causal probabilities via the [baseline-LF model annotations](https://www.nature.com/articles/s41588-018-0231-8)**. This is a relatively simple approach, but the prior causal probabilities may not be robust to modeling misspecification.
+2. **Computing prior causal probabilities via an L2-regularized extension of [stratified LD-score regression (S-LDSC)](https://www.nature.com/articles/ng.3404)**. This is a relatively simple approach, but the prior causal probabilities may not be robust to modeling misspecification.
 3. **Computing prior causal probabilities non-parametrically**. This is the most robust approach, but it is computationally intensive and requires access to individual-level genotypic data from a large reference panel (optimally >3,000 population-matched individuals).
 
 Below are instructions on how to use each of these approaches.
 
 <br><br>
 
-# Approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Bionank traits
+# Approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
 Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the prior causal probabilities for this SNP. To do this, use the following command:
 ```
 python extract_snpvar.py --snps <snps_file> --out <output_prefix>
@@ -71,7 +71,7 @@ CHR  BP        SNP                    A1        A2  prior_causal_prob
 
 <br><br>
 
-# Approach 2: Computing prior causal probabilities via the baseline-LF model annotations
+# Approach 2: Computing prior causal probabilities via an L2-regularized extension of S-LDSC
 This is done in two stages:
 
 #### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
@@ -88,8 +88,8 @@ python munge_polyfun_sumstats.py \
 ```
 This takes the input BOLT-LMM file `example_data/boltlmm_sumstats.gz` and converts it to the parquet file `example_data/sumstats_munged.parquet`, excluding SNPs with INFO score<0.6, with MAF<0.001 or in the MHC region. It will additionally compute the [BOLT-LMM effective sample size](https://www.nature.com/articles/s41588-018-0144-6). You can see other possible arguments with the command `python munge_polyfun_sumstats.py --help`. You can see the output file by opening the parquet file through python with the command `df = pd.read_parquet('example_data/sumstats_munged.parquet')`
 
-#### 2. Run PolyFun
-To do this, run the scripy `polyfun.py`. This script handles all possible uses of PolyFun, but here we'll only compute prior causal probabilities via the baseline-LF model annotations. Here is an example command:
+#### 2. Run PolyFun with L2-regularized S-LDSC
+To do this, run the scripy `polyfun.py`. This script handles all possible uses of PolyFun, but here we'll only compute prior causal probabilities with L2-extended S-LDSC, using a subset of the [baseline-LF model annotations](https://www.nature.com/articles/s41588-018-0231-8). Here is an example command:
 ```
 mkdir -p output
 
@@ -101,7 +101,7 @@ python polyfun.py \
     --ref-ld-chr example_data/annotations. \
     --w-ld-chr example_data/weights.
 ```
-This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly for fine-mapping. For example, here is the contents of the top 10 SNPs in chromosome 1: (seen with `zcat zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
+This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the contents of the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
 ```
 CHR  BP      SNP                              A1                    A2  snpvar      Z            N
 1    737125  rs151055642                      T                     A   1.3502e-08  4.5924e-01   383290
@@ -114,6 +114,14 @@ CHR  BP      SNP                              A1                    A2  snpvar  
 1    845273  rs117039017                      G                     A   1.3502e-08  5.9879e-01   383290
 1    846398  rs58781670                       G                     A   1.3502e-08  2.9464e+00   383290
 ```
-The column called 'snpvar' includes truncated per-SNP heritabilities.
+The column called 'snpvar' contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping (see below).
 
+The parameters we provided are the following:
+1. `--compute-h2-L2` - this tells PolyFun to compute per-SNP heritabilities via an L2-regularized S-LDSC
+2. `--no-partitions` - this tells PolyFun to **not** partition SNPs into bins based on their estimated per-SNP heritabilities. You should only provide this flag if you are only interested in L2-regularized estimation of per-SNP heritabilities.
+3. `--output-prefix output/testrun` - this specifies the prefix of all the PolyFun output files.
+4. `--sumstats` - this specifies an input summary statistics file (created via the `munge_polyfun_sumstats.py` script).
+5. `--ref-ld-chr` - this is the prefix of the LD-score and annotation files that S-LDSC uses. These are similar to the standard [S-LDSC  input files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability) with an important addition: The annotation files **must** include columns called A1,A2 for reference and alternative alleles (because unfortunatley SNP rsid is not a unique SNP identifier). Additionally, it is strongly recommdended that the LD-score files also include columns called A1,A2, to prevent excluding multiple SNPs with the same rsid from the estimation stage. PolyFun will accept files with either .gz or .parquet extension (parquet is faster)
+6. `----w-ld-chr` - this is the prefix of the [LD-score weight files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability), which are generally equal to the regular LD-scores of the SNPs, but restricted to only the set of SNPs used for fitting S-LDSC. As before, it is strongly recommdended that these files include A1,A2 columns.
 
+We strongly encourage that you look at the input files provided in the example to get a sense of their structure.
