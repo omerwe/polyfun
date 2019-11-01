@@ -118,7 +118,7 @@ The column called 'snpvar' contains truncated per-SNP heritabilities, which can 
 
 The parameters we provided are the following:
 1. `--compute-h2-L2` - this tells PolyFun to compute per-SNP heritabilities via an L2-regularized S-LDSC
-2. `--no-partitions` - this tells PolyFun to **not** partition SNPs into bins based on their estimated per-SNP heritabilities. You would generally want to provide this flag if you are only interested in L2-regularized estimation of per-SNP heritabilities. 
+2. `--no-partitions` - this tells PolyFun to **not** partition SNPs into bins based on their estimated per-SNP heritabilities. You should only provide this flag if you are only interested in L2-regularized estimation of per-SNP heritabilities.
 3. `--output-prefix output/testrun` - this specified the prefix of all the PolyFun output files.
 4. `--sumstats` - this specified an input summary statistics file (created via the `munge_polyfun_sumstats.py` script).
 5. `--ref-ld-chr` - this is the prefix of the LD-score and annotation files that S-LDSC uses. These are similar to the standard [S-LDSC  input files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability) with an important addition: The annotation files **must** include columns called A1,A2 for reference and alternative alleles (because unfortunatley SNP rsid is not a unique SNP identifier). Additionally, it is strongly recommdended that the LD-score files also include columns called A1,A2, to prevent excluding multiple SNPs with the same rsid from the estimation stage. PolyFun will accept files with either .gz or .parquet extension (parquet is faster)
