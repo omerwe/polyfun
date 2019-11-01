@@ -95,10 +95,25 @@ mkdir -p output
 
 python polyfun.py \
     --compute-h2-L2 \
+    --no-partitions \
     --output-prefix output/testrun \
     --sumstats example_data/sumstats.parquet \
     --ref-ld-chr example_data/annotations. \
     --w-ld-chr example_data/weights.
 ```
+This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly for fine-mapping. For example, here is the contents of the top 10 SNPs in chromosome 1: (seen with `zcat zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
+```
+CHR  BP      SNP                              A1                    A2  snpvar      Z            N
+1    737125  rs151055642                      T                     A   1.3502e-08  4.5924e-01   383290
+1    741833  rs148581628                      C                     T   1.3502e-08  -9.4801e-01  383290
+1    745642  1:745642_AC_A                    AC                    A   6.5501e-09  5.6848e-02   383290
+1    772437  rs138499329                      C                     T   1.3502e-08  8.6788e-01   383290
+1    797281  rs76631953                       G                     C   6.5501e-09  -1.2842e+00  383290
+1    814300  rs80022136                       T                     A   6.5501e-09  -9.9172e-01  383290
+1    821862  1:821862_CACAGCAGCTGTGCTGTGTT_C  CACAGCAGCTGTGCTGTGTT  C   1.3502e-08  3.9271e-02   383290
+1    845273  rs117039017                      G                     A   1.3502e-08  5.9879e-01   383290
+1    846398  rs58781670                       G                     A   1.3502e-08  2.9464e+00   383290
+```
+The column called 'snpvar' includes truncated per-SNP heritabilities.
 
 
