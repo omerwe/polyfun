@@ -163,9 +163,9 @@ python polyfun.py \
 ###### Please note the following:
 1. You must specify the same `--output-prefix` argument that you provided in stage 2, because PolyFun requires intermediate files that were created in stage 2.
 2. If you remove the flag `--chr `, PolyFun will iterate over all chromosomes and compute LD-scores for all of them
-3. This stage requires individual-level genotypic data from a large reference panel that is population-matched to your study. Ideally this data should come from your study directly. In this example we used a small subset of SNPs of European-ancestry individuals from the 1000 genomes project.
+3. This stage requires individual-level genotypic data from a large reference panel that is population-matched to your study. Ideally this data should come from your study directly. In this example we used a small subset of SNPs of European-ancestry individuals from the [1000 genomes project](https://www.internationalgenome.org).
 4. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyfun.py --help` to see all available parameters.
-5. You can run stages 2 and 3 together by invoking `polyfun.py --compute-h2-L2 --compute-ldscores ...`.
+5. You can run stages 2 and 3 together by invoking `polyfun.py` with both the flags `--compute-h2-L2` and `--compute-ldscores`.
 
 #### 4. Re-estimate per-SNP heritabilities via S-LDSC 
 In this stage PolyFun will re-estimate per-SNP heritabilities by estimating the heritability causally explained by each bin. Technically, PolyFun  will estimate the heritability causally explained by SNPs in some bin that are in an even (resp. odd) target chromosome, by applying S-LDSC with non-negativity constraints to even (resp. odd) chromosomes, excluding the target chromosome, and dividing the heritability causally explained by this bin by the number of SNPs in the bin. You can only run this stage after computing LD-scores for all chromosomes. Here is a usage example:
