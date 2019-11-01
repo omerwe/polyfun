@@ -41,7 +41,7 @@ Below are instructions on how to use each of these approaches.
 <br><br>
 
 # Approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
-Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the prior causal probabilities for this SNP. To do this, use the following command:
+Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the prior causal probabilities for these SNPs. To do this, use the following command:
 ```
 python extract_snpvar.py --snps <snps_file> --out <output_prefix>
 ```
@@ -54,7 +54,7 @@ Here is a toy example you can try:
 python extract_snpvar.py --snps snps_to_finemap.txt.gz --out snps_with_priors
 zcat snps_with_priors.snpvar.gz | head
 ```
-The output should be:
+The top lines of the output should be:
 ```
 CHR  BP        SNP                    A1        A2  prior_causal_prob
 1    10000006  rs186077422            G         A   1.750133e-05
@@ -101,7 +101,7 @@ python polyfun.py \
     --ref-ld-chr example_data/annotations. \
     --w-ld-chr example_data/weights.
 ```
-This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the contents of the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
+This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the output for the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
 ```
 CHR  BP      SNP                              A1                    A2  snpvar      Z            N
 1    737125  rs151055642                      T                     A   1.3502e-08  4.5924e-01   383290
@@ -122,6 +122,6 @@ The parameters we provided are the following:
 3. `--output-prefix output/testrun` - this specifies the prefix of all the PolyFun output files.
 4. `--sumstats` - this specifies an input summary statistics file (created via the `munge_polyfun_sumstats.py` script).
 5. `--ref-ld-chr` - this is the prefix of the LD-score and annotation files that S-LDSC uses. These are similar to the standard [S-LDSC  input files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability) with an important addition: The annotation files **must** include columns called A1,A2 for reference and alternative alleles (because unfortunatley SNP rsid is not a unique SNP identifier). Additionally, it is strongly recommdended that the LD-score files also include columns called A1,A2, to prevent excluding multiple SNPs with the same rsid from the estimation stage. PolyFun will accept files with either .gz or .parquet extension (parquet is faster)
-6. `----w-ld-chr` - this is the prefix of the [LD-score weight files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability), which are generally equal to the regular LD-scores of the SNPs, but restricted to only the set of SNPs used for fitting S-LDSC. As before, it is strongly recommdended that these files include A1,A2 columns.
+6. `--w-ld-chr` - this is the prefix of the [LD-score weight files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability), which are generally equal to the regular LD-scores of the SNPs, but restricted to only the set of SNPs used for fitting S-LDSC. As before, it is strongly recommdended that these files include A1,A2 columns.
 
-We strongly encourage that you look at the input files provided in the example to get a sense of their structure.
+We strongly encourage that you look at the input files provided in the `example_data` directory to get a sense of their structure.
