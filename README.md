@@ -95,7 +95,7 @@ mkdir -p output
 
 python polyfun.py \
     --compute-h2-L2 \
-    --output-prefix ${POLYFUN_PREFIX} \
+    --output-prefix output/testrun \
     --sumstats example_data/sumstats.parquet \
     --ref-ld-chr example_data/annotations. \
     --w-ld-chr example_data/weights.
