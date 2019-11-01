@@ -114,7 +114,7 @@ CHR  BP      SNP                              A1                    A2  snpvar  
 1    845273  rs117039017                      G                     A   1.3502e-08  5.9879e-01   383290
 1    846398  rs58781670                       G                     A   1.3502e-08  2.9464e+00   383290
 ```
-The column called 'snpvar' includes truncated per-SNP heritabilities.
+The column called 'snpvar' contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping (see below).
 
 The parameters we provided are the following:
 1. `--compute-h2-L2` - this tells PolyFun to compute per-SNP heritabilities via an L2-regularized S-LDSC
