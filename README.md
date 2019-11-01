@@ -196,7 +196,7 @@ The snpvar column contains per-SNP heritabilities. These can be used directly as
 Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP
 
 ## Using prior causal probabilities in SuSiE
-All you have to do is provide SuSiE the flag **prior_weights** and specify per-SNP heritability estimates from PolyFun.
+All you have to do is provide SuSiE the flag **prior_weights** and specify per-SNP heritability estimates from PolyFun (i.e., the contents of the column `snpvar`).
 
 ## Using prior causal probabilities in FINEMAP
 This functionality is not implemented yet - please check back soon...
