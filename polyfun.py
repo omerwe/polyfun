@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import sys
 import time
-from ldsc_polyfun.ldscore import jackknife, regressions, sumstats, ldscore, parse
+from ldsc_polyfun import jackknife, regressions, sumstats, ldscore, parse
 import logging
 from copy import deepcopy
 from tqdm import tqdm
@@ -159,17 +159,17 @@ def configure_logger(out_prefix):
         
 def get_file_name(args, file_type, chr_num, verify_exists=True):
     if file_type == 'ldscores':
-        file_name = args.prefix + '.%d.l2.ldscore.parquet'%(chr_num)
+        file_name = args.output_prefix + '.%d.l2.ldscore.parquet'%(chr_num)
     elif file_type == 'snpvar_ridge':
-        file_name = args.prefix + '.%d.snpvar_ridge.parquet'%(chr_num)
+        file_name = args.output_prefix + '.%d.snpvar_ridge.parquet'%(chr_num)
     elif file_type == 'snpvar_ridge_constrained':
-        file_name = args.prefix + '.%d.snpvar_ridge_constrained.parquet'%(chr_num)        
+        file_name = args.output_prefix + '.%d.snpvar_ridge_constrained.parquet'%(chr_num)        
     elif file_type == 'snpvar_constrained':
-        file_name = args.prefix + '.%d.snpvar_constrained.parquet'%(chr_num)        
+        file_name = args.output_prefix + '.%d.snpvar_constrained.parquet'%(chr_num)        
     elif file_type == 'bins':
-        file_name = args.prefix + '.%d.bins.parquet'%(chr_num)
+        file_name = args.output_prefix + '.%d.bins.parquet'%(chr_num)
     elif file_type == 'M':
-        file_name = args.prefix + '.%d.l2.M'%(chr_num)
+        file_name = args.output_prefix + '.%d.l2.M'%(chr_num)
         
     elif file_type == 'annot':
         assert verify_exists
@@ -225,7 +225,7 @@ class PolyFun:
         #if not ridge, the LD-scores are our bins
         if not use_ridge:
             args = deepcopy(args)
-            args.ref_ld_chr = args.prefix+'.'
+            args.ref_ld_chr = args.output_prefix+'.'
         
         #read input data
         if use_ridge or not args.compute_ldscores or True:
@@ -780,21 +780,7 @@ if __name__ == '__main__':
     parser.add_argument('--ref-ld-chr', help='Suffix of LD-score files (as in ldsc)')
     parser.add_argument('--w-ld-chr', help='Suffix of LD-score weights files (as in ldsc)')
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
-    parser.add_argument('--prefix', required=True, help='Prefix of all PolyFun files')    
-    
-    # # # # # # SUMSTATS_FILE='/n/groups/price/omer/polyloc/data/UKBB_337K_munged_sumstats/blood_RED_COUNT.sumstats.small.parquet'
-    # # # # # # REF_LD_CHR_FILE='/n/groups/price/omer/polyloc/data/UKBB_baselineLF_v2.2_MAF001_UKBB/small/baselineLF.nofunc.'
-    # # # # # # WEIGHTS_CHR_FILE='/n/groups/price/omer/polyloc/data/UKBB_ldsc_weights/UKBB.weights.ss.'
-    # SUMSTATS_FILE='/n/groups/price/omer/polyloc/data/UKBB_337K_munged_sumstats/blood_RED_COUNT.sumstats.small.parquet'
-    # REF_LD_CHR_FILE='/n/groups/price/omer/polyloc/data/UKBB_baselineLF_v2.2_MAF001_UKBB/small/baselineLF.nofunc.'
-    # WEIGHTS_CHR_FILE='/n/groups/price/omer/polyloc/data/UKBB_ldsc_weights/small/UKBB.weights.ss.'
-    # PLINK_CHR_FILE = '/n/groups/price/omer/polyloc/data/UKBB_baselineLF_v2.2_MAF001_UKBB/small/1000G.EUR.QC.small.'
-    # parser.add_argument('--sumstats', default=SUMSTATS_FILE, help='Input summary statistics file')
-    # parser.add_argument('--ref-ld-chr', default=REF_LD_CHR_FILE, help='Suffix of LD-score files (as in ldsc)')
-    # parser.add_argument('--w-ld-chr', default=WEIGHTS_CHR_FILE, help='Suffix of LD-score weights files (as in ldsc)')
-    # parser.add_argument('--bfile-chr', default=PLINK_CHR_FILE, help='Prefix of plink files (used to compute LD-scores)')
-    # parser.add_argument('--prefix', default='/tmp/polyfun/polyfun', help='Prefix of all PolyFun files')
-    
+    parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun files')    
     
     #show splash screen
     splash_screen()
@@ -803,11 +789,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     #check that the output directory exists
-    if os.path.isabs(args.prefix) and not os.path.exists(os.path.dirname(args.prefix)):
-        raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.prefix)))
+    if os.path.isabs(args.output_prefix) and not os.path.exists(os.path.dirname(args.output_prefix)):
+        raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.output_prefix)))
     
     #configure logger
-    configure_logger(args.prefix)
+    configure_logger(args.output_prefix)
         
     #check and fix args
     args = check_args(args)
