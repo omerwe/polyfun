@@ -51,7 +51,8 @@ def find_df_column(df, strings_to_find, allow_missing=False):
         
 def rename_df_columns(df, min_info_score, min_maf):
     chr_column = find_df_column(df, ['CHR', 'CHROMOSOME', 'CHROM'])
-    bp_column = find_df_column(df, ['BP', 'POS', 'POSITION'])
+    bp_column = find_df_column(df, ['BP', 'POS', 'POSITION', 'COORDINATE', 'BASEPAIR'])
+    snp_column = find_df_column(df, ['SNP', 'RSID', 'RS', 'NAME'])
     a1freq_col = find_df_column(df_sumstats, ['A1FREQ', 'freq', 'MAF', 'FRQ'], allow_missing=(min_maf is None or min_maf<=0))
     info_col = find_df_column(df_sumstats, 'INFO', allow_missing=(min_info_score is None or min_info_score<=0))
     beta_col = find_df_column(df_sumstats, ['BETA', 'EFF', 'EFFECT', 'EFFECT_SIZE'], allow_missing=True)
@@ -66,7 +67,7 @@ def rename_df_columns(df, min_info_score, min_maf):
         allele0_col = find_df_column(df_sumstats, ['ALLELE2', 'A2'])
     
     return df.rename(columns={allele1_col:'A1', allele0_col:'A2', a1freq_col:'MAF', bp_column:'BP', 
-                     chr_column:'CHR', info_col:'INFO', beta_col:'BETA', se_col:'SE', pvalue_col:'P', z_col:'Z'})
+                     chr_column:'CHR', info_col:'INFO', beta_col:'BETA', se_col:'SE', pvalue_col:'P', z_col:'Z'}, errors='ignore')
 
 
 
