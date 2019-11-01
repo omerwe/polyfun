@@ -204,7 +204,7 @@ This functionality is not implemented yet - please check back soon...
 <br><br>
 # FAQ
 Q: How can I create my own annotations?
-A: Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for instructions. Note that PolyFun requires adding columns called A1,A2 to uniquely identify SNPs.
+A: Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for instructions. Note that PolyFun requires adding columns called A1,A2 to uniquely identify SNPs. PolyFun accepte annotation files in either .gzipped text or .parquet format (.parquet is much faster).
 
 <br><br>
 # Contact
