@@ -216,6 +216,10 @@ if __name__ == '__main__':
         pass
     elif 'CHISQ_BOLT_LMM' in df_sumstats.columns:
         df_sumstats['Z'] = np.sqrt(df_sumstats['CHISQ_BOLT_LMM']) * np.sign(df_sumstats['BETA'])
+    elif 'BETA' in df_sumstats.columns and 'SE' in df_sumstats.columns:
+        if np.any(df_sumstats['SE']==0):
+            raise ValueError('Found SNPs with BETA stderr==0')
+        df_sumstats['Z'] = df_sumstats['BETA'] / df_sumstats['SE']
     elif 'P' in df_sumstats.columns:
         df_sumstats = compute_z(df_sumstats)
     else:
