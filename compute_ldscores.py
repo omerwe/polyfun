@@ -61,7 +61,10 @@ def compute_ldscores(args):
     
     #read annotations 
     if args.annot is not None:
-        df_annot = pd.read_parquet(args.annot)
+        if args.annot.endswith('.parquet'):
+            df_annot = pd.read_parquet(args.annot)
+        else:
+            df_annot = pd.read_table(args.annot, delim_whitespace=True)
     
         #heuristically reduce df_annot to a small superset of the relevant SNPs        
         df_annot = df_annot.loc[df_annot['SNP'].isin(df_bim['SNP'])]
