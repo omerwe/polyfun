@@ -195,16 +195,35 @@ The snpvar column contains per-SNP heritabilities. These can be used directly as
 # Using prior causal probabilities in fine-mapping
 Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP
 
-## Using prior causal probabilities in SuSiE
+### Using prior causal probabilities in SuSiE
 All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `snpvar`).
 
-## Using prior causal probabilities in FINEMAP
+### Using prior causal probabilities in FINEMAP
 This functionality is not implemented yet - please check back soon...
+
+<br><br>
+# Using and creating functional annotations
+You can either download existing functional annotation files, or create your own:
+
+### Downloading existing functional annotation files
+We provide functional annotations for ~19 million UK Biobank imputed SNPs with MAF>0.1%, based on the baseline-LF 2.2.UKB annotations. This is a broad set of coding, conserved, regulatory and LD-related annotations. You can download these annotations and their LD-scores [here](https://data.broadinstitute.org/alkesgroup/LDSCORE/baselineLF_v2.2.UKB.polyfun.tar.gz) (WARNING: this is a large download, requiring 30GB).
+
+### Creating your own annotations
+You can easily create your own annotations. The only requirement is to create 22 files (one for each chromosome), each containing columns for CHR, BP, SNP, A1, A2 and arbitrary other columns. These fies can be either .parquet files or gzipped txt files. After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a usage example:
+```
+mkdir -p output
+
+python compute_ldscores.py \
+  --bfile example_data/reference.1 \
+  --annot example_data/annotations.1.l2.ldscore.parquet \
+  --out output/ldscores_example.parquet
+```
+This script accepts annotations in either .parquet or plain gzipped text file (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC does not use the columns A1, A2 in the LD-score and annotation files. Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for more information and instructions.
 
 <br><br>
 # FAQ
 Q: How can I create my own annotations?
-A: Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for instructions. Note that PolyFun requires adding columns called A1,A2 to uniquely identify SNPs. PolyFun accepte annotation files in either .gzipped text or .parquet format (.parquet is much faster). Please see the `example_data` directory for examples of annotation files. Please note that you will also need to compute LD-scores for your annotations...
+A: Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for instructions. Note that PolyFun requires adding columns called A1,A2 to uniquely identify SNPs. PolyFun accepts annotation files in either .gzipped text or .parquet format (.parquet is much faster). Please see the `example_data` directory for examples of annotation files. Please note that you will also need to compute LD-scores for your annotations...
 
 <br><br>
 # Contact
