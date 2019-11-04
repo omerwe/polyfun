@@ -215,7 +215,26 @@ You can either download existing functional annotation files, or create your own
 We provide functional annotations for ~19 million UK Biobank imputed SNPs with MAF>0.1%, based on the baseline-LF 2.2.UKB annotations. This is a broad set of coding, conserved, regulatory and LD-related annotations. You can download these annotations and their LD-scores [here](https://data.broadinstitute.org/alkesgroup/LDSCORE/baselineLF_v2.2.UKB.polyfun.tar.gz) (WARNING: this is a large download, requiring 30GB).
 
 ### Creating your own annotations
-You can easily create your own annotations. The only requirement is to create 22 files (one for each chromosome), each containing columns for CHR, BP, SNP, A1, A2 and arbitrary other columns representing your annotations. These fies can be either .parquet or .gz files (we recommend using .parquet files). After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a use example:
+You can easily create your own annotations. The only requirement is to create 22 files (one for each chromosome), each containing columns for CHR, BP, SNP, A1, A2 and arbitrary other columns representing your annotations. These files can be either .parquet or .gz files (we recommend using .parquet files).
+<br>
+To see an example file, type the following commands from within python:
+```
+import pandas as pd
+df = pd.read_parquet('example_data/annotations.22.annot.parquet')
+df.head()
+```
+The output should be:
+```
+           SNP  CHR        BP A1 A2  ...  Conserved_LindbladToh_common  Conserved_LindbladToh_lowfreq  Repressed_Hoffman_common  Repressed_Hoffman_lowfreq  base
+0  rs138187675   22  16896334  C  T  ...                             0                              0                         0                          0     1
+1    rs5994099   22  16905044  G  A  ...                             0                              0                         0                          1     1
+2  rs138793096   22  16905432  G  T  ...                             0                              0                         0                          1     1
+3    rs4312587   22  16930252  A  G  ...                             0                              0                         0                          0     1
+4  rs114836070   22  17013596  C  T  ...                             0                              0                         0                          0     1
+```
+
+
+After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a use example:
 ```
 mkdir -p output
 
