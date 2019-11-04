@@ -36,7 +36,7 @@ There are three ways to run PolyFun:
 2. **Computing prior causal probabilities via an L2-regularized extension of [stratified LD-score regression (S-LDSC)](https://www.nature.com/articles/ng.3404)**. This is a relatively simple approach, but the prior causal probabilities may not be robust to modeling misspecification.
 3. **Computing prior causal probabilities non-parametrically**. This is the most robust approach, but it is computationally intensive and requires access to individual-level genotypic data from a large reference panel (optimally >10,000 population-matched individuals).
 
-Below are instructions and examples on how to use each approach. We recommend that you run these examples to become familiar with PolyFun. The examples are based on small datasets and run very quickly (typically <1 minute)
+Below are instructions and examples on how to use each approach. We recommend that you run these examples to become familiar with PolyFun. The examples use small datasets and run very quickly (typically <1 minute)
 <br>
 ### A note on file formats
 PolyFun uses input files that are very similar to [the input files of S-LDSC](https://github.com/bulik/ldsc/wiki/LD-File-Formats). The main differences are:
