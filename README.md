@@ -244,7 +244,7 @@ python compute_ldscores.py \
   --annot example_data/annotations.1.l2.ldscore.parquet \
   --out output/ldscores_example.parquet
 ```
-Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chromosome 1 SNPs, `--annot` is the name of an annotations file, and `--out` is the name of an output file. This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC requires python 2 and does not use the columns A1, A2 in the LD-score and annotation files.
+Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chromosome 1 SNPs, `--annot` is the name of an annotations file, and `--out` is the name of an output file.  The script also accepts a `--keep` parameter to use a subset of individuals for faster computation. This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC requires python 2 and does not use the columns A1, A2 in the LD-score and annotation files.
 
 
 <br><br>
