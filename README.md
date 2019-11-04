@@ -1,7 +1,7 @@
 # PolyFun
 PolyFun (POLYgenic FUNctionally-informed fine-mapping)
 
-This page contains the code of the method **PolyFun**, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2). PolyFun is a framework for functionally-informed fine-mapping. PolyFun estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, PolyFun can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
+This page contains the code of the method **PolyFun** for functionally-informed fine-mapping, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2). PolyFun estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, PolyFun can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
 
 <br><br>
 # Installation
