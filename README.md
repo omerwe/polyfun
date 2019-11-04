@@ -221,7 +221,7 @@ To see an example file, type the following commands from within python:
 ```
 import pandas as pd
 df = pd.read_parquet('example_data/annotations.22.annot.parquet')
-df.head()
+print(df.head())
 ```
 The output should be:
 ```
