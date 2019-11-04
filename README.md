@@ -251,7 +251,7 @@ Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chr
 # FAQ
 **Q**: Should I create a base annotations that includes only 1.0 for all SNPs?
 <br>
-**A**: Typically yes. However, in some cases the LD-scores for this annotations may be linearly dependent on the LD-scores of your other annotations, in which case you don't need to create this annotation. This can happen if (1) the vector column of [1.0 1.0 ... 1.0] is linearly dependent on your other annotations; and (2) You compute LD-scores using exactly the same set of SNPs as your set of regression SNPs.
+**A**: Typically yes. However, in some cases the LD-scores for this annotations may be linearly dependent on the LD-scores of your other annotations, in which case you don't need to create this annotation. This can happen if (1) the vector of ones [1.0 1.0 ... 1.0] is linearly dependent on your other annotations (which holds for the baseline-LF annotations); and (2) The LD-score that you compute for each SNP is baed on (almost) exactly the same set of SNPs as your set of regression SNPs.
 
 
 <br><br>
