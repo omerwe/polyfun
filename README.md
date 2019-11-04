@@ -1,7 +1,7 @@
 # PolyFun
 PolyFun (POLYgenic FUNctionally-informed fine-mapping)
 
-This page contains the code of the method called **PolyFun**, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2). PolyFun is a framework for functionally-informed fine-mapping. PolyFun estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, PolyFun can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
+This page contains the code of the method **PolyFun** for functionally-informed fine-mapping, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2). PolyFun estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, PolyFun can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
 
 <br><br>
 # Installation
@@ -20,7 +20,7 @@ It is recommended (but not required) to also install the following:
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun will fallback to suboptimal clustering via scikit-learn.
 
 
-We recommend running PolyFun via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
+We recommend running PolyFun via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the Python packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
 
 Once all the prerequisite packages are installed, you can install PolyFun on a git-enabled machine by typing:
 ```
@@ -34,9 +34,15 @@ git clone https://github.com/omerwe/polyfun
 There are three ways to run PolyFun:
 1. **Using precomputed prior causal probabilities of 19 million imputed [UK Biobank](https://www.ukbiobank.ac.uk) SNPs with MAF>0.1%, based on a meta-analysis of 15 UK Biobank traits**. This is the simplest approach, but it may not include all your SNPs of interest (especially when analyzing non-European populations) and the prior causal probabilities may not be optimal for some traits.
 2. **Computing prior causal probabilities via an L2-regularized extension of [stratified LD-score regression (S-LDSC)](https://www.nature.com/articles/ng.3404)**. This is a relatively simple approach, but the prior causal probabilities may not be robust to modeling misspecification.
-3. **Computing prior causal probabilities non-parametrically**. This is the most robust approach, but it is computationally intensive and requires access to individual-level genotypic data from a large reference panel (optimally >3,000 population-matched individuals).
+3. **Computing prior causal probabilities non-parametrically**. This is the most robust approach, but it is computationally intensive and requires access to individual-level genotypic data from a large reference panel (optimally >10,000 population-matched individuals).
 
-Below are instructions and examples on how to use each of these approaches. We recommend that you go over and run these examples to become familiar with PolyFun. The examples are based on small datasets and complete running very quickly (typically <1 minute).
+Below are instructions and examples on how to use each approach. We recommend that you run these examples to become familiar with PolyFun. The examples use small datasets and run very quickly (typically <1 minute)
+<br>
+### A note on file formats
+PolyFun uses input files that are very similar to [the input files of S-LDSC](https://github.com/bulik/ldsc/wiki/LD-File-Formats). The main differences are:
+1. The .annot files **must** contain two addditinal columns called A1,A2 which encode the identifies of the reference and alternative allele
+2. The .l2.ldscore files **may** contain the additional columns A1,A2. We strongly encourage including these columns.
+3. Polyfun supports files in [.parquet format](https://parquet.apache.org) in addition to .gzip/.bzip2 formats. Parquet files can be loaded substantially faster than alternative formats, at the cost of slightly larger file sizes.
 
 <br><br>
 
@@ -118,11 +124,11 @@ The column called 'snpvar' contains truncated per-SNP heritabilities, which can 
 
 The parameters we provided are the following:
 1. `--compute-h2-L2` - this tells PolyFun to compute per-SNP heritabilities via an L2-regularized S-LDSC
-2. `--no-partitions` - this tells PolyFun to **not** partition SNPs into bins based on their estimated per-SNP heritabilities. You should only provide this flag if you are only interested in L2-regularized estimation of per-SNP heritabilities.
+2. `--no-partitions` - this tells PolyFun to **not** partition SNPs into bins based on their estimated per-SNP heritabilities. This makes the computations slightly faster. You should only provide this flag if you are only interested in L2-regularized estimation of per-SNP heritabilities.
 3. `--output-prefix output/testrun` - this specifies the prefix of all the PolyFun output files.
 4. `--sumstats` - this specifies an input summary statistics file (created via the `munge_polyfun_sumstats.py` script).
 5. `--ref-ld-chr` - this is the prefix of the LD-score and annotation files that S-LDSC uses. These are similar to the standard [S-LDSC  input files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability) with an important addition: The annotation files **must** include columns called A1,A2 for reference and alternative alleles (because unfortunatley SNP rsid is not a unique SNP identifier). Additionally, it is strongly recommdended that the LD-score files also include columns called A1,A2, to prevent excluding multiple SNPs with the same rsid from the estimation stage. PolyFun will accept files with either .gz or .parquet extension (parquet is faster)
-6. `--w-ld-chr` - this is the prefix of the [LD-score weight files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability), which are generally equal to the regular LD-scores of the SNPs, but restricted to only the set of SNPs used for fitting S-LDSC. As before, it is strongly recommdended that these files include A1,A2 columns.
+6. `--w-ld-chr` - this is the prefix of the [LD-score weight files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability). These files should be similar to standard LD-score files, but with only one 'annotation' that includes weights. These weights should be equal to the (non-stratified) LD-scores of the SNPs, when computed using plink files that include only the set of SNPs used for fitting S-LDSC. As before, it is strongly recommdended that these files include A1,A2 columns.
 
 We strongly encourage that you look at the input files provided in the `example_data` directory to get a sense of their structure.
 
@@ -164,7 +170,7 @@ python polyfun.py \
 1. You must specify the same `--output-prefix` argument that you provided in stage 2, because PolyFun requires intermediate files that were created in stage 2.
 2. If you remove the flag `--chr `, PolyFun will iterate over all chromosomes and compute LD-scores for all of them
 3. This stage requires individual-level genotypic data from a large reference panel that is population-matched to your study. Ideally this data should come from your study directly. In this example we used a small subset of SNPs of European-ancestry individuals from the [1000 genomes project](https://www.internationalgenome.org).
-4. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyfun.py --help` to see all available parameters.
+4. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyfun.py --help` to see all available parameters. The parameter `--keep <keep file>` can be especially useful if you have a very large reference panel and would like to speed-up the computations by using only a subset of individuals.
 5. You can run stages 2 and 3 together by invoking `polyfun.py` with both the flags `--compute-h2-L2` and `--compute-ldscores`.
 
 #### 4. Re-estimate per-SNP heritabilities via S-LDSC 
@@ -195,16 +201,70 @@ The snpvar column contains per-SNP heritabilities. These can be used directly as
 # Using prior causal probabilities in fine-mapping
 Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP
 
-## Using prior causal probabilities in SuSiE
+### Using prior causal probabilities in SuSiE
 All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `snpvar`).
 
-## Using prior causal probabilities in FINEMAP
+### Using prior causal probabilities in FINEMAP
 This functionality is not implemented yet - please check back soon...
 
 <br><br>
+# Using and creating functional annotations
+You can either download existing functional annotation files, or create your own:
+
+### Downloading existing functional annotation files
+We provide [functional annotations for ~19 million UK Biobank imputed SNPs with MAF>0.1%, based on the baseline-LF 2.2.UKB annotations](https://data.broadinstitute.org/alkesgroup/LDSCORE/baselineLF_v2.2.UKB.polyfun.tar.gz) **(WARNING: this is a large download, requiring 30GB)**. This is a broad set of coding, conserved, regulatory and LD-related annotations, based on [Gazal et al. 2018 Nat Genet](https://www.nature.com/articles/s41588-018-0231-8) and
+described in Supplementary Table 1 of [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2).
+
+### Creating your own annotations
+You can easily create your own annotations. The only requirement is to create 22 files (one for each chromosome), each containing columns for CHR, BP, SNP, A1, A2 and arbitrary other columns representing your annotations. These files can be either .parquet or .gz files (we recommend using .parquet files).
+<br>
+To see an example file, type the following commands from within python:
+```
+import pandas as pd
+df = pd.read_parquet('example_data/annotations.22.annot.parquet')
+print(df.head())
+```
+The output should be:
+```
+           SNP  CHR        BP A1 A2  ...  Conserved_LindbladToh_common  Conserved_LindbladToh_lowfreq  Repressed_Hoffman_common  Repressed_Hoffman_lowfreq  base
+0  rs138187675   22  16896334  C  T  ...                             0                              0                         0                          0     1
+1    rs5994099   22  16905044  G  A  ...                             0                              0                         0                          1     1
+2  rs138793096   22  16905432  G  T  ...                             0                              0                         0                          1     1
+3    rs4312587   22  16930252  A  G  ...                             0                              0                         0                          0     1
+4  rs114836070   22  17013596  C  T  ...                             0                              0                         0                          0     1
+```
+
+
+After creating these files, you should compute LD-scores for these annotations (one file for each chromosome). You can do this using the script `compute_ldscores.py`. Here is a use example for chromosome 1:
+```
+mkdir -p output
+
+python compute_ldscores.py \
+  --bfile example_data/reference.1 \
+  --annot example_data/annotations.1.l2.ldscore.parquet \
+  --out output/ldscores_example.parquet
+```
+Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chromosome 1 SNPs, `--annot` is the name of an annotations file, and `--out` is the name of an output file.  The script also accepts a `--keep <keep file>` parameter to use a subset of individuals for faster computation. This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC requires python 2 and does not use the columns A1, A2 in the LD-score and annotation files.
+
+
+<br><br>
 # FAQ
-Q: How can I create my own annotations?
-A: Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for instructions. Note that PolyFun requires adding columns called A1,A2 to uniquely identify SNPs. PolyFun accepte annotation files in either .gzipped text or .parquet format (.parquet is much faster). Please see the `example_data` directory for examples of annotation files. Please note that you will also need to compute LD-scores for your annotations...
+**Q**: Should I create a base annotations that includes only the number 1 for all SNPs?
+<br>
+**A**: Typically yes. However, in some cases the LD-scores for this annotations may be linearly dependent on the LD-scores of your other annotations, in which case you don't need to create this annotation. This can happen if (1) the vector of ones [1.0 1.0 ... 1.0] is linearly dependent on your other annotations (which holds for the baseline-LF annotations); and (2) The LD-score that you compute for each SNP is based on (almost) exactly the same set of SNPs as your set of regression SNPs.
+<br>
+<br>
+**Q**: Can I add extra annotations on top of the baseline-LF annotations, without creating new huge files from scratch?
+<br>
+**A**: Yes. The flag `--ref-ld-chr` accepts a comma-separated list of file name prefixes, just like standard S-LDSC. For example, you can create a set of annotation files called my_annot.1.annot.parquet, ... my_annot.22.annot.parquet, and then invoke polyfun as follows:
+```
+python polyfun.py \
+    --compute-h2-L2 \
+    --output-prefix output/testrun \
+    --sumstats example_data/sumstats.parquet \
+    --ref-ld-chr example_data/annotations.,my_annot. \
+    --w-ld-chr example_data/weights.
+```
 
 <br><br>
 # Contact
