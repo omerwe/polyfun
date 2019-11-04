@@ -212,7 +212,8 @@ This functionality is not implemented yet - please check back soon...
 You can either download existing functional annotation files, or create your own:
 
 ### Downloading existing functional annotation files
-We provide functional annotations for ~19 million UK Biobank imputed SNPs with MAF>0.1%, based on the baseline-LF 2.2.UKB annotations. This is a broad set of coding, conserved, regulatory and LD-related annotations. You can download these annotations and their LD-scores [here](https://data.broadinstitute.org/alkesgroup/LDSCORE/baselineLF_v2.2.UKB.polyfun.tar.gz) (WARNING: this is a large download, requiring 30GB).
+We provide [functional annotations for ~19 million UK Biobank imputed SNPs with MAF>0.1%, based on the baseline-LF 2.2.UKB annotations](https://data.broadinstitute.org/alkesgroup/LDSCORE/baselineLF_v2.2.UKB.polyfun.tar.gz) **(WARNING: this is a large download, requiring 30GB)**. This is a broad set of coding, conserved, regulatory and LD-related annotations, based on [Gazal et al. 2018 Nat Genet](https://www.nature.com/articles/s41588-018-0231-8) and
+described in Supplementary Table 1 of [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2).
 
 ### Creating your own annotations
 You can easily create your own annotations. The only requirement is to create 22 files (one for each chromosome), each containing columns for CHR, BP, SNP, A1, A2 and arbitrary other columns representing your annotations. These files can be either .parquet or .gz files (we recommend using .parquet files).
