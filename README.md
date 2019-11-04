@@ -253,6 +253,7 @@ Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chr
 <br>
 **A**: Typically yes. However, in some cases the LD-scores for this annotations may be linearly dependent on the LD-scores of your other annotations, in which case you don't need to create this annotation. This can happen if (1) the vector of ones [1.0 1.0 ... 1.0] is linearly dependent on your other annotations (which holds for the baseline-LF annotations); and (2) The LD-score that you compute for each SNP is baed on (almost) exactly the same set of SNPs as your set of regression SNPs.
 <br>
+<br>
 **Q**: Can I simple add extra annotations on top of the baseline-LF annotations?
 <br>
 **A**: Yes. The flag `--ref-ld-chr` accepts a comma-separated list of file name prefixes, just like standard S-LDSC. For example, you can create a set of annotation files called my_annot.1.annotations.parquet, ... my_annot.22.annotations.parquet, and then invoke polyfun as follows:
