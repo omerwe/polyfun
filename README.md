@@ -256,13 +256,13 @@ Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chr
 <br>
 **Q**: Can I simple add extra annotations on top of the baseline-LF annotations?
 <br>
-**A**: Yes. The flag `--ref-ld-chr` accepts a comma-separated list of file name prefixes, just like standard S-LDSC. For example, you can create a set of annotation files called my_annot.1.annotations.parquet, ... my_annot.22.annotations.parquet, and then invoke polyfun as follows:
+**A**: Yes. The flag `--ref-ld-chr` accepts a comma-separated list of file name prefixes, just like standard S-LDSC. For example, you can create a set of annotation files called my_annot.1.annot.parquet, ... my_annot.22.annot.parquet, and then invoke polyfun as follows:
 ```
 python polyfun.py \
     --compute-h2-L2 \
     --output-prefix output/testrun \
     --sumstats example_data/sumstats.parquet \
-    --ref-ld-chr example_data/annotations.,my_annotations. \
+    --ref-ld-chr example_data/annotations.,my_annot. \
     --w-ld-chr example_data/weights.
 ```
 
