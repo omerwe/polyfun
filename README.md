@@ -124,7 +124,7 @@ The column called 'snpvar' contains truncated per-SNP heritabilities, which can 
 
 The parameters we provided are the following:
 1. `--compute-h2-L2` - this tells PolyFun to compute per-SNP heritabilities via an L2-regularized S-LDSC
-2. `--no-partitions` - this tells PolyFun to **not** partition SNPs into bins based on their estimated per-SNP heritabilities. You should only provide this flag if you are only interested in L2-regularized estimation of per-SNP heritabilities.
+2. `--no-partitions` - this tells PolyFun to **not** partition SNPs into bins based on their estimated per-SNP heritabilities. This makes the computations slightly faster. You should only provide this flag if you are only interested in L2-regularized estimation of per-SNP heritabilities.
 3. `--output-prefix output/testrun` - this specifies the prefix of all the PolyFun output files.
 4. `--sumstats` - this specifies an input summary statistics file (created via the `munge_polyfun_sumstats.py` script).
 5. `--ref-ld-chr` - this is the prefix of the LD-score and annotation files that S-LDSC uses. These are similar to the standard [S-LDSC  input files](https://github.com/bulik/ldsc/wiki/Partitioned-Heritability) with an important addition: The annotation files **must** include columns called A1,A2 for reference and alternative alleles (because unfortunatley SNP rsid is not a unique SNP identifier). Additionally, it is strongly recommdended that the LD-score files also include columns called A1,A2, to prevent excluding multiple SNPs with the same rsid from the estimation stage. PolyFun will accept files with either .gz or .parquet extension (parquet is faster)
@@ -170,7 +170,7 @@ python polyfun.py \
 1. You must specify the same `--output-prefix` argument that you provided in stage 2, because PolyFun requires intermediate files that were created in stage 2.
 2. If you remove the flag `--chr `, PolyFun will iterate over all chromosomes and compute LD-scores for all of them
 3. This stage requires individual-level genotypic data from a large reference panel that is population-matched to your study. Ideally this data should come from your study directly. In this example we used a small subset of SNPs of European-ancestry individuals from the [1000 genomes project](https://www.internationalgenome.org).
-4. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyfun.py --help` to see all available parameters.
+4. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyfun.py --help` to see all available parameters. The parameter `--keep` can be especially useful if you have a very large reference panel and would like to speed-up the computations by using only a subset of individuals.
 5. You can run stages 2 and 3 together by invoking `polyfun.py` with both the flags `--compute-h2-L2` and `--compute-ldscores`.
 
 #### 4. Re-estimate per-SNP heritabilities via S-LDSC 
@@ -215,7 +215,7 @@ You can either download existing functional annotation files, or create your own
 We provide functional annotations for ~19 million UK Biobank imputed SNPs with MAF>0.1%, based on the baseline-LF 2.2.UKB annotations. This is a broad set of coding, conserved, regulatory and LD-related annotations. You can download these annotations and their LD-scores [here](https://data.broadinstitute.org/alkesgroup/LDSCORE/baselineLF_v2.2.UKB.polyfun.tar.gz) (WARNING: this is a large download, requiring 30GB).
 
 ### Creating your own annotations
-You can easily create your own annotations. The only requirement is to create 22 files (one for each chromosome), each containing columns for CHR, BP, SNP, A1, A2 and arbitrary other columns. These fies can be either .parquet files or gzipped txt files. After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a usage example:
+You can easily create your own annotations. The only requirement is to create 22 files (one for each chromosome), each containing columns for CHR, BP, SNP, A1, A2 and arbitrary other columns representing your annotations. These fies can be either .parquet or .gz files (we recommend using .parquet files). After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a use example:
 ```
 mkdir -p output
 
@@ -224,12 +224,8 @@ python compute_ldscores.py \
   --annot example_data/annotations.1.l2.ldscore.parquet \
   --out output/ldscores_example.parquet
 ```
-This script accepts annotations in either .parquet or plain gzipped text file (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC does not use the columns A1, A2 in the LD-score and annotation files. Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for more information and instructions.
+This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC does not use the columns A1, A2 in the LD-score and annotation files.
 
-<br><br>
-# FAQ
-**Q**: How can I create my own annotations?<br>
-**A**: Please read the section called "Creating an annot file" in the [S-LDSC wiki](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial) for instructions. Note that PolyFun requires adding columns called A1,A2 to uniquely identify SNPs. PolyFun accepts annotation files in either .gzipped text or .parquet format (.parquet is much faster). Please see the `example_data` directory for examples of annotation files. Please note that you will also need to compute LD-scores for your annotations...
 
 <br><br>
 # Contact
