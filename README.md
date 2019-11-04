@@ -234,7 +234,7 @@ The output should be:
 ```
 
 
-After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a use example:
+After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a use example for chromosome 1:
 ```
 mkdir -p output
 
@@ -243,7 +243,7 @@ python compute_ldscores.py \
   --annot example_data/annotations.1.l2.ldscore.parquet \
   --out output/ldscores_example.parquet
 ```
-This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC does not use the columns A1, A2 in the LD-score and annotation files.
+Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chromosome 1 SNPs, `--annot` is the name of an annotations file, and `--out` is the name of an output file. This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC requires python 2 and does not use the columns A1, A2 in the LD-score and annotation files.
 
 
 <br><br>
