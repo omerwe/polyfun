@@ -102,12 +102,12 @@ def compute_ldscores(args):
     n = df_fam.shape[0]
 
     #find keep_indivs    
-    if args.keep:
+    if args.keep is None:
+        keep_indivs= None
+    else:
         array_indivs = parse.PlinkFAMFile(args.bfile+'.fam')
         keep_indivs = __filter__(args.keep, 'individuals', 'include', array_indivs)
         logging.info('after applying --keep, %d individuals remain'%(len(keep_indivs)))
-    else:
-        keep_indivs= None
     
     #read plink file    
     bed_file = args.bfile+'.bed'

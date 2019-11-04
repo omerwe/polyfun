@@ -9,6 +9,7 @@ from copy import deepcopy
 from tqdm import tqdm
 
 MAX_CHI2=80
+SNP_COLUMNS = ['CHR', 'SNP', 'BP', 'A1', 'A2']
 
 def __filter__(fname, noun, verb, merge_obj):
     merged_list = None
@@ -74,6 +75,15 @@ def check_args(args):
             args.ld_wind_cm = 1.0
             logging.warning('no ld-wind argument specified.  PolyFun will use --ld-cm 1.0')
             
+    if not args.compute_ldscores:
+        if not (args.ld_wind_cm is None and args.ld_wind_kb is None and args.ld_wind_snps is None):
+            raise ValueError('--ld-wind parameters can only be specified together with --compute-ldscores')
+        if args.keep is not None:
+            raise ValueError('--keep can only be specified together with --compute-ldscores')
+        if args.chr is not None:
+            raise ValueError('--chr can only be specified together with --compute-ldscores')
+        
+            
     
     if args.compute_h2_L2:
         if args.sumstats is None:
@@ -88,6 +98,8 @@ def check_args(args):
             raise ValueError('--sumstats must be specified when using --compute-h2-bins')
         if args.w_ld_chr is None:
             raise ValueError('--w-ld-chr must be specified when using --compute-h2-bins')
+        if args.ref_ld_chr is not None and not args.compute_ldscores:
+            raise ValueError('--ref-ld-chr should not be specified when using --compute-h2-bins, unless you also specify --compute-ldscores')
             
             
     return args
@@ -99,9 +111,9 @@ def check_files(args):
         if not os.path.exists(args.sumstats):
             raise IOError('Cannot find sumstats file %s'%(args.sumstats))
         for chr_num in range(1,23):
-            get_file_name(args, 'ref-ld', chr_num, verify_exists=True)
+            get_file_name(args, 'ref-ld', chr_num, verify_exists=True, allow_multiple=True)
             get_file_name(args, 'w-ld', chr_num, verify_exists=True)
-            get_file_name(args, 'annot', chr_num, verify_exists=True)
+            get_file_name(args, 'annot', chr_num, verify_exists=True, allow_multiple=True)
             
     if args.compute_ldscores:
         if args.chr is None: chr_range = range(1,23)            
@@ -157,7 +169,7 @@ def configure_logger(out_prefix):
     logger.addHandler(fileHandler)
     
         
-def get_file_name(args, file_type, chr_num, verify_exists=True):
+def get_file_name(args, file_type, chr_num, verify_exists=True, allow_multiple=False):
     if file_type == 'ldscores':
         file_name = args.output_prefix + '.%d.l2.ldscore.parquet'%(chr_num)
     elif file_type == 'snpvar_ridge':
@@ -173,15 +185,23 @@ def get_file_name(args, file_type, chr_num, verify_exists=True):
         
     elif file_type == 'annot':
         assert verify_exists
-        file_name = args.ref_ld_chr + '%d.annot.gz'%(chr_num)
-        if not os.path.exists(file_name):
-            file_name = args.ref_ld_chr + '%d.annot.parquet'%(chr_num)
+        assert allow_multiple
+        file_name = []
+        for ref_ld_chr in args.ref_ld_chr.split(','):
+            file_name_part = ref_ld_chr + '%d.annot.gz'%(chr_num)
+            if not os.path.exists(file_name_part):
+                file_name_part = ref_ld_chr + '%d.annot.parquet'%(chr_num)
+            file_name.append(file_name_part)
         
     elif file_type == 'ref-ld':
         assert verify_exists
-        file_name = args.ref_ld_chr + '%d.l2.ldscore.gz'%(chr_num)
-        if not os.path.exists(file_name):
-            file_name = args.ref_ld_chr + '%d.l2.ldscore.parquet'%(chr_num)
+        assert allow_multiple
+        file_name = []
+        for ref_ld_chr in args.ref_ld_chr.split(','):
+            file_name_part = ref_ld_chr + '%d.l2.ldscore.gz'%(chr_num)
+            if not os.path.exists(file_name_part):
+                file_name_part = ref_ld_chr + '%d.l2.ldscore.parquet'%(chr_num)
+            file_name.append(file_name_part)
         
     elif file_type == 'w-ld':
         assert verify_exists
@@ -200,8 +220,13 @@ def get_file_name(args, file_type, chr_num, verify_exists=True):
         raise ValueError('unknown file type')
         
     if verify_exists:
-        if not os.path.exists(file_name):
-            raise IOError('%s file not found: %s'%(file_type, file_name))
+        if allow_multiple:
+            for fname in file_name:
+                if not os.path.exists(fname):
+                    raise IOError('%s file not found: %s'%(file_type, fname))
+        else:
+            if not os.path.exists(file_name):
+                raise IOError('%s file not found: %s'%(file_type, file_name))
             
     return file_name
     
@@ -263,7 +288,7 @@ class PolyFun:
         chisq = chisq[ii].reshape((n_snp, 1))
 
         #Run S-LDSC
-        self.ref_ld_cnames = ref_ld_cnames
+        self.ref_ld_cnames = [c for c in ref_ld_cnames.str[:-2] if c not in SNP_COLUMNS]
         hsqhat = regressions.Hsq(chisq, 
             ref_ld,
             s(df_sumstats[w_ld_cname]),
@@ -292,43 +317,53 @@ class PolyFun:
         
         #load annotations file for this chromosome
         if use_ridge:
-            annot_filename = get_file_name(args, 'annot', chr_num)
+            annot_filenames = get_file_name(args, 'annot', chr_num, allow_multiple=True)
         else:
-            annot_filename = get_file_name(args, 'bins', chr_num)
+            annot_filenames = get_file_name(args, 'bins', chr_num)
         
-        #load parquet file
-        if annot_filename.endswith('.parquet'):
-            df_annot_chr = pd.read_parquet(annot_filename)
+        #load annotation file(s)
+        df_annot_chr_list = []
+        for annot_filename in annot_filenames:
+            if annot_filename.endswith('.parquet'):
+                df_annot_chr = pd.read_parquet(annot_filename)
+            else:
+                df_annot_chr = pd.read_table(annot_filename)
+            df_annot_chr_list.append(df_annot_chr)
+        if len(df_annot_chr_list)==1:
+            df_annot_chr = df_annot_chr_list[0]
         else:
-            df_annot_chr = pd.read_table(annot_filename)
+            for df in df_annot_chr_list[1:]:
+                for snp_col in SNP_COLUMNS:
+                    if (df.shape[0] != df_annot_chr_list[0].shape[0]) or (np.any(df[snp_col] != df_annot_chr_list[0][snp_col])):
+                        raise ValueError('Different annotation files of chromosome %d must be perfectly aligned'%(chr_num))
+                df.drop(columns=['CM'], inplace=True, errors='ignore')
+                df.drop(columns=SNP_COLUMNS, inplace=True, errors='raise')
+            df_annot_chr = pd.concat(df_annot_chr_list, axis=1)
         
         #make sure all required columns were found
         df_annot_chr.drop(columns=['CM'], inplace=True, errors='ignore')
-        if not ('A1' in df_annot_chr.index.names):
-            found_missing_col = False
-            for colname in ['CHR', 'SNP', 'BP', 'A1', 'A2']:
-                if colname not in df_annot_chr.columns:
-                    logging.error('%s has a missing column: %s'%(annot_filename, colname))
-                    found_missing_col = True
-            if found_missing_col:
-                raise ValueError('Missing columns found in %s'%(annot_filename))
-            df_annot_chr.set_index(['CHR', 'BP', 'SNP', 'A1', 'A2'], inplace=True, drop=True)
+        found_missing_col = False
+        for colname in SNP_COLUMNS:
+            if colname not in df_annot_chr.columns:
+                logging.error('%s has a missing column: %s'%(annot_filename, colname))
+                found_missing_col = True
+        if found_missing_col:
+            raise ValueError('Missing columns found in %s'%(annot_filename))
             
         #subset annotations if requested
         if args.anno is not None:
             anno_to_use = args.anno.split(',')
             assert np.all(np.isin(anno_to_use, df_annot_chr.columns))
-            df_annot_chr = df_annot_chr[anno_to_use]
+            df_annot_chr = df_annot_chr[SNP_COLUMNS + anno_to_use]
             
         #if we have more annotations that ref-ld, it might mean that some annotations were removed, so remove them from here as well
-        if not np.all(self.ref_ld_cnames.str[:-2].isin(df_annot_chr.columns)):
+        if not np.all(np.isin(self.ref_ld_cnames, df_annot_chr.columns)):
             raise ValueError('Annotation names in annotations file do not match the one in the LD-scores file')
-        if len(self.ref_ld_cnames) < len(df_annot_chr.columns):
-            assert np.all(np.isin(self.ref_ld_cnames.str[:-2], df_annot_chr.columns))
-            df_annot_chr = df_annot_chr[self.ref_ld_cnames.str[:-2]]
+        if len(self.ref_ld_cnames) < len(df_annot_chr.columns) - len(SNP_COLUMNS):            
+            df_annot_chr = df_annot_chr[SNP_COLUMNS + self.ref_ld_cnames]
 
         #make sure that we get the same columns as the ones in the LD-score files
-        if not np.all(df_annot_chr.columns == self.ref_ld_cnames.str[:-2]):
+        if not np.all([c for c in df_annot_chr.columns if c not in SNP_COLUMNS ]== self.ref_ld_cnames):
             raise ValueError('Annotation names in annotations file do not match the one in the LD-scores file')            
 
         return df_annot_chr
@@ -362,7 +397,9 @@ class PolyFun:
             taus = jknife.est_loco[chr_num-1][:hsqhat.n_annot] / hsqhat.Nbar
             
         #compute and return the snp variances
-        df_snpvar_chr = df_annot_chr.dot(taus)
+        df_snpvar_chr = df_annot_chr.drop(columns=SNP_COLUMNS, errors='raise').dot(taus)
+        df_snpvar_chr = df_snpvar_chr.to_frame(name='snpvar')
+        df_snpvar_chr = pd.concat((df_annot_chr[SNP_COLUMNS], df_snpvar_chr), axis=1)
         return df_snpvar_chr
         
 
@@ -372,10 +409,10 @@ class PolyFun:
         #iterate over chromosomes
         df_snpvar_chr_list = []
         for chr_num in tqdm(range(1,23)):
-            df_snpvar_chr = self.compute_snpvar_chr(args, chr_num, use_ridge=use_ridge)
-            df_snpvar_chr = df_snpvar_chr.to_frame(name='snpvar')
+            df_snpvar_chr = self.compute_snpvar_chr(args, chr_num, use_ridge=use_ridge)            
             df_snpvar_chr_list.append(df_snpvar_chr)
         df_snpvar = pd.concat(df_snpvar_chr_list, axis=0)
+        df_snpvar.reset_index(inplace=True, drop=True)
         
         #save snpvar to a class member
         if use_ridge:
@@ -416,8 +453,7 @@ class PolyFun:
             df_snpvar = self.df_snpvar
 
         #sort df_snpvar
-        df_snpvar_sorted = df_snpvar['snpvar'].sort_values()
-        df_bins = pd.DataFrame(index=df_snpvar_sorted.index)
+        df_snpvar_sorted = df_snpvar['snpvar'].sort_values()        
         
         #perform the segmentation
         if args.num_bins is None or args.num_bins<=0:
@@ -432,6 +468,7 @@ class PolyFun:
         num_bins = len(sizes)
         logging.info('Ckmedian.1d.dp partitioned SNPs into %d bins'%(num_bins))
         ind=0
+        df_bins = pd.DataFrame(index=df_snpvar_sorted.index)
         for s_i, s in enumerate(sizes):
             snpvar_bin = np.zeros(df_bins.shape[0], dtype=np.bool)
             snpvar_bin[ind : ind+s] = True
@@ -440,18 +477,9 @@ class PolyFun:
         assert df_bins.shape[0] == df_snpvar.shape[0]
         assert np.all(df_bins.sum(axis=1)==1)
 
-        #reorder df_bins (multi-index based sorting is so slow...)
-        df_bins.reset_index(inplace=True)
-        df_bins.index = df_bins['CHR'].astype(str) + '.' \
-                      + df_bins['BP'].astype(str) + '.' \
-                      + df_bins['A1'] + '.' \
-                      + df_bins['A2']
-        snpvar_index = df_snpvar.index.get_level_values('CHR').astype(str) + '.' \
-                      + df_snpvar.index.get_level_values('BP').astype(str) + '.' \
-                      + df_snpvar.index.get_level_values('A1') + '.' \
-                      + df_snpvar.index.get_level_values('A2')
-        df_bins = df_bins.loc[snpvar_index]
-        df_bins.set_index(['CHR', 'BP', 'SNP', 'A1', 'A2'], inplace=True)
+        #reorder df_bins
+        df_bins = df_bins.loc[df_snpvar.index]
+        df_bins = pd.concat((df_snpvar[SNP_COLUMNS], df_bins), axis=1)
         assert np.all(df_bins.index == df_snpvar.index)
         
         return df_bins
@@ -505,13 +533,13 @@ class PolyFun:
         for chr_num in tqdm(range(1,23)):
 
             #save bins file to disk
-            df_bins_chr = self.df_bins.query('CHR==%d'%(chr_num))            
+            df_bins_chr = self.df_bins.query('CHR==%d'%(chr_num))
             bins_chr_file = get_file_name(args, 'bins', chr_num, verify_exists=False)
-            df_bins_chr.reset_index().to_parquet(bins_chr_file, index=False)
+            df_bins_chr.to_parquet(bins_chr_file, index=False)
             
             #save M file to disk
             M_chr_file = get_file_name(args, 'M', chr_num, verify_exists=False)
-            M_chr = df_bins_chr.sum(axis=0).values
+            M_chr = df_bins_chr.drop(columns=SNP_COLUMNS).sum(axis=0).values
             np.savetxt(M_chr_file, M_chr.reshape((1, M_chr.shape[0])), fmt='%i')
             
             
@@ -543,14 +571,10 @@ class PolyFun:
         df_sumstats = pd.read_parquet(args.sumstats)
         for col in ['SNP', 'A1', 'A2']:
             if col not in df_sumstats.columns:
-                raise ValueError('sumstats file has a missing column: %s'%(col))
-        sumstats_index = df_sumstats['SNP'] + df_sumstats['A1'] + df_sumstats['A2']
-        df_snpvar_index = df_snpvar.index.get_level_values('SNP') + df_snpvar.index.get_level_values('A1') + df_snpvar.index.get_level_values('A2')
-        if np.any(~sumstats_index.isin(df_snpvar_index)):
-            raise ValueError('not all SNPs in the sumstats file are also in the annotations file')
-        df_snpvar = df_snpvar.reset_index()
+                raise ValueError('sumstats file has a missing column: %s'%(col))        
         df_snpvar = df_snpvar.merge(df_sumstats, on=['SNP', 'A1', 'A2'])
-        assert df_snpvar.shape[0] == df_sumstats.shape[0]
+        if df_snpvar.shape[0] < df_sumstats.shape[0]:
+            raise ValueError('not all SNPs in the sumstats file are also in the annotations file')
 
         #iterate over chromosomes 
         for chr_num in tqdm(range(1,23)):
@@ -601,12 +625,12 @@ class PolyFun:
             chr_range = range(args.chr, args.chr+1)
         
         #iterate over chromosomes and compute LD-scores
-        df_ldscores_chr_list = []
+        ###df_ldscores_chr_list = []
         for chr_num in tqdm(chr_range, disable=len(chr_range)==1):
         
             #load or extract the bins for the current chromosome
             if args.compute_h2_L2:
-                df_bins_chr = self.df_bins.reset_index().query('CHR==%d'%(chr_num))
+                df_bins_chr = self.df_bins.query('CHR==%d'%(chr_num))
             else:
                 df_bins_chr = self.load_bins_chr(args, chr_num)
                 
@@ -620,16 +644,17 @@ class PolyFun:
                 
             #save the LD-scores to disk
             ldscores_output_file = get_file_name(args, 'ldscores', chr_num, verify_exists=False)
-            df_ldscores_chr.reset_index().to_parquet(ldscores_output_file)
+            df_ldscores_chr.to_parquet(ldscores_output_file)
             
-            #add the ldscores to the LDscores list
-            df_ldscores_chr_list.append(df_ldscores_chr)
+            # #add the ldscores to the LDscores list
+            # df_ldscores_chr_list.append(df_ldscores_chr)
         
-        #concatenate all the LD-score dfs
-        if len(df_ldscores_chr_list)==1:
-            self.df_bin_ldscores = df_ldscores_chr_list[0]
-        else:
-            self.df_bin_ldscores = pd.concat(df_ldscores_chr_list, axis=0)
+        # #concatenate all the LD-score dfs
+        # if len(df_ldscores_chr_list)==1:
+            # self.df_bin_ldscores = df_ldscores_chr_list[0]
+        # else:
+            # self.df_bin_ldscores = pd.concat(df_ldscores_chr_list, axis=0)
+            # self.df_bin_ldscores.reset_index(inplace=True, drop=True)
         
                 
                     
@@ -670,18 +695,26 @@ class PolyFun:
         assert np.all(df_bins_chr['BP'] == df_bim['BP'].values)
         assert np.all(df_bins_chr['A1'] == df_bim['A1'].values)
         assert np.all(df_bins_chr['A2'] == df_bim['A2'].values)
-        df_bins_chr.set_index(['CHR', 'BP', 'SNP', 'A1', 'A2'], drop=True, inplace=True)
 
         #find #individuals in bfile
         fam_file = get_file_name(args, 'fam', chr_num)
         df_fam = pd.read_table(fam_file, header=None, usecols=[5], delim_whitespace=True)
         n = df_fam.shape[0]
         
+        
+        #find keep_indivs    
+        if args.keep is None:
+            keep_indivs= None
+        else:
+            array_indivs = parse.PlinkFAMFile(args.bfile+'.fam')
+            keep_indivs = __filter__(args.keep, 'individuals', 'include', array_indivs)
+            logging.info('after applying --keep, %d individuals remain'%(len(keep_indivs)))
+
         #read plink file    
         logging.info('Loading SNP file...')
         bed_file = get_file_name(args, 'bed', chr_num)
         geno_array = ldscore.PlinkBEDFile(bed_file, n, array_snps, keep_snps=None,
-            keep_indivs=None, mafMin=None)
+            keep_indivs=keep_indivs, mafMin=None)
 
             
         # determine block widths
@@ -710,10 +743,11 @@ class PolyFun:
         t0 = time.time()
         geno_array._currentSNP = 0
         logging.info('Computing LD scores for chromosome %d'%(chr_num))        
-        ldscores = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=df_bins_chr.values)
+        ldscores = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=df_bins_chr.drop(columns=SNP_COLUMNS).values)
         
         #create an ldscores df
-        df_ldscores = pd.DataFrame(ldscores, index=df_bins_chr.index, columns=df_bins_chr.columns)
+        df_ldscores = pd.DataFrame(ldscores, index=df_bins_chr.index, columns=df_bins_chr.drop(columns=SNP_COLUMNS).columns)
+        df_ldscores = pd.concat((df_bins_chr[SNP_COLUMNS], df_ldscores), axis=1)
         return df_ldscores
         
 
@@ -771,9 +805,10 @@ if __name__ == '__main__':
     parser.add_argument('--ld-wind-kb', type=int, default=None, help='window size to be used for estimating LD-scores in units of Kb.')
     parser.add_argument('--ld-wind-snps', type=int, default=None, help='window size to be used for estimating LD-scores in units of SNPs.')
     parser.add_argument('--chunk-size',  type=int, default=50, help='chunk size for LD-scores calculation')
+    parser.add_argument('--keep',  default=None, help='File with ids of individuals to use when computing LD-scores')
     
     #per-SNP h2 related parameters
-    parser.add_argument('--q', type=float, default=100, help='The maximum ratio between the largest and smallest estimated per-SNP heritability')
+    parser.add_argument('--q', type=float, default=100, help='The maximum ratio between the largest and smallest truncated per-SNP heritabilites')
 
     #data input/output parameters
     parser.add_argument('--sumstats', help='Input summary statistics file')
