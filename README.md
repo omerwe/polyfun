@@ -235,7 +235,7 @@ The output should be:
 ```
 
 
-After creating these files, you should compute LD-scores in each chromosome. You can do this using the script `compute_ldscores.py`. Here is a use example for chromosome 1:
+After creating these files, you should compute LD-scores for these annotations (one file for each chromosome). You can do this using the script `compute_ldscores.py`. Here is a use example for chromosome 1:
 ```
 mkdir -p output
 
