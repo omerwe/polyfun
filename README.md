@@ -1,6 +1,7 @@
 # PolyFun  and  PolyLoc
-PolyFun (POLYgenic FUNctionally-informed fine-mapping)
-PolyLoc (POLYgenic LOCalization of complex trait heritability)
+**PolyFun** (POLYgenic FUNctionally-informed fine-mapping)
+<br>
+**PolyLoc** (POLYgenic LOCalization of complex trait heritability)
 
 This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping and **PolyLoc** for polygenic localization of complex trait heritability, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2).
 <br>
