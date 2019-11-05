@@ -188,7 +188,9 @@ class PolyLoc(PolyFun):
         df_polyloc['SUM_%H2'] = df_polyloc['%H2'].cumsum()
         
         #write df_polyloc to output file
+        outfile = args.output_prefix+'.polyloc'
         df_polyloc.to_csv(args.output_prefix+'.polyloc', sep='\t', float_format='%0.5f', index=False)
+        logging.info('Wrote output to %s'%(outfile))
         
 
     def polyloc_main(self, args):

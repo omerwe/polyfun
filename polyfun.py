@@ -270,7 +270,7 @@ class PolyFun:
         ref_ld = np.array(df_sumstats[ref_ld_cnames], dtype=np.float32)
         sumstats._check_ld_condnum(args, log, ref_ld_cnames)
         if df_sumstats.shape[0] < 200000:
-            logging.warning('number of SNPs less than 200k; this is almost always bad.')
+            logging.warning('number of SNPs is smaller than 200k; this is almost always bad.')
         n_snp = len(df_sumstats)
         n_blocks = np.minimum(n_snp, args.n_blocks)
         n_annot = len(ref_ld_cnames)
