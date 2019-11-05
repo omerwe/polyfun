@@ -40,9 +40,9 @@ def splash_screen():
     
     
 def check_args(args):    
-    mode_params = np.array([args.compute_h2_L2, args.compute_ldscores, args.compute_h2_bins])
     
     #verify that the requested computations are valid
+    mode_params = np.array([args.compute_h2_L2, args.compute_ldscores, args.compute_h2_bins])
     if np.sum(mode_params)==0:
         raise ValueError('must specify at least one of --compute-h2-L2, --compute-ldscores, --compute-h2-bins')
     if args.compute_h2_L2 and args.compute_h2_bins and not args.compute_ldscores:
@@ -119,19 +119,19 @@ def check_files(args):
         if args.chr is None: chr_range = range(1,23)            
         else: chr_range = range(args.chr, args.chr+1)
         
-        if args.bfile_chr is not None:
-            for chr_num in chr_range:
-                get_file_name(args, 'bim', chr_num, verify_exists=True)
-                get_file_name(args, 'fam', chr_num, verify_exists=True)
-                get_file_name(args, 'bed', chr_num, verify_exists=True)
-        
-        if not args.compute_h2_L2:
-            for chr_num in chr_range:
+        for chr_num in chr_range:
+            get_file_name(args, 'bim', chr_num, verify_exists=True)
+            get_file_name(args, 'fam', chr_num, verify_exists=True)
+            get_file_name(args, 'bed', chr_num, verify_exists=True)
+            if not args.compute_h2_L2:
                 get_file_name(args, 'snpvar_ridge', chr_num, verify_exists=True)
+                get_file_name(args, 'bins', chr_num, verify_exists=True)
                 
     if args.compute_h2_bins and not args.compute_ldscores:
         for chr_num in range(1,23):
-            get_file_name(args, 'bins', chr_num, verify_exists=True)
+            get_file_name(args, 'w-ld', chr_num, verify_exists=True)
+            if not args.compute_h2_L2:
+                get_file_name(args, 'bins', chr_num, verify_exists=True)
             
         
 
@@ -319,7 +319,7 @@ class PolyFun:
         if use_ridge:
             annot_filenames = get_file_name(args, 'annot', chr_num, allow_multiple=True)
         else:
-            annot_filenames = get_file_name(args, 'bins', chr_num)
+            annot_filenames = [get_file_name(args, 'bins', chr_num)]
         
         #load annotation file(s)
         df_annot_chr_list = []
@@ -398,7 +398,7 @@ class PolyFun:
             
         #compute and return the snp variances
         df_snpvar_chr = df_annot_chr.drop(columns=SNP_COLUMNS, errors='raise').dot(taus)
-        df_snpvar_chr = df_snpvar_chr.to_frame(name='snpvar')
+        df_snpvar_chr = df_snpvar_chr.to_frame(name='SNPVAR')
         df_snpvar_chr = pd.concat((df_annot_chr[SNP_COLUMNS], df_snpvar_chr), axis=1)
         return df_snpvar_chr
         
@@ -422,7 +422,7 @@ class PolyFun:
         
         
         
-    def partition_snpvar_Ckmedian(self, args, use_ridge):
+    def partition_snps_Ckmedian(self, args, use_ridge):
         logging.info('Clustering SNPs into bins using the R Ckmeans.1d.dp package')
         
         #try loading the Ckmeans.1d.dp package
@@ -453,7 +453,7 @@ class PolyFun:
             df_snpvar = self.df_snpvar
 
         #sort df_snpvar
-        df_snpvar_sorted = df_snpvar['snpvar'].sort_values()        
+        df_snpvar_sorted = df_snpvar['SNPVAR'].sort_values()        
         
         #perform the segmentation
         if args.num_bins is None or args.num_bins<=0:
@@ -486,7 +486,7 @@ class PolyFun:
         
         
         
-    def partition_snpvar_Kmeans(self, args, use_ridge):
+    def partition_snps_Kmeans(self, args, use_ridge):
         logging.info('Clustering SNPs into bins using K-means clustering with %d bins'%(args.num_bins))
 
         #make sure that we can run K-means clustering
@@ -504,7 +504,7 @@ class PolyFun:
             
         #perform K-means clustering
         kmeans_obj = KMeans(n_clusters=args.num_bins)
-        kmeans_obj.fit(df_snpvar[['snpvar']])
+        kmeans_obj.fit(df_snpvar[['SNPVAR']])
         assert kmeans_obj.cluster_centers_.shape[0] == args.num_bins
 
         #Create df_bins
@@ -523,9 +523,9 @@ class PolyFun:
     
         #if skip_ckmedian was specified, run regular K-means
         if args.skip_Ckmedian:
-            self.df_bins = self.partition_snpvar_Kmeans(args, use_ridge=use_ridge)
+            self.df_bins = self.partition_snps_Kmeans(args, use_ridge=use_ridge)
         else:
-            self.df_bins = self.partition_snpvar_Ckmedian(args, use_ridge=use_ridge)
+            self.df_bins = self.partition_snps_Ckmedian(args, use_ridge=use_ridge)
         
         
     def save_bins_to_disk(self, args):
@@ -537,7 +537,7 @@ class PolyFun:
             bins_chr_file = get_file_name(args, 'bins', chr_num, verify_exists=False)
             df_bins_chr.to_parquet(bins_chr_file, index=False)
             
-            #save M file to disk
+            #save M files to disk
             M_chr_file = get_file_name(args, 'M', chr_num, verify_exists=False)
             M_chr = df_bins_chr.drop(columns=SNP_COLUMNS).sum(axis=0).values
             np.savetxt(M_chr_file, M_chr.reshape((1, M_chr.shape[0])), fmt='%i')
@@ -561,11 +561,11 @@ class PolyFun:
         #constrain the ratio between the largest and smallest snp-var
         if constrain_range:
             df_snpvar = df_snpvar.copy()
-            h2_total = df_snpvar['snpvar'].sum()
-            min_snpvar = df_snpvar['snpvar'].max() / args.q
-            df_snpvar.loc[df_snpvar['snpvar'] < min_snpvar, 'snpvar'] = min_snpvar
-            df_snpvar['snpvar'] *= h2_total / df_snpvar['snpvar'].sum()
-            assert np.isclose(df_snpvar['snpvar'].sum(), h2_total)
+            h2_total = df_snpvar['SNPVAR'].sum()
+            min_snpvar = df_snpvar['SNPVAR'].max() / args.q
+            df_snpvar.loc[df_snpvar['SNPVAR'] < min_snpvar, 'SNPVAR'] = min_snpvar
+            df_snpvar['SNPVAR'] *= h2_total / df_snpvar['SNPVAR'].sum()
+            assert np.isclose(df_snpvar['SNPVAR'].sum(), h2_total)
             
         #merge snpvar with sumstats
         df_sumstats = pd.read_parquet(args.sumstats)
@@ -815,7 +815,7 @@ if __name__ == '__main__':
     parser.add_argument('--ref-ld-chr', help='Suffix of LD-score files (as in ldsc)')
     parser.add_argument('--w-ld-chr', help='Suffix of LD-score weights files (as in ldsc)')
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
-    parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun files')    
+    parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun output file names')    
     
     #show splash screen
     splash_screen()
