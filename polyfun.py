@@ -238,7 +238,7 @@ class PolyFun:
     def __init__(self):
         pass
         
-    def run_ldsc(self, args, use_ridge):
+    def run_ldsc(self, args, use_ridge, nn, keep_large, evenodd_split):
 
         #prepare LDSC objects
         log = Logger()
@@ -249,7 +249,7 @@ class PolyFun:
         args.M = None
         args.not_M_5_50 = True
         
-        #if not ridge, the LD-scores are our bins
+        #if not ridge, the we'll use the LD-scores of our bins
         if not use_ridge:
             args = deepcopy(args)
             args.ref_ld_chr = args.output_prefix+'.'
@@ -303,9 +303,9 @@ class PolyFun:
             standardize_ridge=True,
             approx_ridge=True,
             num_chr_sets=2,
-            evenodd_split=(not use_ridge),
-            nn=(not use_ridge),
-            keep_large=(not use_ridge)
+            evenodd_split=evenodd_split,
+            nn=nn,
+            keep_large=keep_large
             )
             
         #save the results object
@@ -642,7 +642,7 @@ class PolyFun:
         
     def polyfun_h2_L2(self, args):
         #run Ridge regression
-        self.run_ldsc(args, use_ridge=True)
+        self.run_ldsc(args, use_ridge=True, nn=False, evenodd_split=False, keep_large=False)
 
         #compute per-SNP h^2 based on L2-regularized S-LDSC coefficients
         self.compute_snpvar(args, use_ridge=True)
@@ -800,7 +800,7 @@ class PolyFun:
     
     def compute_h2_bins(self, args, constrain_range):
         #run S-LDSC 
-        self.run_ldsc(args, use_ridge=False)
+        self.run_ldsc(args, use_ridge=False, nn=True, evenodd_split=True, keep_large=False)
 
         #compute per-SNP h^2
         self.compute_snpvar(args, use_ridge=False)

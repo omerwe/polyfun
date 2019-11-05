@@ -20,24 +20,24 @@ def splash_screen():
 def check_args(args):
     
     #verify that the requested computations are valid
-    mode_params = np.array([args.compute_partitions, args.compute_ldscores, args.compute_h2_bins])
+    mode_params = np.array([args.compute_partitions, args.compute_ldscores, args.compute_polyloc])
     if np.sum(mode_params)==0:
-        raise ValueError('must specify at least one of --compute-partitions, --compute-ldscores, --compute-h2-bins')
-    if args.compute_partitions and args.compute_h2_bins and not args.compute_ldscores:
-        raise ValueError('cannot use both --compute-partitions and --compute_h2_bins without also specifying --compute-ldscores')
+        raise ValueError('must specify at least one of --compute-partitions, --compute-ldscores, --compute-polyloc')
+    if args.compute_partitions and args.compute_polyloc and not args.compute_ldscores:
+        raise ValueError('cannot use both --compute-partitions and --compute_polyloc without also specifying --compute-ldscores')
     if args.chr is not None:
-        if args.compute_partitions or args.compute_h2_bins:
+        if args.compute_partitions or args.compute_polyloc:
             raise ValueError('--chr can only be specified when using only --compute-ldscores')
     if args.bfile_chr is not None:
         if not args.compute_ldscores and not args.compute_partitions:
             raise ValueError('--bfile-chr can only be specified when using --compute-partitions or --compute-ldscores')
-    if args.compute_ldscores and args.compute_h2_bins and not args.compute_partitions:
-        raise ValueError('cannot use both --compute-ldscores and --compute_h2_bins without also specifying --compute-partitions')    
+    if args.compute_ldscores and args.compute_polyloc and not args.compute_partitions:
+        raise ValueError('cannot use both --compute-ldscores and --compute_polyloc without also specifying --compute-partitions')    
         
     if args.posterior is not None and not args.compute_partitions:
         raise ValueError('--posterior can only be specified together with --compute-partitions')        
-    if args.sumstats is not None and not args.compute_h2_bins:
-        raise ValueError('--sumstats can only be specified together with --compute-h2-bins')
+    if args.sumstats is not None and not args.compute_polyloc:
+        raise ValueError('--sumstats can only be specified together with --compute-polyloc')
     
     #verify partitioning parameters
     if args.skip_Ckmedian and (args.num_bins is None or args.num_bins<=0):
@@ -66,11 +66,11 @@ def check_args(args):
         if args.chr is not None:
             raise ValueError('--chr can only be specified together with --compute-ldscores')
 
-    if args.compute_h2_bins:
+    if args.compute_polyloc:
         if args.sumstats is None:
-            raise ValueError('--sumstats must be specified when using --compute-h2-bins')    
+            raise ValueError('--sumstats must be specified when using --compute-polyloc')    
         if args.w_ld_chr is None:
-            raise ValueError('--w-ld-chr must be specified when using --compute-h2-bins')    
+            raise ValueError('--w-ld-chr must be specified when using --compute-polyloc')    
             
     return args
 
@@ -92,7 +92,7 @@ def check_files(args):
             if not args.compute_partitions:
                 get_file_name(args, 'bins', chr_num, verify_exists=True)
                 
-    if args.compute_h2_bins:    
+    if args.compute_polyloc:    
         for chr_num in range(1,23):
             get_file_name(args, 'w-ld', chr_num, verify_exists=True)
             if not args.compute_partitions:
@@ -162,6 +162,33 @@ class PolyLoc(PolyFun):
         #save the bins to disk
         self.save_bins_to_disk(args)
         
+        #save the bin sizes to disk
+        df_binsize = pd.DataFrame(index=np.arange(1,self.df_bins.shape[1] - len(SNP_COLUMNS)+1))
+        df_binsize.index.name='BIN'
+        df_binsize['BIN_SIZE'] = self.df_bins.drop(columns=SNP_COLUMNS).sum(axis=0).values
+        df_binsize.to_csv(args.output_prefix+'.binsize', sep='\t', index=True)
+        
+        
+        
+    def compute_polyloc(self, args):
+    
+        #run S-LDSC and compute taus
+        self.run_ldsc(args, use_ridge=False, nn=True, evenodd_split=False, keep_large=True)        
+        hsqhat = self.hsqhat
+        jknife = hsqhat.jknife
+        taus = jknife.est[0, :hsqhat.n_annot] / hsqhat.Nbar
+        
+        #load bin sizes
+        df_binsize = pd.read_table(args.output_prefix+'.binsize', sep='\t')
+        
+        #compute df_polyloc
+        df_polyloc = df_binsize
+        df_polyloc['%H2'] = taus * df_polyloc['BIN_SIZE']
+        df_polyloc['%H2'] /= df_polyloc['%H2'].sum()
+        df_polyloc['SUM_%H2'] = df_polyloc['%H2'].cumsum()
+        
+        #write df_polyloc to output file
+        df_polyloc.to_csv(args.output_prefix+'.polyloc', sep='\t', float_format='%0.5f', index=False)
         
 
     def polyloc_main(self, args):
@@ -174,9 +201,9 @@ class PolyLoc(PolyFun):
         if args.compute_ldscores:
             self.compute_ld_scores(args)
         
-        #compute h2 for each bin
-        if args.compute_h2_bins:
-            self.compute_h2_bins(args, constrain_range=False)
+        #compute polygenic localization
+        if args.compute_polyloc:
+            self.compute_polyloc(args)
             
             
             
@@ -198,7 +225,7 @@ if __name__ == '__main__':
     #mode related parameters
     parser.add_argument('--compute-partitions', default=False, action='store_true', help='If specified, PolyLoc will compute per-SNP h2 using L2-regularized S-LDSC')
     parser.add_argument('--compute-ldscores', default=False, action='store_true', help='If specified, PolyLoc will compute LD-scores of SNP bins')
-    parser.add_argument('--compute-h2-bins', default=False, action='store_true', help='If specified, PolyLoc will robustly compute per-SNP h2 based on SNP bins')
+    parser.add_argument('--compute-polyloc', default=False, action='store_true', help='If specified, PolyLoc will perform polygenic localization of SNP heritability')
     
     #ld-score related parameters
     parser.add_argument('--chr', type=int, default=None, help='Chromosome number (only applicable when only specifying --ldscores). If not set, PolyLoc will compute LD-scores for all chromosomes')
