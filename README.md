@@ -191,16 +191,16 @@ python polyfun.py \
 ```
 This script will output files with re-estimated per-SNP heritabilities that can be used directly for fine-mapping. Here is the output for chromosome 1 (seen via `zcat output/testrun.1.snpvar_constrained.gz | head`):
 ```
-CHR  BP      SNP                              A1                    A2  SNPVAR      Z            N
-1    737125  rs151055642                      T                     A   5.7732e-06  4.5924e-01   383290
-1    741833  rs148581628                      C                     T   5.7732e-06  -9.4801e-01  383290
-1    745642  1:745642_AC_A                    AC                    A   1.5774e-06  5.6848e-02   383290
-1    772437  rs138499329                      C                     T   5.7732e-06  8.6788e-01   383290
-1    797281  rs76631953                       G                     C   4.0586e-06  -1.2842e+00  383290
-1    814300  rs80022136                       T                     A   4.0586e-06  -9.9172e-01  383290
-1    821862  1:821862_CACAGCAGCTGTGCTGTGTT_C  CACAGCAGCTGTGCTGTGTT  C   5.7732e-06  3.9271e-02   383290
-1    845273  rs117039017                      G                     A   5.7732e-06  5.9879e-01   383290
-1    846398  rs58781670                       G                     A   5.7732e-06  2.9464e+00   383290
+CHR  SNP                              BP      A1                    A2  SNPVAR      Z            N
+1    rs151055642                      737125  T                     A   6.2422e-06  4.5924e-01   383290
+1    rs148581628                      741833  C                     T   6.2422e-06  -9.4801e-01  383290
+1    1:745642_AC_A                    745642  AC                    A   1.5239e-06  5.6848e-02   383290
+1    rs138499329                      772437  C                     T   6.2422e-06  8.6788e-01   383290
+1    rs76631953                       797281  G                     C   3.9919e-06  -1.2842e+00  383290
+1    rs80022136                       814300  T                     A   3.9919e-06  -9.9172e-01  383290
+1    1:821862_CACAGCAGCTGTGCTGTGTT_C  821862  CACAGCAGCTGTGCTGTGTT  C   6.2422e-06  3.9271e-02   383290
+1    rs117039017                      845273  G                     A   6.2422e-06  5.9879e-01   383290
+1    rs58781670                       846398  G                     A   6.2422e-06  2.9464e+00   383290
 ```
 The `SNPVAR` column contains per-SNP heritabilities. These can be used directly as prior causal probabilities in fine-mapping (see below).
 
