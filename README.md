@@ -47,7 +47,7 @@ PolyFun uses input files that are very similar to [the input files of S-LDSC](ht
 <br><br>
 
 # Approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
-Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the prior causal probabilities for these SNPs. To do this, use the following command:
+Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the per-SNP heritabilities these SNPs. To do this, use the following command:
 ```
 python extract_snpvar.py --snps <snps_file> --out <output_prefix>
 ```
@@ -62,7 +62,7 @@ zcat snps_with_priors.snpvar.gz | head
 ```
 The top lines of the output should be:
 ```
-CHR  BP        SNP                    A1        A2  prior_causal_prob
+CHR  BP        SNP                    A1        A2     SNPVAR
 1    10000006  rs186077422            G         A   1.750133e-05
 1    10000179  1:10000179_AAAAAAAC_A  AAAAAAAC  A   1.750133e-05
 1    10000400  rs1237370              T         A   1.750133e-05
@@ -73,7 +73,7 @@ CHR  BP        SNP                    A1        A2  prior_causal_prob
 1    10001239  rs68058227             G         T   1.750133e-05
 1    10001401  rs60132751             C         T   1.750133e-05
 ```
-
+The column SNPVAR contains the per-SNP heritabilities, which are proportional to prior causal probabilities.
 
 <br><br>
 
@@ -109,7 +109,7 @@ python polyfun.py \
 ```
 This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the output for the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
 ```
-CHR  BP      SNP                              A1                    A2  snpvar      Z            N
+CHR  BP      SNP                              A1                    A2  SNPVAR      Z            N
 1    737125  rs151055642                      T                     A   1.3502e-08  4.5924e-01   383290
 1    741833  rs148581628                      C                     T   1.3502e-08  -9.4801e-01  383290
 1    745642  1:745642_AC_A                    AC                    A   6.5501e-09  5.6848e-02   383290
@@ -120,7 +120,7 @@ CHR  BP      SNP                              A1                    A2  snpvar  
 1    845273  rs117039017                      G                     A   1.3502e-08  5.9879e-01   383290
 1    846398  rs58781670                       G                     A   1.3502e-08  2.9464e+00   383290
 ```
-The column called 'snpvar' contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping (see below).
+The column called 'SNPVAR' contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping (see below).
 
 The parameters we provided are the following:
 1. `--compute-h2-L2` - this tells PolyFun to compute per-SNP heritabilities via an L2-regularized S-LDSC
@@ -184,7 +184,7 @@ python polyfun.py \
 ```
 This script will output files with re-estimated per-SNP heritabilities that can be used directly for fine-mapping. Here is the output for chromosome 1 (seen via `zcat output/testrun.1.snpvar_constrained.gz | head`):
 ```
-CHR  BP      SNP                              A1                    A2  snpvar      Z            N
+CHR  BP      SNP                              A1                    A2  SNPVAR      Z            N
 1    737125  rs151055642                      T                     A   5.7732e-06  4.5924e-01   383290
 1    741833  rs148581628                      C                     T   5.7732e-06  -9.4801e-01  383290
 1    745642  1:745642_AC_A                    AC                    A   1.5774e-06  5.6848e-02   383290
@@ -195,7 +195,7 @@ CHR  BP      SNP                              A1                    A2  snpvar  
 1    845273  rs117039017                      G                     A   5.7732e-06  5.9879e-01   383290
 1    846398  rs58781670                       G                     A   5.7732e-06  2.9464e+00   383290
 ```
-The snpvar column contains per-SNP heritabilities. These can be used directly as prior causal probabilities in fine-mapping (see below).
+The SNPVAR column contains per-SNP heritabilities. These can be used directly as prior causal probabilities in fine-mapping (see below).
 
 <br><br>
 # Using prior causal probabilities in fine-mapping
