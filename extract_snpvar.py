@@ -82,8 +82,8 @@ if __name__ == '__main__':
         raise ValueError('Not all SNPs in the SNPs file were found in the meta file. Wrote a list of missing SNPs to %s'%(args.out+'.miss.gz'))
         
     #normalize the prior-causal probabilities
-    df['SNPVAR'] = df['snpvar_bin'] / df['snpvar_bin'].sum()
-    assert df['SNPVAR'].sum() == 1
+    df['SNPVAR'] = df['snpvar_bin'] #/ df['snpvar_bin'].sum()
+    #assert df['SNPVAR'].sum() == 1
     del df['snpvar_bin']
         
     #write output to file
