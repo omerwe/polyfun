@@ -62,18 +62,19 @@ zcat snps_with_priors.snpvar.gz | head
 ```
 The top lines of the output should be:
 ```
-CHR  BP        SNP                    A1        A2     SNPVAR
-1    10000006  rs186077422            G         A   1.750133e-05
-1    10000179  1:10000179_AAAAAAAC_A  AAAAAAAC  A   1.750133e-05
-1    10000400  rs1237370              T         A   1.750133e-05
-1    10000476  rs182770070            A         T   1.750133e-05
-1    10000553  rs574892739            T         G   1.750133e-05
-1    10000732  rs563811805            T         C   1.750133e-05
-1    10000804  rs114880362            T         C   1.750133e-05
-1    10001239  rs68058227             G         T   1.750133e-05
-1    10001401  rs60132751             C         T   1.750133e-05
+CHR  BP        SNP                    A1        A2  SNPVAR
+1    10000006  rs186077422            G         A   4.0733e-09
+1    10000179  1:10000179_AAAAAAAC_A  AAAAAAAC  A   4.0733e-09
+1    10000400  rs1237370              T         A   4.0733e-09
+1    10000476  rs182770070            A         T   4.0733e-09
+1    10000553  rs574892739            T         G   4.0733e-09
+1    10000732  rs563811805            T         C   4.0733e-09
+1    10000804  rs114880362            T         C   4.0733e-09
+1    10001239  rs68058227             G         T   4.0733e-09
+1    10001401  rs60132751             C         T   4.0733e-09
+
 ```
-The column SNPVAR contains the per-SNP heritabilities, which are proportional to prior causal probabilities.
+The column `SNPVAR` contains the per-SNP heritabilities, which are proportional to prior causal probabilities. These per-SNP heritabilities can be used directly as prior causal probabilities in fine-mapping (see below for details).
 
 <br><br>
 
