@@ -52,7 +52,7 @@ PolyFun uses input files that are very similar to [the input files of S-LDSC](ht
 
 <br><br>
 
-# PolyFun approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
+## PolyFun approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
 Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the per-SNP heritabilities of these SNPs. To do this, use the following command:
 ```
 python extract_snpvar.py --snps <snps_file> --out <output_prefix>
@@ -84,7 +84,7 @@ The column `SNPVAR` contains the per-SNP heritabilities, which are proportional 
 
 <br><br>
 
-# PolyFun approach 2: Computing prior causal probabilities via an L2-regularized extension of S-LDSC
+## PolyFun approach 2: Computing prior causal probabilities via an L2-regularized extension of S-LDSC
 This is done in two stages:
 
 #### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
@@ -140,7 +140,7 @@ The parameters we provided are the following:
 We strongly encourage that you look at the input files provided in the `example_data` directory to get a sense of their structure.
 
 <br><br>
-# PolyFun approach 3: Computing prior causal probabilities non-parametrically
+## PolyFun approach 3: Computing prior causal probabilities non-parametrically
 This is done in four stages:
 
 #### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
