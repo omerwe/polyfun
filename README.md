@@ -195,14 +195,14 @@ CHR  BP      SNP                              A1                    A2  SNPVAR  
 1    845273  rs117039017                      G                     A   5.7732e-06  5.9879e-01   383290
 1    846398  rs58781670                       G                     A   5.7732e-06  2.9464e+00   383290
 ```
-The SNPVAR column contains per-SNP heritabilities. These can be used directly as prior causal probabilities in fine-mapping (see below).
+The `SNPVAR` column contains per-SNP heritabilities. These can be used directly as prior causal probabilities in fine-mapping (see below).
 
 <br><br>
 # Using prior causal probabilities in fine-mapping
 Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP
 
 ### Using prior causal probabilities in SuSiE
-All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `snpvar`).
+All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `SNPVAR`).
 
 ### Using prior causal probabilities in FINEMAP
 This functionality is not implemented yet - please check back soon...
