@@ -1,11 +1,16 @@
-# PolyFun
+# PolyFun  and  PolyLoc
 PolyFun (POLYgenic FUNctionally-informed fine-mapping)
+PolyLoc (POLYgenic LOCalization of complex trait heritability)
 
-This page contains the code of the method **PolyFun** for functionally-informed fine-mapping, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2). PolyFun estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, PolyFun can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
+This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping and **PolyLoc** for polygenic localization of complex trait heritability, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2).
+<br>
+**PolyFun** estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, **PolyFun** can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
+<br>
+**PolyLoc** generalizes fine-mapping by constructing minimal sets of SNPs that causally explain a given proportion (e.g. 50%) of SNP heritability.
 
 <br><br>
 # Installation
-PolyFun is designed for Python 3, and requires the following freely available Python packages:
+PolyFun and PolyLoc are designed for Python 3, and require the following freely available Python packages:
 * [numpy](http://www.numpy.org/) and [scipy](http://www.scipy.org/)
 * [scikit-learn](http://scikit-learn.org/stable/)
 * [pandas](https://pandas.pydata.org/getpandas.html) (version >=0.24.0)
@@ -17,12 +22,12 @@ It is recommended (but not required) to also install the following:
 * [R version 3.5.1 or higher](https://www.r-project.org/)
 * [Ckmeans.1d.dp](https://cran.r-project.org/web/packages/Ckmeans.1d.dp/index.html) (a package for R, that will be invoked from python via the rpy2 package).
 
-If rpy2 or Ckmeans.1d.dp are not installed, PolyFun will fallback to suboptimal clustering via scikit-learn.
+If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
 
 
-We recommend running PolyFun via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the Python packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
+We recommend running PolyFun/PolyLoc via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the Python packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
 
-Once all the prerequisite packages are installed, you can install PolyFun on a git-enabled machine by typing:
+Once all the prerequisite packages are installed, you can install PolyFun/PolyLoc on a git-enabled machine by typing:
 ```
 git clone https://github.com/omerwe/polyfun
 ```
@@ -30,7 +35,7 @@ git clone https://github.com/omerwe/polyfun
 
 
 <br><br>
-# Usage overview
+# Overview of PolyFun
 There are three ways to run PolyFun:
 1. **Using precomputed prior causal probabilities of 19 million imputed [UK Biobank](https://www.ukbiobank.ac.uk) SNPs with MAF>0.1%, based on a meta-analysis of 15 UK Biobank traits**. This is the simplest approach, but it may not include all your SNPs of interest (especially when analyzing non-European populations) and the prior causal probabilities may not be optimal for some traits.
 2. **Computing prior causal probabilities via an L2-regularized extension of [stratified LD-score regression (S-LDSC)](https://www.nature.com/articles/ng.3404)**. This is a relatively simple approach, but the prior causal probabilities may not be robust to modeling misspecification.
@@ -46,7 +51,7 @@ PolyFun uses input files that are very similar to [the input files of S-LDSC](ht
 
 <br><br>
 
-# Approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
+# PolyFun approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
 Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the per-SNP heritabilities of these SNPs. To do this, use the following command:
 ```
 python extract_snpvar.py --snps <snps_file> --out <output_prefix>
@@ -78,7 +83,7 @@ The column `SNPVAR` contains the per-SNP heritabilities, which are proportional 
 
 <br><br>
 
-# Approach 2: Computing prior causal probabilities via an L2-regularized extension of S-LDSC
+# PolyFun approach 2: Computing prior causal probabilities via an L2-regularized extension of S-LDSC
 This is done in two stages:
 
 #### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
@@ -134,7 +139,7 @@ The parameters we provided are the following:
 We strongly encourage that you look at the input files provided in the `example_data` directory to get a sense of their structure.
 
 <br><br>
-# Approach 3: Computing prior causal probabilities non-parametrically
+# PolyFun approach 3: Computing prior causal probabilities non-parametrically
 This is done in four stages:
 
 #### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
