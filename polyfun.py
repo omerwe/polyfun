@@ -99,7 +99,7 @@ def check_args(args):
         if args.w_ld_chr is None:
             raise ValueError('--w-ld-chr must be specified when using --compute-h2-bins')
         if args.ref_ld_chr is not None and not args.compute_ldscores:
-            raise ValueError('--ref-ld-chr should not be specified when using --compute-h2-bins, unless you also specify --compute-ldscores')
+            raise ValueError('--ref-ld-chr should not be specified when using --compute-h2-bins, unless you also use --compute-ldscores')
             
             
     return args
@@ -178,6 +178,8 @@ def get_file_name(args, file_type, chr_num, verify_exists=True, allow_multiple=F
         file_name = args.output_prefix + '.%d.snpvar_ridge_constrained.gz'%(chr_num)        
     elif file_type == 'snpvar_constrained':
         file_name = args.output_prefix + '.%d.snpvar_constrained.gz'%(chr_num)        
+    elif file_type == 'snpvar':
+        file_name = args.output_prefix + '.%d.snpvar.gz'%(chr_num)        
     elif file_type == 'bins':
         file_name = args.output_prefix + '.%d.bins.parquet'%(chr_num)
     elif file_type == 'M':
@@ -260,7 +262,8 @@ class PolyFun:
             M_annot = self.M
             w_ld_cname = 'w_ld'
             ref_ld_cnames = self.df_bins.columns
-            df_sumstats = pd.read_parquet(args.sumstats)
+            if args.sumstats.endswith('.parquet'): df_sumstats = pd.read_parquet(args.sumstats)            
+            else: df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
             ###merge everything together...
             
         #prepare LD-scores for S-LDSC run
@@ -422,6 +425,67 @@ class PolyFun:
         
         
         
+    def create_df_bins(self, bin_sizes, df_snpvar, df_snpvar_sorted=None, min_bin_size=10):
+    
+        #sort df_snpvar if needed
+        if df_snpvar_sorted is None:
+            df_snpvar_sorted = df_snpvar['SNPVAR'].sort_values()
+        assert bin_sizes.sum() == df_snpvar_sorted.shape[0]
+        
+        
+        #rearrange bins to prevent very small bins
+        bin_i = len(bin_sizes)-1
+        while True:
+        
+            #if the current bin is large enough, proceed to the previous one
+            if bin_sizes[bin_i] >= min_bin_size:
+                bin_i -= 1
+                if bin_i==0: break
+                continue
+            
+            #Compare the effects of the weakest bin in the current bin, and the strongest bin in the previous bin
+            bin_start_ind = bin_sizes[:bin_i].sum()
+            weakest_bin_snp = df_snpvar_sorted.iloc[::-1].iloc[bin_start_ind]
+            strongest_lastbin_snp = df_snpvar_sorted.iloc[::-1].iloc[bin_start_ind-1]
+                
+            num_snps_to_transfer = np.minimum(min_bin_size-bin_sizes[bin_i], bin_sizes[bin_i-1])
+            bin_sizes[bin_i] += num_snps_to_transfer
+            bin_sizes[bin_i-1] -= num_snps_to_transfer
+            
+            #if we emptied the previous bin, delete it
+            if bin_sizes[bin_i-1]==0:
+                bin_sizes = np.concatenate((bin_sizes[:bin_i-1], bin_sizes[bin_i:]))
+                bin_i -= 1
+            
+            #if the current bin is large enough, move to the previous one
+            if bin_sizes[bin_i] >= min_bin_size:
+                bin_i -= 1
+                
+            if bin_i==0: break
+                         
+        
+        #create df_bins
+        ind=0
+        df_bins = pd.DataFrame(index=df_snpvar_sorted.index)        
+        for bin_i, bin_size in enumerate(bin_sizes):
+            snpvar_bin = np.zeros(df_bins.shape[0], dtype=np.bool)
+            snpvar_bin[ind : ind+bin_size] = True
+            df_bins['snpvar_bin%d'%(len(bin_sizes) - bin_i)] = snpvar_bin
+            ind += bin_size
+        assert np.all(df_bins.sum(axis=0) == bin_sizes)
+        df_bins = df_bins.iloc[:, ::-1]
+        assert df_bins.shape[0] == df_snpvar.shape[0]
+        assert np.all(df_bins.sum(axis=1)==1)
+
+        #reorder df_bins
+        df_bins = df_bins.loc[df_snpvar.index]
+        df_bins = pd.concat((df_snpvar[SNP_COLUMNS], df_bins), axis=1)
+        assert np.all(df_bins.index == df_snpvar.index)
+        
+        return df_bins
+            
+        
+        
     def partition_snps_Ckmedian(self, args, use_ridge):
         logging.info('Clustering SNPs into bins using the R Ckmeans.1d.dp package')
         
@@ -453,7 +517,7 @@ class PolyFun:
             df_snpvar = self.df_snpvar
 
         #sort df_snpvar
-        df_snpvar_sorted = df_snpvar['SNPVAR'].sort_values()        
+        df_snpvar_sorted = df_snpvar['SNPVAR'].sort_values()
         
         #perform the segmentation
         if args.num_bins is None or args.num_bins<=0:
@@ -461,28 +525,14 @@ class PolyFun:
             seg_obj = median_seg_func(df_snpvar_sorted.values, k=np.array([5,30]))
         else:
             seg_obj = median_seg_func(df_snpvar_sorted.values, k=args.num_bins)
-        sizes = np.array(seg_obj.rx2('size')).astype(np.int)
-        assert sizes.sum() == df_snpvar_sorted.shape[0]
+        bin_sizes = np.array(seg_obj.rx2('size')).astype(np.int)
+        num_bins = len(bin_sizes)
+        logging.info('Ckmedian.1d.dp partitioned SNPs into %d bins'%(num_bins))        
 
-        #create df_bins
-        num_bins = len(sizes)
-        logging.info('Ckmedian.1d.dp partitioned SNPs into %d bins'%(num_bins))
-        ind=0
-        df_bins = pd.DataFrame(index=df_snpvar_sorted.index)
-        for s_i, s in enumerate(sizes):
-            snpvar_bin = np.zeros(df_bins.shape[0], dtype=np.bool)
-            snpvar_bin[ind : ind+s] = True
-            df_bins['snpvar_bin%d'%(num_bins-s_i)] = snpvar_bin
-            ind += s
-        assert df_bins.shape[0] == df_snpvar.shape[0]
-        assert np.all(df_bins.sum(axis=1)==1)
-
-        #reorder df_bins
-        df_bins = df_bins.loc[df_snpvar.index]
-        df_bins = pd.concat((df_snpvar[SNP_COLUMNS], df_bins), axis=1)
-        assert np.all(df_bins.index == df_snpvar.index)
-        
+        #define df_bins
+        df_bins = self.create_df_bins(bin_sizes, df_snpvar, df_snpvar_sorted=df_snpvar_sorted)
         return df_bins
+        
         
         
         
@@ -497,27 +547,28 @@ class PolyFun:
             raise ImportError('sklearn not properly installed. Please reinstall it')
             
         #access the right class member
-        if use_ridge:
-            df_snpvar = self.df_snpvar_ridge
-        else:
-            df_snpvar = self.df_snpvar
+        if use_ridge: df_snpvar = self.df_snpvar_ridge            
+        else: df_snpvar = self.df_snpvar
+            
             
         #perform K-means clustering
         kmeans_obj = KMeans(n_clusters=args.num_bins)
         kmeans_obj.fit(df_snpvar[['SNPVAR']])
         assert kmeans_obj.cluster_centers_.shape[0] == args.num_bins
 
-        #Create df_bins
-        bins_order = np.argsort(kmeans_obj.cluster_centers_[:,0])[::-1]
-        df_bins = pd.DataFrame(index=df_snpvar.index)
-        for bin_i, cluster_label in enumerate(bins_order):        
-            df_bins['snpvar_bin%d'%(bin_i+1)] = (kmeans_obj.labels_==cluster_label)
-            assert df_bins['snpvar_bin%d'%(bin_i+1)].any()
-        assert np.all(df_bins.sum(axis=1)==1)
+        #Make sure that clusters are contiguous
+        bins_order = np.argsort(kmeans_obj.cluster_centers_[:,0])
+        for bin_i, cluster_label in enumerate(bins_order[:-1]):
+            next_cluster_label = bins_order[bin_i+1]
+            assert df_snpvar.loc[kmeans_obj.labels_==cluster_label, 'SNPVAR'].max() <= df_snpvar.loc[kmeans_obj.labels_==next_cluster_label, 'SNPVAR'].min()
         
+        #define bin_sizes
+        bin_sizes = np.bincount(kmeans_obj.labels_)[bins_order]
+            
+        #define df_bins
+        df_bins = self.create_df_bins(bin_sizes, df_snpvar, df_snpvar_sorted=None)
         return df_bins
         
-
 
     def partition_snps_to_bins(self, args, use_ridge):
     
@@ -552,11 +603,8 @@ class PolyFun:
             logging.info('Saving SNP variances to disk')
         
         #determine which df_snpvar to use
-        if use_ridge:
-            df_snpvar = self.df_snpvar_ridge
-        else:
-            df_snpvar = self.df_snpvar
-            assert constrain_range
+        if use_ridge: df_snpvar = self.df_snpvar_ridge            
+        else: df_snpvar = self.df_snpvar
 
         #constrain the ratio between the largest and smallest snp-var
         if constrain_range:
@@ -568,7 +616,8 @@ class PolyFun:
             assert np.isclose(df_snpvar['SNPVAR'].sum(), h2_total)
             
         #merge snpvar with sumstats
-        df_sumstats = pd.read_parquet(args.sumstats)
+        if args.sumstats.endswith('.parquet'): df_sumstats = pd.read_parquet(args.sumstats)            
+        else: df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
         for col in ['SNP', 'A1', 'A2']:
             if col not in df_sumstats.columns:
                 raise ValueError('sumstats file has a missing column: %s'%(col))        
@@ -580,13 +629,10 @@ class PolyFun:
         for chr_num in tqdm(range(1,23)):
         
             #define output file name
-            if use_ridge:
-                if constrain_range:
-                    snpvar_chr_file = get_file_name(args, 'snpvar_ridge_constrained', chr_num, verify_exists=False)
-                else:
-                    snpvar_chr_file = get_file_name(args, 'snpvar_ridge', chr_num, verify_exists=False)
-            else:
-                snpvar_chr_file = get_file_name(args, 'snpvar_constrained', chr_num, verify_exists=False)
+            output_fname = 'snpvar'
+            if use_ridge: output_fname += '_ridge'
+            if constrain_range: output_fname += '_constrained'
+            snpvar_chr_file = get_file_name(args, output_fname, chr_num, verify_exists=False)
                 
             #save snpvar to file
             df_snpvar_chr = df_snpvar.query('CHR==%d'%(chr_num))
@@ -629,9 +675,9 @@ class PolyFun:
         for chr_num in tqdm(chr_range, disable=len(chr_range)==1):
         
             #load or extract the bins for the current chromosome
-            if args.compute_h2_L2:
+            try:
                 df_bins_chr = self.df_bins.query('CHR==%d'%(chr_num))
-            else:
+            except AttributeError:
                 df_bins_chr = self.load_bins_chr(args, chr_num)
                 
             #compute LD-scores for this chromosome
@@ -644,7 +690,7 @@ class PolyFun:
                 
             #save the LD-scores to disk
             ldscores_output_file = get_file_name(args, 'ldscores', chr_num, verify_exists=False)
-            df_ldscores_chr.to_parquet(ldscores_output_file)
+            df_ldscores_chr.to_parquet(ldscores_output_file, index=False)
             
             # #add the ldscores to the LDscores list
             # df_ldscores_chr_list.append(df_ldscores_chr)
@@ -752,15 +798,15 @@ class PolyFun:
         
 
     
-    def compute_h2_bins(self, args):
+    def compute_h2_bins(self, args, constrain_range):
         #run S-LDSC 
         self.run_ldsc(args, use_ridge=False)
 
-        #compute per-SNP h^2 based on L2-regularized S-LDSC coefficients
+        #compute per-SNP h^2
         self.compute_snpvar(args, use_ridge=False)
         
-        #save L2-regularized S-LDSC per-SNP h^2 to disk
-        self.save_snpvar_to_disk(args, use_ridge=False, constrain_range=True)
+        #save per-SNP h^2 to disk
+        self.save_snpvar_to_disk(args, use_ridge=False, constrain_range=constrain_range)
 
     
         
@@ -777,7 +823,7 @@ class PolyFun:
             self.compute_ld_scores(args)
         
         if args.compute_h2_bins:
-            self.compute_h2_bins(args)
+            self.compute_h2_bins(args, constrain_range=True)
         
     
 
@@ -831,7 +877,7 @@ if __name__ == '__main__':
     configure_logger(args.output_prefix)
         
     #check and fix args
-    args = check_args(args)
+    args = check_args(args)    
     check_files(args)
     
     #create and run PolyFun object
