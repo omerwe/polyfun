@@ -253,6 +253,96 @@ python compute_ldscores.py \
 ```
 Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chromosome 1 SNPs, `--annot` is the name of an annotations file, and `--out` is the name of an output file.  The script also accepts a `--keep <keep file>` parameter to use a subset of individuals for faster computation. This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC requires python 2 and does not use the columns A1, A2 in the LD-score and annotation files.
 
+<br><br>
+# Overview of PolyLoc
+PolyLoc takes a file with posterior means and standard deviations of causal effect sizes (estimated by PolyFun) as input. PolyLoc uses this file to partition SNPs into bins of similar posterior per-SNP heritability and estimates the heritability causally explained by each bin. PolyLoc consists of three stages:
+1. Partition SNPs into bins of similar posterior per-SNP heritability
+2. Compute LD-scores for these bins
+3. Estimate the heritability casaully explained by each bin. **This stage requires summary statistics based on different data than the data used to run PolyFun** (see [Weissbrod et al. 2019 bioRxiv for details](https://www.biorxiv.org/content/10.1101/807792v2)).
+<br>
+We now describe each of these stages in detail.
+
+#### PolyLoc stage 1: Partition SNPs into bins of similar posterior per-SNP heritability
+This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci). Here is an example file (seen via `zcat example_data/posterior_betas.gz`):
+```
+CHR  SNP         BP        A1  A2  Z         N       BETA_MEAN  BETA_SD
+1    rs13303118  918384    G   T   -3.33952  383290  -0.00375   0.00041
+1    rs13303016  1946591   G   A   0.21344   383290  0.00141    0.00008
+1    rs13303344  1948400   C   A   0.15171   383290  -0.00091   0.00022
+1    rs10737392  5048934   A   C   -0.26310  383290  -0.00170   0.00031
+1    rs9439538   5215736   T   C   -1.96048  383290  -0.00283   0.00043
+1    rs4908904   6580250   C   T   -2.67681  383290  -0.00389   0.00000
+1    rs4908646   7581993   G   A   -2.06006  383290  -0.00427   0.00136
+1    rs6577525   8857104   G   A   0.74090   383290  0.00068    0.00021
+1    rs2847337   10502710  A   G   -1.10966  383290  -0.00160   0.00007
+```
+The column `BETA_MEAN` contains the posterior means of causal effect sizes (as estimated by PolyFun), and the column `BETA_SD` contains their posterior standard deviation. The other required columns are `CHR`, `SNP`, `BP`, `A1`, `A2`.
+
+Here is an example command that uses this file:
+```
+python polyloc.py \
+    --compute-partitions \
+    --output-prefix output/polyloc_test \
+    --posterior example_data/posterior_betas.gz \
+    --bfile-chr example_data/reference. 
+```
+The parameters we provided are the following:
+1. `--compute-partitions` - this tells PolyLoc to partition SNPs into bins of similar posterior per-SNP heritability
+2. `--output-prefix` - this specifies the prefix of all PolyLoc output file names
+3. `--posterior` - this specifies the input file with posterior means and standard deviations of causal effect sizes. This file should ideally include information for all SNPs. Every SNP not included in this file will be treated as if its posterior causal effect size is approximately zero, potentially leading to suboptimal polygenic localization if it's an important SNP. As in PolyFun, this file can either be a text file (possibly gzipped) or a parquet file, which allows faster loading.
+4. `--bfile-chr` - this is the prefix of plink files that PolyLoc will use to assign SNPs not reported in the `--posterior` file into bins. As in PolyFun, there must be one plink file for each chromosome.
+
+<br>
+
+Additional optional parameters are:
+1. `--skip-Ckmedian` - This tells PolyLoc to partition SNPs into bins using scikits-learn instead of Ckmedian. This is a suboptimal clustering, so Ckmedian is preferable. You should only specify this argument if rpy2 and/or Ckmeans.1d.dp are not installed on your machine or you can't get them to run.
+2. `-num-bins <K>` - this specifies the number of bins to partition SNPs into. By default PolyLoc will try to estimate this number. You should specify this number if either (a) you specified `--skip-Ckmedian` (because scikits-learn cannot estimate the number of bins) or (b) the estimation is too slow.
+
+## PolyLoc stage 2: Compute LD-scores for these bins
+This stage is similar to the LD-score computation stage in PolyFun. Here is an example command that computes LD-scores for the PolyLoc bins in chromosome 1:
+```
+python polyloc.py \
+    --output-prefix output/polyloc_test \
+    --compute-ldscores \
+    --bfile-chr example_data/reference. \
+    --chr 1
+```
+PolyLoc accepts the same parameters as PolyFun for LD-scores computations. Note that if you remove the parameter `--chr 1`, PolyLoc will compute LD-scores for all chromosomes, which may take a long time.
+
+## PolyLoc stage 3: Estimate the heritability casaully explained by each bin
+This stage requires LD-score weights files and a summary statistics file **that is different** from the one used to comptue posterior causal effect sizes. **This is important to prevent biased estimates due to winner's curse**. Here is an example command:
+```
+python polyloc.py \
+    --output-prefix output/polyloc_test \
+    --compute-polyloc \
+    --w-ld-chr example_data/weights. \
+    --sumstats example_data/sumstats2.parquet
+```
+The output of this command is a polygenic localization table. Here is the output of this example, which you can see by typing `cat output/polyloc_test.polyloc`:
+```
+BIN  BIN_SIZE  %H2      SUM_%H2
+1    10        0.14533  0.14533
+2    14        0.12028  0.26561
+3    23        0.08489  0.35050
+4    51        0.11624  0.46674
+5    53        0.07616  0.54290
+6    56        0.05838  0.60129
+7    115       0.07825  0.67954
+8    157       0.07197  0.75150
+9    168       0.06363  0.81513
+10   199       0.05308  0.86822
+11   247       0.04623  0.91444
+12   267       0.03441  0.94886
+13   264       0.03232  0.98117
+14   366       0.01023  0.99140
+15   402       0.00526  0.99666
+16   483       0.00334  1.00000
+17   617       0.00000  1.00000
+```
+The output shows that PolyLoc partitioned SNPs into 17 bins of similar posterior per-SNP heritability. The first bin includes 10 SNPs that jointly explain 14.5% of the total SNP heritability, the second bin includes 14 SNPs that jointly explain 12% of the total SNP heritability, and so on. The SNPs are sorted based on their posterior per-SNP heritability estimates (i.e., the sum of their squared posterior mean and their squared posterior standard deviation).
+
+As in PolyFun, you can run jointly multiple stages of PolyLoc by using several mode parameters (e.g. `python polyloc.py ----compute-partitions --compute-ldscores --compute-polyloc`).
+
 
 <br><br>
 # FAQ
