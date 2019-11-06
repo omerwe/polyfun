@@ -17,6 +17,7 @@ PolyFun and PolyLoc are designed for Python 3, and require the following freely 
 * [pandas](https://pandas.pydata.org/getpandas.html) (version >=0.24.0)
 * [tqdm](https://github.com/tqdm/tqdm)
 * [pyarrow](https://arrow.apache.org/docs/python/install.html)
+* [networkx](https://github.com/networkx/networkx) (only required for HESS-based estimation of effect size variance)
 
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
