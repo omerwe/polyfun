@@ -359,10 +359,10 @@ As in PolyFun, you can run jointly multiple stages of PolyLoc by using several m
 # FAQ
 **Q**: Should I create a base annotations that includes only the number 1 for all SNPs?
 <br>
-**A**: Typically yes. However, in some cases the LD-scores for this annotations may be linearly dependent on the LD-scores of your other annotations, in which case you don't need to create this annotation. This can happen if (1) the vector of ones [1.0 1.0 ... 1.0] is linearly dependent on your other annotations (which holds for the baseline-LF annotations); and (2) The LD-score that you compute for each SNP is based on (almost) exactly the same set of SNPs as your set of regression SNPs.
+**A**: Typically yes. However, in some cases the LD-scores for this annotation may be linearly dependent on the LD-scores of your other annotations, in which case you don't need to create this annotation. This can happen if (1) the vector of ones [1.0 1.0 ... 1.0] is linearly dependent on your other annotations (which holds for the baseline-LF annotations); and (2) The LD-score that you compute for each SNP is based on (almost) exactly the same set of SNPs as your set of summary statistics SNPs. Hence, we did not include a base annotation in our version of the baseline-LF annotations.
 <br>
 <br>
-**Q**: Can I add extra annotations on top of the baseline-LF annotations, without creating new huge files from scratch?
+**Q**: Can I add extra annotations on top of the baseline-LF annotations, without creating huge new files from scratch?
 <br>
 **A**: Yes. The flag `--ref-ld-chr` accepts a comma-separated list of file name prefixes, just like standard S-LDSC. For example, you can create a set of annotation files called my_annot.1.annot.parquet, ... my_annot.22.annot.parquet, and then invoke polyfun as follows:
 ```
