@@ -64,8 +64,9 @@ The snps_file should be a whitespace-delimited file (that can be gzipped) with a
 
 Here is a toy example you can try:
 ```
-python extract_snpvar.py --snps snps_to_finemap.txt.gz --out snps_with_priors
-zcat snps_with_priors.snpvar.gz | head
+mkdir -p output
+python extract_snpvar.py --snps example_data/snps_to_finemap.txt.gz --out output/snps_with_var.gz
+zcat output/snps_with_var.gz | head
 ```
 The top lines of the output should be:
 ```
