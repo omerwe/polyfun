@@ -264,18 +264,18 @@ PolyLoc takes an input file with posterior means and standard deviations of caus
 PolyLoc and PolyFun have similar input files and they share many command-line arguments. You can see all the PolyLoc options by typing `python polyloc.py --help`. We now describe each of the stages of PolyLoc in detail.
 
 #### PolyLoc stage 1: Partition SNPs into bins of similar posterior per-SNP heritability
-This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci). Here is an example file (seen via `zcat example_data/posterior_betas.gz`):
+This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci). Here is an example file (seen via `zcat example_data/posterior_betas.gz | head`):
 ```
-CHR  SNP         BP        A1  A2  Z         N       BETA_MEAN  BETA_SD
-1    rs13303118  918384    G   T   -3.33952  383290  -0.00375   0.00041
-1    rs13303016  1946591   G   A   0.21344   383290  0.00141    0.00008
-1    rs13303344  1948400   C   A   0.15171   383290  -0.00091   0.00022
-1    rs10737392  5048934   A   C   -0.26310  383290  -0.00170   0.00031
-1    rs9439538   5215736   T   C   -1.96048  383290  -0.00283   0.00043
-1    rs4908904   6580250   C   T   -2.67681  383290  -0.00389   0.00000
-1    rs4908646   7581993   G   A   -2.06006  383290  -0.00427   0.00136
-1    rs6577525   8857104   G   A   0.74090   383290  0.00068    0.00021
-1    rs2847337   10502710  A   G   -1.10966  383290  -0.00160   0.00007
+CHR  SNP         BP       A1  A2  Z         N       BETA_MEAN  BETA_SD
+1    rs3748597   888659   T   C   0.85233   383290  0.00021    0.00005
+1    rs6661956   2465912  C   T   0.98513   383290  0.00161    0.00006
+1    rs2376821   2974852  T   C   -0.73402  383290  -0.00186   0.00111
+1    rs10797386  3168280  A   G   -0.59635  383290  -0.00057   0.00006
+1    rs7548372   4943523  C   A   2.60293   383290  0.00643    0.00014
+1    rs6678838   5003147  G   T   1.10294   383290  0.00135    0.00008
+1    rs6675995   5226752  G   A   -1.22154  383290  -0.00027   0.00034
+1    rs2012852   5541205  C   A   0.30166   383290  0.00022    0.00027
+1    rs10864271  7135268  A   G   2.03717   383290  0.00471    0.00031
 ```
 The column `BETA_MEAN` contains the posterior means of causal effect sizes (as estimated by PolyFun), and the column `BETA_SD` contains their posterior standard deviation. The other required columns are `CHR`, `SNP`, `BP`, `A1`, `A2`.
 
