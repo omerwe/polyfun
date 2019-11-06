@@ -49,7 +49,7 @@ Below are instructions and examples on how to use each approach. We recommend th
 <br>
 ### A note on file formats
 PolyFun uses input files that are very similar to [the input files of S-LDSC](https://github.com/bulik/ldsc/wiki/LD-File-Formats). The main differences are:
-1. The .annot files **must** contain two addditinal columns called A1,A2 which encode the identifies of the reference and alternative allele
+1. The .annot files **must** contain two additional columns called A1,A2 which encode the identifies of the reference and alternative allele
 2. The .l2.ldscore files **may** contain the additional columns A1,A2. We strongly encourage including these columns.
 3. Polyfun supports files in [.parquet format](https://parquet.apache.org) in addition to .gzip/.bzip2 formats. Parquet files can be loaded substantially faster than alternative formats, at the cost of slightly larger file sizes.
 
@@ -62,7 +62,7 @@ python extract_snpvar.py --snps <snps_file> --out <output_file>
 ```
 The snps_file should be a whitespace-delimited file (that can be gzipped) with a header line and at least one of the following two combinations of columns:
 1. SNP, A1, A2 - SNP name, reference allele, alternative allele
-2. CHR, BP, A1, A2 - chromosome, basepair position (in hg19 coordinates), reference allele, alternative allele
+2. CHR, BP, A1, A2 - chromosome, base pair position (in hg19 coordinates), reference allele, alternative allele
 
 Here is a toy example you can try:
 ```
@@ -92,7 +92,7 @@ The column `SNPVAR` contains the per-SNP heritabilities, which are proportional 
 This is done in two stages:
 
 #### 1. Create a munged summary statistics file in a PolyFun-friendly [parquet](https://parquet.apache.org) format.
-To do this, use the script `munge_polyfun_sumstats.py`, which takes an input summary statistics file and creates a munged output file. The script tries to be flexible and accomodate multiple file formats and column names. It generally requires only a sample size parameter (n) and a whitespace-delimited input file with SNP rsids, chromosome and basepair info, and either a p-value, an effect size estimate and its standard error, a Z-score or a p-value.
+To do this, use the script `munge_polyfun_sumstats.py`, which takes an input summary statistics file and creates a munged output file. The script tries to be flexible and accommodate multiple file formats and column names. It generally requires only a sample size parameter (n) and a whitespace-delimited input file with SNP rsids, chromosome and base pair info, and either a p-value, an effect size estimate and its standard error, a Z-score or a p-value.
 
 Here is a usage example:
 ```
@@ -106,7 +106,7 @@ python munge_polyfun_sumstats.py \
 This takes the input BOLT-LMM file `example_data/boltlmm_sumstats.gz` and converts it to the parquet file `example_data/sumstats_munged.parquet`, excluding SNPs with INFO score<0.6, with MAF<0.001 or in the MHC region. It will additionally compute the [BOLT-LMM effective sample size](https://www.nature.com/articles/s41588-018-0144-6). You can see other possible arguments with the command `python munge_polyfun_sumstats.py --help`. You can see the output file by opening the parquet file through python with the command `df = pd.read_parquet('example_data/sumstats_munged.parquet')`
 
 #### 2. Run PolyFun with L2-regularized S-LDSC
-In this stage PolyFun will estimate per-SNP heritabilities for SNPs on odd (resp. even) chromosomes by applying L2-regularized S-LDSC to even (resp. odd) chromosomes. To do this, run the scripy `polyfun.py`. This script handles all possible uses of PolyFun, but here we'll only compute prior causal probabilities with L2-extended S-LDSC, using a subset of the [baseline-LF model annotations](https://www.nature.com/articles/s41588-018-0231-8). Here is an example command, that uses 8 annotations from the baseline-LF model:
+In this stage PolyFun will estimate per-SNP heritabilities for SNPs on odd (resp. even) chromosomes by applying L2-regularized S-LDSC to even (resp. odd) chromosomes. To do this, run the script `polyfun.py`. This script handles all possible uses of PolyFun, but here we'll only compute prior causal probabilities with L2-extended S-LDSC, using a subset of the [baseline-LF model annotations](https://www.nature.com/articles/s41588-018-0231-8). Here is an example command, that uses 8 annotations from the baseline-LF model:
 ```
 mkdir -p output
 
@@ -214,7 +214,7 @@ The `SNPVAR` column contains per-SNP heritabilities. These can be used directly 
 Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP. We recommend using the script **run_finemapper.py**, which saves many of the preprocessing steps requires to perform fine-mapping. Alternatively, you can run SuSiE or FINEMAP directly with the prior causal probabilities computed by PolyFun, as described below.
 
 ## Using prior causal probabilities using the run_finemapper script
-The script `run_finemapper` takes an input a file with summary statistics and a file with genotypes from a referencel panel, and performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. `run_finemapper` computes an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. `run_finemapper` can cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
+The script `run_finemapper` takes an input a file with summary statistics and a file with genotypes from a reference panel, and performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. `run_finemapper` computes an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. `run_finemapper` can cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
 
 To run `run_finemapper` with SuSiE, you need to install [rpy2](https://rpy2.bitbucket.io/) and [the SuSiE package](https://github.com/stephenslab/susieR) on your system. To run it with FINEMAP, you need to install [the FINEMAP software](http://www.christianbenner.com) on your system. 
 
@@ -260,7 +260,7 @@ We now describe the command-lime arguments of `run_finemapper` in detail:
 2. **--sumstats** - The name of a summary statistics file, which must include the columns `SNP`, `CHR`, `BP`, `A1`, `A2`, `Z` (z-score). This file can also include a column called `SNPVAR` that specifies prior per-SNP heritability. If it exists (and unless requested otherwise), `run_finemapper` will use this column to perform functionally-informed fine-mapping. We recommend using the output files of PolyFun as input sumstats files for `run_finemapper`.
 3. **--n** - the sample size used to generate summary statistics. In case the summary statistics were computed with [BOLT-LMM](https://data.broadinstitute.org/alkesgroup/BOLT-LMM), we recommend specifying the [effective sample size](https://www.nature.com/articles/s41588-018-0144-6) (this quantity is automatically computed by `munge_polyfun_sumstats.py`).
 4. **--chr** - the target chromosome to fine-map.
-5. **--start**, **--end** - the start and end positions of the target locus to finemap (basepair coordinates).
+5. **--start**, **--end** - the start and end positions of the target locus to finemap (base pair coordinates).
 6. **--method** - the fine-mapping method. `run_finemapper` currently supports only `--method susie`, but FINEMAP support is coming soon.
 7. **--max-num-causal** - the max number of causal SNPs that can be modeled (for FINEMAP) or the exact number (for SuSiE).
 8. **--cache-dir** - a directory that will cache LD matrices for future reuse. If not specified, LD matrices will be saved to a temp directory and deleted after the script terminates.
@@ -366,7 +366,7 @@ Additional optional parameters are:
 1. `--skip-Ckmedian` - This tells PolyLoc to partition SNPs into bins using scikits-learn instead of Ckmedian. This is a suboptimal clustering, so Ckmedian is preferable. You should only specify this argument if rpy2 and/or Ckmeans.1d.dp are not installed on your machine or you can't get them to run.
 2. `-num-bins <K>` - this specifies the number of bins to partition SNPs into. By default PolyLoc will try to estimate this number. You should specify this number if either (a) you specified `--skip-Ckmedian` (because scikits-learn cannot estimate the number of bins) or (b) the estimation is too slow.
 
-####### Other notes and comments:
+###### Other notes and comments:
 1. If you use `run_finemapper` to fine-map multiple loci, you can concatenate the output files of these loci (making sure there aren't duplicate SNPs that appear twice) and provide the concatenated file as an input posterior file.
 
 ## PolyLoc stage 2: Compute LD-scores for the SNP bins
@@ -381,14 +381,14 @@ python polyloc.py \
 ###### Please note the following:
 1. PolyLoc accepts the same parameters as PolyFun for LD-scores computations.
 2. You must specify the same `--output-prefix` argument that you provided in stage 1, because PolyLoc requires intermediate files that were created in stage 1.
-3. If you remove the flag `--chr `, PolyLoc will iterate over all chromosomes and compute LD-scores for all of them, which may take a long time.
+3. If you remove the flag `--chr`, PolyLoc will iterate over all chromosomes and compute LD-scores for all of them, which may take a long time.
 4. This stage requires individual-level genotypic data from a large reference panel that is population-matched to your study. Ideally this data should come from your study directly. In this example we used a small subset of SNPs of European-ancestry individuals from the [1000 genomes project](https://www.internationalgenome.org).
 5. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyloc.py --help` to see all available parameters. The parameter `--keep <keep file>` can be especially useful if you have a very large reference panel and would like to speed-up the computations by using only a subset of individuals.
 6. You can run stages 1 and 2 together by invoking `polyloc.py` with both the flags `--compute-partitions` and `--compute-ldscores`.
 
 
 ## PolyLoc stage 3: Estimate the heritability casaully explained by each bin
-This stage requires LD-score weights files and a summary statistics file **that is different from the one used to comptue posterior causal effect sizes (to prevent biased estimates due to winner's curse)**. Here is an example command:
+This stage requires LD-score weights files and a summary statistics file **that is different from the one used to compute posterior causal effect sizes (to prevent biased estimates due to winner's curse)**. Here is an example command:
 ```
 python polyloc.py \
     --output-prefix output/polyloc_test \
