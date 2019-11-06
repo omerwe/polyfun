@@ -352,7 +352,7 @@ The output shows that PolyLoc partitioned SNPs into 17 bins of similar posterior
 As in PolyFun, you can run jointly multiple stages of PolyLoc by using several mode parameters (e.g. `python polyloc.py ----compute-partitions --compute-ldscores --compute-polyloc`).
 
 ## General notes about PolyLoc
-1. By default, PolyLoc estimates per-bin heritability with respect to all SNPs in the plink files. If you would like to exclude to e.g. only common SNPs (as done in the PolyFun paper), please create plink SNPs with only common SNPs and subset your posterior file accordingly ( no need to subset the sumstats file).
+1. By default, PolyLoc estimates per-bin heritability with respect to all SNPs in the plink files. If you would like to exclude to e.g. only common SNPs (as done in the PolyFun paper), please create plink files with only common SNPs and subset your posterior file accordingly (no need to subset the sumstats file).
 
 
 <br><br>
