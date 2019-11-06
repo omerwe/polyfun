@@ -271,7 +271,7 @@ We now describe the command-lime arguments of `run_finemapper` in detail:
 13. **--hess** - if specified, the prior causal effect size variance will be determined using a modified [HESS](https://www.sciencedirect.com/science/article/pii/S0002929716301483) procedure, as described in the PolyFun paper. Otherwise, the causal effect size variance will be estimated by SuSiE and/or FINEMAP.
 14. **--sample-file** - if you provide a bgen file for `--geno`, you must also provide a SNPTEST2 sample file, like for other tools that use bgen data. This is a simple text file without a header and a single column that contains individual ids. If `--geno` is a plink file, you do not need to provide this argument. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
 15. **--incl-samples** - an optional text file without a header and with a single column that includes the ids of a subset of individuals to use in the LD matrix computation. This can be provided for both plink and bgen files. If not provided, all individuals will be used. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
-16. **--threads** - the number of CPU threads that LDstore will use to compute LD matrices (if not specified, use the max number of availale CPU cores).
+16. **--threads** - the number of CPU threads that LDstore will use to compute LD matrices (if not specified, use the max number of available CPU cores).
 
 ## Using prior causal probabilities in SuSiE directly
 All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `SNPVAR`).
