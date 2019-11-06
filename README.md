@@ -56,7 +56,7 @@ PolyFun uses input files that are very similar to [the input files of S-LDSC](ht
 ## PolyFun approach 1: Using precomputed prior causal probabilities based on a meta-analysis of 15 UK Biobank traits
 Here, all you need to do is provide a file with SNP identifiers. PolyFun will extract the per-SNP heritabilities of these SNPs. To do this, use the following command:
 ```
-python extract_snpvar.py --snps <snps_file> --out <output_prefix>
+python extract_snpvar.py --snps <snps_file> --out <output_file>
 ```
 The snps_file should be a whitespace-delimited file (that can be gzipped) with a header line and at least one of the following two combinations of columns:
 1. SNP, A1, A2 - SNP name, reference allele, alternative allele
