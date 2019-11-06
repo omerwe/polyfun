@@ -311,7 +311,7 @@ python polyloc.py \
 ###### Please note the following:
 1. PolyLoc accepts the same parameters as PolyFun for LD-scores computations.
 2. You must specify the same `--output-prefix` argument that you provided in stage 1, because PolyLoc requires intermediate files that were created in stage 1.
-3. If you remove the flag `--chr `, PolyFun will iterate over all chromosomes and compute LD-scores for all of them, which may take a long time.
+3. If you remove the flag `--chr `, PolyLoc will iterate over all chromosomes and compute LD-scores for all of them, which may take a long time.
 4. This stage requires individual-level genotypic data from a large reference panel that is population-matched to your study. Ideally this data should come from your study directly. In this example we used a small subset of SNPs of European-ancestry individuals from the [1000 genomes project](https://www.internationalgenome.org).
 5. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyloc.py --help` to see all available parameters. The parameter `--keep <keep file>` can be especially useful if you have a very large reference panel and would like to speed-up the computations by using only a subset of individuals.
 6. You can run stages 1 and 2 together by invoking `polyloc.py` with both the flags `--compute-partitions` and `--compute-ldscores`.
