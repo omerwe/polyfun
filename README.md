@@ -376,7 +376,7 @@ python polyfun.py \
 
 <br><br>
 # Contact
-For questions and comments, please contact Omer Weissbrod at oweissbrod[at]hsph.harvard.edu
+For questions and comments, please open a Github issue (preferred) or contact Omer Weissbrod at oweissbrod[at]hsph.harvard.edu
 
 
 
