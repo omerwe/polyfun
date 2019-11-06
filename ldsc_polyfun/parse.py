@@ -22,6 +22,8 @@ def read_csv(fh, **kwargs):
         df = pd.read_hdf(fh)
     elif fh.endswith('.parquet'):
         df = pd.read_parquet(fh)
+        if 'usecols' in kwargs.keys():
+            df = df[kwargs['usecols']]
     else:        
         df = pd.read_csv(fh, delim_whitespace=True, na_values='.', **kwargs)
     
@@ -110,7 +112,7 @@ def sumstats(fh, alleles=True, dropna=True):
 def ldscore_fromlist(flist, num=None):
     '''Sideways concatenation of a list of LD Score files.'''
     ldscore_array = []
-    for i, fh in enumerate(flist):
+    for fh_i, fh in enumerate(flist):
         y = ldscore(fh, num)
         if len(ldscore_array)>0:
             if (not series_eq(y.SNP, ldscore_array[0].SNP)) or (not series_eq(y.index, ldscore_array[0].index)):
@@ -118,13 +120,14 @@ def ldscore_fromlist(flist, num=None):
             else:  # keep SNP and CHR column from only the first file
                 y = y.drop(columns=['SNP', 'CHR'], axis=1)
 
-        new_col_dict = {c: c + '_' + str(i) for c in y.columns if c not in ['SNP', 'CHR']}
+        new_col_dict = {c: c + '_' + str(fh_i) for c in y.columns if c not in ['SNP', 'CHR']}
         y.rename(columns=new_col_dict, inplace=True)
         ldscore_array.append(y)
 
     if len(ldscore_array)==1:
         ldscores_all = ldscore_array[0]
     else:
+        #ldscores_all = pd.concat(ldscore_array, axis=1)
         ldscores_all = pd.concat(ldscore_array, axis=1)
     return ldscores_all
 
