@@ -281,6 +281,8 @@ The column `BETA_MEAN` contains the posterior means of causal effect sizes (as e
 
 Here is an example command that uses this file:
 ```
+mkdir -p output
+
 python polyloc.py \
     --compute-partitions \
     --output-prefix output/polyloc_test \
