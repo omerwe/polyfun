@@ -228,7 +228,7 @@ if __name__ == '__main__':
     
     #write output
     logging.info('Saving munged sumstats to %s'%(args.out))
-    df_sumstats[['SNP', 'A1', 'A2', 'Z', 'N']].to_parquet(args.out)
+    df_sumstats[['SNP', 'CHR', 'BP', 'A1', 'A2', 'Z', 'N']].to_parquet(args.out)
     logging.info('Done')
     
     

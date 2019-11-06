@@ -243,7 +243,7 @@ if __name__ == '__main__':
     parser.add_argument('--posterior', help='Input file with posterior means and variances of causal effect sizes')
     parser.add_argument('--w-ld-chr', help='Suffix of LD-score weights files (as in ldsc)')
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
-    parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyLoc out file namess')    
+    parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyLoc out file names')    
     
     #show splash screen
     splash_screen()

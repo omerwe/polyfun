@@ -618,6 +618,7 @@ class PolyFun:
         #merge snpvar with sumstats
         if args.sumstats.endswith('.parquet'): df_sumstats = pd.read_parquet(args.sumstats)            
         else: df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
+        df_sumstats.drop(columns=['CHR', 'BP'], errors='ignore', inplace=True)
         for col in ['SNP', 'A1', 'A2']:
             if col not in df_sumstats.columns:
                 raise ValueError('sumstats file has a missing column: %s'%(col))        

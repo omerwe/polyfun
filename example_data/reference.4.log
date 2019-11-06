@@ -1,0 +1,29 @@
+PLINK v1.90b4.10 64-bit (3 Nov 2017)
+Options in effect:
+  --allow-no-sex
+  --bfile /n/groups/price/ldsc/reference_files/1000G_EUR_Phase3/plink_files/1000G.EUR.QC.hm3_noMHC.4
+  --extract /tmp/extract.txt
+  --make-bed
+  --out /n/groups/price/omer/polyfun/example_data/reference.4
+
+Hostname: compute-a-16-131.o2.rc.hms.harvard.edu
+Working directory: /n/groups/price/omer/polyfun
+Start time: Wed Nov  6 11:23:55 2019
+
+Random number seed: 1573057435
+257548 MB RAM detected; reserving 128774 MB for main workspace.
+74924 variants loaded from .bim file.
+489 people (0 males, 0 females, 489 ambiguous) loaded from .fam.
+Ambiguous sex IDs written to
+/n/groups/price/omer/polyfun/example_data/reference.4.nosex .
+--extract: 227 variants remaining.
+Using 1 thread (no multithreaded calculations invoked).
+Before main variant filters, 489 founders and 0 nonfounders present.
+Calculating allele frequencies... done.
+227 variants and 489 people pass filters and QC.
+Note: No phenotypes present.
+--make-bed to /n/groups/price/omer/polyfun/example_data/reference.4.bed +
+/n/groups/price/omer/polyfun/example_data/reference.4.bim +
+/n/groups/price/omer/polyfun/example_data/reference.4.fam ... done.
+
+End time: Wed Nov  6 11:23:55 2019
