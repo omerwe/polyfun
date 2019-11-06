@@ -214,7 +214,7 @@ The `SNPVAR` column contains per-SNP heritabilities. These can be used directly 
 Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP. We recommend using the script **run_finemapper.py**, which saves many of the preprocessing steps requires to perform fine-mapping. Alternatively, you can run SuSiE or FINEMAP directly with the prior causal probabilities computed by PolyFun, as described below.
 
 ## Using prior causal probabilities using the run_finemapper script
-The script `run_finemapper` takes an input a file with summary statistics and a file with genotypes from a referencel panel, and performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. `run_finemapper.py` computes an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. `run_finemapper` can cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
+The script `run_finemapper` takes an input a file with summary statistics and a file with genotypes from a referencel panel, and performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. `run_finemapper` computes an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. `run_finemapper` can cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
 
 To run `run_finemapper` with SuSiE, you need to install [rpy2](https://rpy2.bitbucket.io/) and [the SuSiE package](https://github.com/stephenslab/susieR) on your system. To run it with FINEMAP, you need to install [the FINEMAP software](http://www.christianbenner.com) on your system. 
 
@@ -255,8 +255,23 @@ Columns 1-9 describe the input summary statistics (and are based on data from th
 3. **BETA_SD** - posterior standard deviation of causal effect size
 4. **CREDIBLE_SET** - the index of the first (typically smallest) credible set that the SNP belongs to (0 means none).
 
-We now describe the command-lime arguments of `run_finemapper.py` in detail:
-1. 
+We now describe the command-lime arguments of `run_finemapper` in detail:
+1. **--geno** - The name of a .bgen file, or the *prefix* of the name of a plink file (without the suffix .bed). `run_finemapper` will compute an LD matrix using the genotypes in this file. **Warning: this file should ideally contain the same individuals used to generate summary statistics, or at least very closely matched individuals. Using an external reference panel in fine-mapping is strongly discouraged and can lead to severe false-positive results** (see [Benner et al. 2017 AJHG](https://www.cell.com/ajhg/fulltext/S0002-9297(17)30334-8), [Ulirsch et al. 2019 Nat Genet](https://www.nature.com/articles/s41588-019-0362-6) for an investigation of this issue).
+2. **--sumstats** - The name of a summary statistics file, which must include the columns `SNP`, `CHR`, `BP`, `A1`, `A2`, `Z` (z-score). This file can also include a column called `SNPVAR` that specifies prior per-SNP heritability. If it exists (and unless requested otherwise), `run_finemapper` will use this column to perform functionally-informed fine-mapping. We recommend using the output files of PolyFun as input sumstats files for `run_finemapper`.
+3. **--n** - the sample size used to generate summary statistics. In case the summary statistics were computed with [BOLT-LMM](https://data.broadinstitute.org/alkesgroup/BOLT-LMM), we recommend specifying the [effective sample size](https://www.nature.com/articles/s41588-018-0144-6) (this quantity is automatically computed by `munge_polyfun_sumstats.py`).
+4. **--chr** - the target chromosome to fine-map.
+5. **--start**, **--end** - the start and end positions of the target locus to finemap (basepair coordinates).
+6. **--method** - the fine-mapping method. `run_finemapper` currently supports only `--method susie`, but FINEMAP support is coming soon.
+7. **--max-num-causal** - the max number of causal SNPs that can be modeled (for FINEMAP) or the exact number (for SuSiE).
+8. **--cache-dir** - a directory that will cache LD matrices for future reuse. If not specified, LD matrices will be saved to a temp directory and deleted after the script terminates.
+9. **--out** - the name of the output file.
+10. **--ldstore** - the path of the [LDstore](http://www.christianbenner.com) executable on your system.
+11. **--non-funct** - if specified, `run_finemapper` will perform non-functionally informed fine-mapping. In this case it does not require that the sumstats file has a column called `SNPVAR`.
+12. **--verbose** - if specified, `run_finemapper` and the tools it runs will print more detailed output messages.
+13. **--hess** - if specified, the prior causal effect size variance will be determined using a modified [HESS](https://www.sciencedirect.com/science/article/pii/S0002929716301483) procedure, as described in the PolyFun paper. Otherwise, the causal effect size variance will be estimated by SuSiE and/or FINEMAP.
+14. **--sample-file** - if you provide a bgen file for `--geno`, you must also provide a SNPTEST2 sample file, like for other tools that use bgen data. This is a simple text file without a header and a single column that contains individual ids. If `--geno` is a plink file, you do not need to provide this argument. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
+15. **--incl-samples** - an optional text file without a header and with a single column that includes the ids of individuals to use in the LD matrix computation. This can be provided for both plink and bgen files. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
+16. **--threads** - the number of CPU threads that LDstore will use to compute LD matrices (if not specified, use the max number of availale CPU cores).
 
 ## Using prior causal probabilities in SuSiE directly
 All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `SNPVAR`).
@@ -306,7 +321,7 @@ Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chr
 
 <br><br>
 # Overview of PolyLoc
-PolyLoc takes an input file with posterior means and standard deviations of causal effect sizes (estimated by PolyFun). PolyLoc uses this file to partition SNPs into bins of similar posterior per-SNP heritability, and estimates the heritability causally explained by each bin. PolyLoc consists of three stages:
+PolyLoc takes an input file with posterior means and standard deviations of causal effect sizes (estimated by `run_finemapper`). PolyLoc uses this file to partition SNPs into bins of similar posterior per-SNP heritability, and estimates the heritability causally explained by each bin. PolyLoc consists of three stages:
 1. Partition SNPs into bins of similar posterior per-SNP heritability
 2. Compute LD-scores for the SNP bins
 3. Estimate the heritability casaully explained by each bin. **This stage requires summary statistics based on different data than the data used to run PolyFun** (see [Weissbrod et al. 2019 bioRxiv for details](https://www.biorxiv.org/content/10.1101/807792v2)).
@@ -314,7 +329,7 @@ PolyLoc takes an input file with posterior means and standard deviations of caus
 PolyLoc and PolyFun have similar input files and they share many command-line arguments. You can see all the PolyLoc options by typing `python polyloc.py --help`. We now describe each of the stages of PolyLoc in detail.
 
 #### PolyLoc stage 1: Partition SNPs into bins of similar posterior per-SNP heritability
-This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci). Here is an example file (seen via `zcat example_data/posterior_betas.gz | head`):
+This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci), as created by `run_finemapper.py`. Here is an example file (seen via `zcat example_data/posterior_betas.gz | head`):
 ```
 CHR  SNP         BP       A1  A2  Z         N       BETA_MEAN  BETA_SD
 1    rs3748597   888659   T   C   0.85233   383290  0.00021    0.00005
@@ -350,6 +365,9 @@ The parameters we provided are the following:
 Additional optional parameters are:
 1. `--skip-Ckmedian` - This tells PolyLoc to partition SNPs into bins using scikits-learn instead of Ckmedian. This is a suboptimal clustering, so Ckmedian is preferable. You should only specify this argument if rpy2 and/or Ckmeans.1d.dp are not installed on your machine or you can't get them to run.
 2. `-num-bins <K>` - this specifies the number of bins to partition SNPs into. By default PolyLoc will try to estimate this number. You should specify this number if either (a) you specified `--skip-Ckmedian` (because scikits-learn cannot estimate the number of bins) or (b) the estimation is too slow.
+
+####### Other notes and comments:
+1. If you use `run_finemapper` to fine-map multiple loci, you can concatenate the output files of these loci (making sure there aren't duplicate SNPs that appear twice) and provide the concatenated file as an input posterior file.
 
 ## PolyLoc stage 2: Compute LD-scores for the SNP bins
 This stage is similar to the LD-score computation stage in PolyFun. In this stage PolyLoc will compute LD-scores for each SNP bin. This is the most computationally intensive part of PolyLoc. PolyLoc can compute LD-scores for all chromosomes in the same run, or for only one chromosome at a time. The second option is recommended if you can run multiple jobs on a cluster. Here is an example that computes LD-scores for only chromosome 1:
