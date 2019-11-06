@@ -60,5 +60,6 @@ if __name__ == '__main__':
     else:
         raise ValueError('unknown method specified in --method')
     logging.info('Writing fine-mapping results to %s'%(args.out))
+    df_finemap.sort_values('PIP', ascending=False, inplace=True)
     df_finemap.to_csv(args.out, sep='\t', index=False, float_format='%0.5e')
 

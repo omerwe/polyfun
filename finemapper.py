@@ -372,6 +372,7 @@ class SUSIE_Wrapper(Fine_Mapping):
             for set_i, susie_set in enumerate(susie_sets):
                 is_in_set = np.zeros(df_susie.shape[0], dtype=np.bool)
                 is_in_set[np.array(susie_set)-1] = True
+                is_in_set[df_susie['CREDIBLE_SET']>0] = False
                 df_susie.loc[is_in_set, 'CREDIBLE_SET'] = set_i+1
         
         return df_susie
