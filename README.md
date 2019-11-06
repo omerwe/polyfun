@@ -256,12 +256,12 @@ Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chr
 
 <br><br>
 # Overview of PolyLoc
-PolyLoc takes a file with posterior means and standard deviations of causal effect sizes (estimated by PolyFun) as input. PolyLoc uses this file to partition SNPs into bins of similar posterior per-SNP heritability and estimates the heritability causally explained by each bin. PolyLoc consists of three stages:
+PolyLoc takes an input file with posterior means and standard deviations of causal effect sizes (estimated by PolyFun). PolyLoc uses this file to partition SNPs into bins of similar posterior per-SNP heritability, and estimates the heritability causally explained by each bin. PolyLoc consists of three stages:
 1. Partition SNPs into bins of similar posterior per-SNP heritability
-2. Compute LD-scores for these bins
+2. Compute LD-scores for the SNP bins
 3. Estimate the heritability casaully explained by each bin. **This stage requires summary statistics based on different data than the data used to run PolyFun** (see [Weissbrod et al. 2019 bioRxiv for details](https://www.biorxiv.org/content/10.1101/807792v2)).
 <br>
-We now describe each of these stages in detail.
+PolyLoc and PolyFun have similar input files and they share many command-line arguments. You can see all the PolyLoc options by typing `python polyloc.py --help`. We now describe each of the stages of PolyLoc in detail.
 
 #### PolyLoc stage 1: Partition SNPs into bins of similar posterior per-SNP heritability
 This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci). Here is an example file (seen via `zcat example_data/posterior_betas.gz`):
@@ -299,8 +299,8 @@ Additional optional parameters are:
 1. `--skip-Ckmedian` - This tells PolyLoc to partition SNPs into bins using scikits-learn instead of Ckmedian. This is a suboptimal clustering, so Ckmedian is preferable. You should only specify this argument if rpy2 and/or Ckmeans.1d.dp are not installed on your machine or you can't get them to run.
 2. `-num-bins <K>` - this specifies the number of bins to partition SNPs into. By default PolyLoc will try to estimate this number. You should specify this number if either (a) you specified `--skip-Ckmedian` (because scikits-learn cannot estimate the number of bins) or (b) the estimation is too slow.
 
-## PolyLoc stage 2: Compute LD-scores for these bins
-This stage is similar to the LD-score computation stage in PolyFun. Here is an example command that computes LD-scores for the PolyLoc bins in chromosome 1:
+## PolyLoc stage 2: Compute LD-scores for the SNP bins
+This stage is similar to the LD-score computation stage in PolyFun. In this stage PolyLoc will compute LD-scores for each SNP bin. This is the most computationally intensive part of PolyLoc. PolyLoc can compute LD-scores for all chromosomes in the same run, or for only one chromosome at a time. The second option is recommended if you can run multiple jobs on a cluster. Here is an example that computes LD-scores for only chromosome 1:
 ```
 python polyloc.py \
     --output-prefix output/polyloc_test \
@@ -308,10 +308,17 @@ python polyloc.py \
     --bfile-chr example_data/reference. \
     --chr 1
 ```
-PolyLoc accepts the same parameters as PolyFun for LD-scores computations. Note that if you remove the parameter `--chr 1`, PolyLoc will compute LD-scores for all chromosomes, which may take a long time.
+###### Please note the following:
+1. PolyLoc accepts the same parameters as PolyFun for LD-scores computations.
+2. You must specify the same `--output-prefix` argument that you provided in stage 1, because PolyLoc requires intermediate files that were created in stage 1.
+3. If you remove the flag `--chr `, PolyFun will iterate over all chromosomes and compute LD-scores for all of them, which may take a long time.
+4. This stage requires individual-level genotypic data from a large reference panel that is population-matched to your study. Ideally this data should come from your study directly. In this example we used a small subset of SNPs of European-ancestry individuals from the [1000 genomes project](https://www.internationalgenome.org).
+5. There are various parameters that you can use to control the LD-score computations, analogue to the respective parameters in the [ldsc package](https://github.com/bulik/ldsc/wiki/LD-Score-Estimation-Tutorial). Please type `python polyloc.py --help` to see all available parameters. The parameter `--keep <keep file>` can be especially useful if you have a very large reference panel and would like to speed-up the computations by using only a subset of individuals.
+6. You can run stages 1 and 2 together by invoking `polyloc.py` with both the flags `--compute-partitions` and `--compute-ldscores`.
+
 
 ## PolyLoc stage 3: Estimate the heritability casaully explained by each bin
-This stage requires LD-score weights files and a summary statistics file **that is different** from the one used to comptue posterior causal effect sizes. **This is important to prevent biased estimates due to winner's curse**. Here is an example command:
+This stage requires LD-score weights files and a summary statistics file **that is different from the one used to comptue posterior causal effect sizes (to prevent biased estimates due to winner's curse)**. Here is an example command:
 ```
 python polyloc.py \
     --output-prefix output/polyloc_test \
