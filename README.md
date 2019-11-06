@@ -115,18 +115,18 @@ python polyfun.py \
     --ref-ld-chr example_data/annotations. \
     --w-ld-chr example_data/weights.
 ```
-This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the output for the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
+This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the output for the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.22.snpvar_ridge_constrained.gz | head`)
 ```
-CHR  BP      SNP                              A1                    A2  SNPVAR      Z            N
-1    737125  rs151055642                      T                     A   1.3502e-08  4.5924e-01   383290
-1    741833  rs148581628                      C                     T   1.3502e-08  -9.4801e-01  383290
-1    745642  1:745642_AC_A                    AC                    A   6.5501e-09  5.6848e-02   383290
-1    772437  rs138499329                      C                     T   1.3502e-08  8.6788e-01   383290
-1    797281  rs76631953                       G                     C   6.5501e-09  -1.2842e+00  383290
-1    814300  rs80022136                       T                     A   6.5501e-09  -9.9172e-01  383290
-1    821862  1:821862_CACAGCAGCTGTGCTGTGTT_C  CACAGCAGCTGTGCTGTGTT  C   1.3502e-08  3.9271e-02   383290
-1    845273  rs117039017                      G                     A   1.3502e-08  5.9879e-01   383290
-1    846398  rs58781670                       G                     A   1.3502e-08  2.9464e+00   383290
+CHR  SNP          BP        A1  A2  SNPVAR      Z            N
+22   rs139069276  16866502  G   A   7.1906e-09  -1.2188e-02  383290
+22   rs34747326   16870173  A   G   7.1906e-09  -1.8948e+00  383290
+22   rs4010550    16900134  G   A   1.4878e-08  1.3657e+00   383290
+22   rs5994099    16905044  G   A   7.1906e-09  7.2224e-01   383290
+22   rs59750689   16936369  T   C   7.1906e-09  9.4481e-02   383290
+22   rs148021587  16939232  C   T   1.4878e-08  8.0397e-01   383290
+22   rs3954635    17024983  A   C   1.4878e-08  -3.4335e-01  383290
+22   rs371202053  17034394  G   A   1.4878e-08  -7.8644e-01  383290
+22   rs200071370  17037779  C   T   1.4878e-08  3.5049e-01   383290
 ```
 The column called 'SNPVAR' contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping (see below).
 
@@ -190,18 +190,18 @@ python polyfun.py \
     --sumstats example_data/sumstats.parquet \
     --w-ld-chr example_data/weights.
 ```
-This script will output files with re-estimated per-SNP heritabilities that can be used directly for fine-mapping. Here is the output for chromosome 1 (seen via `zcat output/testrun.1.snpvar_constrained.gz | head`):
+This script will output files with re-estimated per-SNP heritabilities that can be used directly for fine-mapping. Here is the output for chromosome 1 (seen via `zcat output/testrun.22.snpvar_constrained.gz | head`):
 ```
-CHR  SNP                              BP      A1                    A2  SNPVAR      Z            N
-1    rs151055642                      737125  T                     A   6.2422e-06  4.5924e-01   383290
-1    rs148581628                      741833  C                     T   6.2422e-06  -9.4801e-01  383290
-1    1:745642_AC_A                    745642  AC                    A   1.5239e-06  5.6848e-02   383290
-1    rs138499329                      772437  C                     T   6.2422e-06  8.6788e-01   383290
-1    rs76631953                       797281  G                     C   3.9919e-06  -1.2842e+00  383290
-1    rs80022136                       814300  T                     A   3.9919e-06  -9.9172e-01  383290
-1    1:821862_CACAGCAGCTGTGCTGTGTT_C  821862  CACAGCAGCTGTGCTGTGTT  C   6.2422e-06  3.9271e-02   383290
-1    rs117039017                      845273  G                     A   6.2422e-06  5.9879e-01   383290
-1    rs58781670                       846398  G                     A   6.2422e-06  2.9464e+00   383290
+CHR  SNP          BP        A1  A2  SNPVAR      Z            N
+22   rs139069276  16866502  G   A   4.5173e-06  -1.2188e-02  383290
+22   rs34747326   16870173  A   G   3.5684e-06  -1.8948e+00  383290
+22   rs4010550    16900134  G   A   4.9595e-06  1.3657e+00   383290
+22   rs5994099    16905044  G   A   3.5684e-06  7.2224e-01   383290
+22   rs59750689   16936369  T   C   4.5173e-06  9.4481e-02   383290
+22   rs148021587  16939232  C   T   4.9595e-06  8.0397e-01   383290
+22   rs3954635    17024983  A   C   4.9595e-06  -3.4335e-01  383290
+22   rs371202053  17034394  G   A   4.9595e-06  -7.8644e-01  383290
+22   rs200071370  17037779  C   T   4.9595e-06  3.5049e-01   383290
 ```
 The `SNPVAR` column contains per-SNP heritabilities. These can be used directly as prior causal probabilities in fine-mapping (see below).
 
@@ -235,11 +235,11 @@ print(df.head())
 The output should be:
 ```
            SNP  CHR        BP A1 A2  ...  Conserved_LindbladToh_common  Conserved_LindbladToh_lowfreq  Repressed_Hoffman_common  Repressed_Hoffman_lowfreq  base
-0  rs138187675   22  16896334  C  T  ...                             0                              0                         0                          0     1
-1    rs5994099   22  16905044  G  A  ...                             0                              0                         0                          1     1
-2  rs138793096   22  16905432  G  T  ...                             0                              0                         0                          1     1
-3    rs4312587   22  16930252  A  G  ...                             0                              0                         0                          0     1
-4  rs114836070   22  17013596  C  T  ...                             0                              0                         0                          0     1
+0  rs139069276   22  16866502  G  A  ...                             0                              0                         1                          0     1
+1   rs34747326   22  16870173  A  G  ...                             0                              0                         0                          1     1
+2    rs4010550   22  16900134  G  A  ...                             0                              0                         0                          0     1
+3    rs5994099   22  16905044  G  A  ...                             0                              0                         0                          1     1
+4   rs59750689   22  16936369  T  C  ...                             0                              0                         1                          0     1
 ```
 
 
@@ -264,18 +264,18 @@ PolyLoc takes an input file with posterior means and standard deviations of caus
 PolyLoc and PolyFun have similar input files and they share many command-line arguments. You can see all the PolyLoc options by typing `python polyloc.py --help`. We now describe each of the stages of PolyLoc in detail.
 
 #### PolyLoc stage 1: Partition SNPs into bins of similar posterior per-SNP heritability
-This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci). Here is an example file (seen via `zcat example_data/posterior_betas.gz`):
+This stage requires a file with posterior causal effect sizes of SNPs (ideally all genome-wide SNPs, or at least all the ones in genome-wide significant loci). Here is an example file (seen via `zcat example_data/posterior_betas.gz | head`):
 ```
-CHR  SNP         BP        A1  A2  Z         N       BETA_MEAN  BETA_SD
-1    rs13303118  918384    G   T   -3.33952  383290  -0.00375   0.00041
-1    rs13303016  1946591   G   A   0.21344   383290  0.00141    0.00008
-1    rs13303344  1948400   C   A   0.15171   383290  -0.00091   0.00022
-1    rs10737392  5048934   A   C   -0.26310  383290  -0.00170   0.00031
-1    rs9439538   5215736   T   C   -1.96048  383290  -0.00283   0.00043
-1    rs4908904   6580250   C   T   -2.67681  383290  -0.00389   0.00000
-1    rs4908646   7581993   G   A   -2.06006  383290  -0.00427   0.00136
-1    rs6577525   8857104   G   A   0.74090   383290  0.00068    0.00021
-1    rs2847337   10502710  A   G   -1.10966  383290  -0.00160   0.00007
+CHR  SNP         BP       A1  A2  Z         N       BETA_MEAN  BETA_SD
+1    rs3748597   888659   T   C   0.85233   383290  0.00021    0.00005
+1    rs6661956   2465912  C   T   0.98513   383290  0.00161    0.00006
+1    rs2376821   2974852  T   C   -0.73402  383290  -0.00186   0.00111
+1    rs10797386  3168280  A   G   -0.59635  383290  -0.00057   0.00006
+1    rs7548372   4943523  C   A   2.60293   383290  0.00643    0.00014
+1    rs6678838   5003147  G   T   1.10294   383290  0.00135    0.00008
+1    rs6675995   5226752  G   A   -1.22154  383290  -0.00027   0.00034
+1    rs2012852   5541205  C   A   0.30166   383290  0.00022    0.00027
+1    rs10864271  7135268  A   G   2.03717   383290  0.00471    0.00031
 ```
 The column `BETA_MEAN` contains the posterior means of causal effect sizes (as estimated by PolyFun), and the column `BETA_SD` contains their posterior standard deviation. The other required columns are `CHR`, `SNP`, `BP`, `A1`, `A2`.
 
@@ -329,25 +329,19 @@ python polyloc.py \
 The output of this command is a polygenic localization table. Here is the output of this example, which you can see by typing `cat output/polyloc_test.polyloc`:
 ```
 BIN  BIN_SIZE  %H2      SUM_%H2
-1    10        0.14533  0.14533
-2    14        0.12028  0.26561
-3    23        0.08489  0.35050
-4    51        0.11624  0.46674
-5    53        0.07616  0.54290
-6    56        0.05838  0.60129
-7    115       0.07825  0.67954
-8    157       0.07197  0.75150
-9    168       0.06363  0.81513
-10   199       0.05308  0.86822
-11   247       0.04623  0.91444
-12   267       0.03441  0.94886
-13   264       0.03232  0.98117
-14   366       0.01023  0.99140
-15   402       0.00526  0.99666
-16   483       0.00334  1.00000
-17   617       0.00000  1.00000
+1    10        0.17250  0.17250
+2    32        0.13510  0.30760
+3    70        0.12648  0.43408
+4    110       0.13666  0.57074
+5    193       0.15129  0.72203
+6    255       0.09629  0.81832
+7    315       0.07411  0.89243
+8    410       0.05337  0.94580
+9    492       0.05057  0.99637
+10   639       0.00363  1.00000
+11   949       0.00000  1.00000
 ```
-The output shows that PolyLoc partitioned SNPs into 17 bins of similar posterior per-SNP heritability. The first bin includes 10 SNPs that jointly explain 14.5% of the total SNP heritability, the second bin includes 14 SNPs that jointly explain 12% of the total SNP heritability, and so on. The SNPs are sorted based on their posterior per-SNP heritability estimates (i.e., the sum of their squared posterior mean and their squared posterior standard deviation).
+The output shows that PolyLoc partitioned SNPs into 11 bins of similar posterior per-SNP heritability. The first bin includes 10 SNPs that jointly explain 17.25% of the total SNP heritability, the second bin includes 32 SNPs that jointly explain 13.5% of the total SNP heritability, and so on. The identities of the SNPs in each bin are the SNPs in the posterior effect sizes file, ranked according to their posterior per-SNP heritability estimates (i.e., the sum of their squared posterior mean and their squared posterior standard deviation). That is, the SNPs in bin 1 are the 10 SNPs with the largest posterior per-SNP heritability, the SNPs in bin 2 are the next top ranked 32 SNPs, and so on.
 
 As in PolyFun, you can run jointly multiple stages of PolyLoc by using several mode parameters (e.g. `python polyloc.py ----compute-partitions --compute-ldscores --compute-polyloc`).
 
