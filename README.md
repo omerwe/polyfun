@@ -235,11 +235,11 @@ print(df.head())
 The output should be:
 ```
            SNP  CHR        BP A1 A2  ...  Conserved_LindbladToh_common  Conserved_LindbladToh_lowfreq  Repressed_Hoffman_common  Repressed_Hoffman_lowfreq  base
-0  rs138187675   22  16896334  C  T  ...                             0                              0                         0                          0     1
-1    rs5994099   22  16905044  G  A  ...                             0                              0                         0                          1     1
-2  rs138793096   22  16905432  G  T  ...                             0                              0                         0                          1     1
-3    rs4312587   22  16930252  A  G  ...                             0                              0                         0                          0     1
-4  rs114836070   22  17013596  C  T  ...                             0                              0                         0                          0     1
+0  rs139069276   22  16866502  G  A  ...                             0                              0                         1                          0     1
+1   rs34747326   22  16870173  A  G  ...                             0                              0                         0                          1     1
+2    rs4010550   22  16900134  G  A  ...                             0                              0                         0                          0     1
+3    rs5994099   22  16905044  G  A  ...                             0                              0                         0                          1     1
+4   rs59750689   22  16936369  T  C  ...                             0                              0                         1                          0     1
 ```
 
 
