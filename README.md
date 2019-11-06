@@ -115,18 +115,18 @@ python polyfun.py \
     --ref-ld-chr example_data/annotations. \
     --w-ld-chr example_data/weights.
 ```
-This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the output for the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.1.snpvar_ridge_constrained.gz | head`)
+This will create 2 output files for each chromosome: `output/testrun.<CHR>.snpvar_ridge.gz` and `output/testrun.<CHR>.snpvar_ridge_constrained.gz`. The first contains estimated per-SNP heritabilities for all SNPs (which can be used for downstream analysis with PolyFun; see below), and the second contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping. For example, here is the output for the top 10 SNPs in chromosome 1: (seen with `zcat output/testrun.22.snpvar_ridge_constrained.gz | head`)
 ```
-CHR  SNP          BP      A1  A2  SNPVAR      Z            N
-1    rs201321709  751580  C   T   1.3189e-08  2.1602e+00   383290
-1    rs555115897  769374  G   A   1.3189e-08  1.1022e+00   383290
-1    rs138499329  772437  C   T   1.3189e-08  8.6788e-01   383290
-1    rs183307028  777456  C   T   1.3189e-08  -2.8208e-01  383290
-1    rs149978434  779286  C   A   1.3189e-08  8.8944e-01   383290
-1    rs11516185   843405  A   G   1.3189e-08  5.3305e-01   383290
-1    rs6685456    849553  A   G   1.3189e-08  -5.9265e-01  383290
-1    rs28552953   851204  G   C   1.3189e-08  2.4388e+00   383290
-1    rs35717056   863696  C   T   1.3189e-08  6.0607e-01   383290
+CHR  SNP          BP        A1  A2  SNPVAR      Z            N
+22   rs139069276  16866502  G   A   7.1906e-09  -1.2188e-02  383290
+22   rs34747326   16870173  A   G   7.1906e-09  -1.8948e+00  383290
+22   rs4010550    16900134  G   A   1.4878e-08  1.3657e+00   383290
+22   rs5994099    16905044  G   A   7.1906e-09  7.2224e-01   383290
+22   rs59750689   16936369  T   C   7.1906e-09  9.4481e-02   383290
+22   rs148021587  16939232  C   T   1.4878e-08  8.0397e-01   383290
+22   rs3954635    17024983  A   C   1.4878e-08  -3.4335e-01  383290
+22   rs371202053  17034394  G   A   1.4878e-08  -7.8644e-01  383290
+22   rs200071370  17037779  C   T   1.4878e-08  3.5049e-01   383290
 ```
 The column called 'SNPVAR' contains truncated per-SNP heritabilities, which can be used directly as prior causal probabilities in fine-mapping (see below).
 
