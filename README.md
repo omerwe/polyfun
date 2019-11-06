@@ -9,6 +9,8 @@ This page contains the code of the methods **PolyFun** for functionally-informed
 <br><br>
 **PolyLoc** generalizes fine-mapping by constructing minimal sets of SNPs that causally explain a given proportion (e.g. 50%) of SNP heritability.
 
+We also provide a script called **finemapper** that facilitates fine-mapping with methods like SuSiE, saving many of the preprocessing steps often required to perform fine-mapping.
+
 <br><br>
 # Installation
 PolyFun and PolyLoc are designed for Python 3, and require the following freely available Python packages:
@@ -206,14 +208,60 @@ CHR  SNP          BP        A1  A2  SNPVAR      Z            N
 ```
 The `SNPVAR` column contains per-SNP heritabilities. These can be used directly as prior causal probabilities in fine-mapping (see below).
 
+
 <br><br>
 # Using prior causal probabilities in fine-mapping
-Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP
+Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP. We recommend using the script **run_finemapper.py**, which saves many of the preprocessing steps requires to perform fine-mapping. Alternatively, you can run SuSiE or FINEMAP directly with the prior causal probabilities computed by PolyFun, as described below.
 
-### Using prior causal probabilities in SuSiE
+## Using prior causal probabilities using the run_finemapper script
+The script `run_finemapper` takes an input a file with summary statistics and a file with genotypes from a referencel panel, and performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. `run_finemapper.py` computes an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. `run_finemapper` can cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
+
+To run `run_finemapper` with SuSiE, you need to install [rpy2](https://rpy2.bitbucket.io/) and [the SuSiE package](https://github.com/stephenslab/susieR) on your system. To run it with FINEMAP, you need to install [the FINEMAP software](http://www.christianbenner.com) on your system. 
+
+We will first show a use example and then describe all the command line arguments:
+```
+mkdir -p LD_cache
+mkdir -o output
+
+python run_finemapper.py \
+    --geno example_data/chr1 \
+    --sumstats example_data/chr1.finemap_sumstats.txt.gz \
+    --n 383290 \
+    --chr 1 \
+    --start 35000000 \
+    --end 55000000 \
+    --method susie \
+    --max-num-causal 5 \
+    --cache-dir LD_cache \
+    --out output/finemap.1.35000000.55000000.gz \
+    --ldstore <PATH_TO_LDSTORE_EXECUTABLE>
+```
+This command takes an input plink file (`example_data/chr1.bed`) and an input summary statistics file (corresponding to an analysis of n=383,290 individuals). The script performs fine-mapping in chromosome 1, in the locus spanning basepair positions 35000000-55000000, using SuSiE. It prints the output to the file `output/finemap.1.35000000.55000000.gz`, and saves the computed LD matrix in the directory `LD_cache`. The argument `--max-num-causal 5` tells SuSiE to assume that there are exactly 5 causal SNPs in the locus (the argument name is general, but for SuSiE it specifies an exact rather than a max number). Here are the first few lines of the output (seen with `zcat output/finemap.1.35000000.55000000.gz | head`):
+```
+CHR  SNP         BP        SNPVAR       Z             N       A1  A2  P            PIP          BETA_MEAN     BETA_SD      CREDIBLE_SET
+1    rs7528714   47966058  1.18040e-06  5.14320e+00   383290  G   A   2.70098e-07  1.00000e+00  1.83570e-02   1.60846e-03  4
+1    rs2088102   46032974  1.70060e-06  1.25500e+01   383290  C   T   3.97510e-36  1.00000e+00  1.93206e-02   1.60906e-03  1
+1    rs870357    47912628  1.70060e-06  -3.85430e+00  383290  C   T   1.16061e-04  1.00000e+00  -1.68830e-02  1.60736e-03  3
+1    rs1199039   43784956  7.03350e-06  -6.44840e+00  383290  G   A   1.13037e-10  9.99989e-01  -1.03019e-02  1.59606e-03  2
+1    rs591088    42438196  1.70060e-06  4.25430e+00   383290  C   T   2.09704e-05  3.04960e-01  2.01172e-03   3.15839e-03  0
+1    rs10890175  42498598  1.70060e-06  4.14910e+00   383290  C   T   3.33785e-05  2.36319e-01  1.53623e-03   2.86515e-03  0
+1    rs600401    41984658  1.70060e-06  2.68410e+00   383290  C   T   7.27253e-03  2.15279e-01  1.39182e-03   2.75535e-03  0
+1    rs7528075   47870271  1.18040e-06  4.40160e+00   383290  A   G   1.07456e-05  6.81250e-02  4.19540e-04   1.60488e-03  0
+1    rs11264072  38018536  1.70060e-06  3.83160e+00   383290  A   G   1.27313e-04  4.66177e-02  2.72842e-04   1.27960e-03  0
+```
+Columns 1-9 describe the input summary statistics (and are based on data from the input files). The rows are sorted according to PIP in descending order. Columns 10-14 contain the following fields:
+1. **PIP** - posterior causal probability
+2. **BETA_MEAN** - posterior mean of causal effect size
+3. **BETA_SD** - posterior standard deviation of causal effect size
+4. **CREDIBLE_SET** - the index of the first (typically smallest) credible set that the SNP belongs to (0 means none).
+
+We now describe the command-lime arguments of `run_finemapper.py` in detail:
+1. 
+
+## Using prior causal probabilities in SuSiE directly
 All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `SNPVAR`).
 
-### Using prior causal probabilities in FINEMAP
+## Using prior causal probabilities in FINEMAP directly
 This functionality is not implemented yet - please check back soon...
 
 <br><br>
@@ -254,6 +302,7 @@ python compute_ldscores.py \
   --out output/ldscores_example.parquet
 ```
 Here, `--bfile` is the prefix of a plink .bed file of a reference panel with chromosome 1 SNPs, `--annot` is the name of an annotations file, and `--out` is the name of an output file.  The script also accepts a `--keep <keep file>` parameter to use a subset of individuals for faster computation. This script accepts annotations in either .parquet or .gz format (parquet is much faster). Please note that you can also use S-LDSC to compute LD-scores. However, S-LDSC requires python 2 and does not use the columns A1, A2 in the LD-score and annotation files.
+
 
 <br><br>
 # Overview of PolyLoc
