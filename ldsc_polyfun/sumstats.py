@@ -255,26 +255,23 @@ def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
     #keep only requested annotations if --anno was specified
     if args.anno is not None:
         cols_to_keep = np.zeros(len(ref_ld.columns), dtype=np.bool)        
-        assert 'CHR' in ref_ld.columns[:2]
-        assert 'SNP' in ref_ld.columns[:2]
-        cols_to_keep[:2] = True  #SNP and CHR columns
         annotations = args.anno.split(',')
-        for anno in annotations:
-            if anno not in ref_ld.columns.str[:-2]:                
-                raise ValueError('Annotation {A} not found in LD scores file'.format(A=anno))
-            cols_to_keep[anno == ref_ld.columns.str[:-2]] = True
-        ref_ld = ref_ld.loc[:, cols_to_keep]
+        if np.any(~np.isin(annotations, ref_ld.columns.str[:-2])):
+            raise ValueError('Not all annotations specified with --anno are found in the LD scores file')        
+        cols_to_keep = (ref_ld.columns.str[:-2].isin(annotations)) | (ref_ld.columns.isin(['CHR', 'SNP']))
         assert np.sum(cols_to_keep) == len(annotations)+2
-        M_annot = M_annot[:, cols_to_keep[2:]]
+        M_cols_to_keep = ref_ld.drop(columns=['CHR', 'SNP']).columns.str[:-2].isin(annotations)
+        assert np.sum(M_cols_to_keep) == len(annotations)
+        ref_ld = ref_ld.loc[:, cols_to_keep]
+        M_annot = M_annot[:, M_cols_to_keep]
         log.log('Keeping only annotations specified with --anno')
     
     M_annot, ref_ld, novar_cols = _check_variance(log, M_annot, ref_ld)
     w_ld = _read_w_ld(args, log)
-    #import ipdb; ipdb.set_trace()
     sumstats = _merge_and_log(ref_ld, sumstats, 'reference panel LD', log)
     sumstats = _merge_and_log(sumstats, w_ld, 'regression SNP LD', log)
     w_ld_cname = sumstats.columns[-1]
-    ref_ld_cnames = ref_ld.columns[2:len(ref_ld.columns)]
+    ref_ld_cnames = ref_ld.drop(columns=['CHR', 'SNP']).columns
     return M_annot, w_ld_cname, ref_ld_cnames, sumstats, novar_cols
 
 def estimate_h2(args, log):
