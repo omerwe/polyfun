@@ -55,6 +55,8 @@ if __name__ == '__main__':
         #import ipdb; ipdb.set_trace()
         finemap_obj = SUSIE_Wrapper(args.geno, args.sumstats, n=args.n, chr_num=args.chr, sample_file=args.sample_file, incl_samples=args.incl_samples, ldstore_exe=args.ldstore, n_threads=args.threads, cache_dir=args.cache_dir)
         df_finemap = finemap_obj.finemap(args.start, args.end, num_causal_snps=args.max_num_causal, use_prior_causal_prob=not args.non_funct, prior_var=None, residual_var=None, hess=args.hess, verbose=args.verbose)
+    elif args.method == 'finemap':
+        raise ValueError('FINEMAP is not yet supported')
     else:
         raise ValueError('unknown method specified in --method')
     logging.info('Writing fine-mapping results to %s'%(args.out))
