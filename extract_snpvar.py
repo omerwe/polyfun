@@ -87,7 +87,7 @@ if __name__ == '__main__':
     del df['snpvar_bin']
         
     #write output to file
-    print('Writing output file to %s'%(outfile))
+    print('Writing output file to %s'%(args.out))
     df.to_csv(args.out, sep='\t', index=False, float_format='%0.4e')
     
         
