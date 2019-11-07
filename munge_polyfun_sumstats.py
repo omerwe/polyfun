@@ -130,7 +130,7 @@ def filter_sumstats(df_sumstats, min_info_score=None, min_maf=None, remove_stran
     
     #filter SNPs based on MAF
     if min_maf is not None and min_maf>0:        
-        is_good_maf_snp = (df_sumstats['MAF']>=min_maf) | (df_sumstats['MAF']<=1-min_maf)
+        is_good_maf_snp = (df_sumstats['MAF'].between(min_maf, 1-min_maf))
         is_good_snp = is_good_snp & is_good_maf_snp
         if np.any(~is_good_maf_snp):
             logging.info('Removing %d SNPs with MAF<%s'%(np.sum(~is_good_maf_snp), min_maf))
@@ -227,7 +227,7 @@ if __name__ == '__main__':
         raise ValueError('Sumstats file must include a p-value, Z-score or chi2 column to compute Z-scores')
     
     #write output
-    logging.info('Saving munged sumstats to %s'%(args.out))
+    logging.info('Saving munged sumstats of %d SNPs to %s'%(df_sumstats.shape[0], args.out))
     df_sumstats[['SNP', 'CHR', 'BP', 'A1', 'A2', 'Z', 'N']].to_parquet(args.out)
     logging.info('Done')
     
