@@ -228,26 +228,26 @@ python run_finemapper.py \
     --sumstats example_data/chr1.finemap_sumstats.txt.gz \
     --n 383290 \
     --chr 1 \
-    --start 47000000 \
+    --start 46000000 \
     --end 49000000 \
     --method susie \
     --max-num-causal 5 \
     --cache-dir LD_cache \
-    --out output/finemap.1.35000000.55000000.gz \
+    --out output/finemap.1.46000000.49000000.gz \
     --ldstore <PATH_TO_LDSTORE_EXECUTABLE>
 ```
-This command takes an input plink file (`example_data/chr1.bed`) and an input summary statistics file (corresponding to an analysis of n=383,290 individuals). The script performs fine-mapping in chromosome 1, in the locus spanning basepair positions 35000000-55000000, using SuSiE. It prints the output to the file `output/finemap.1.35000000.55000000.gz`, and saves the computed LD matrix in the directory `LD_cache`. The argument `--max-num-causal 5` tells SuSiE to assume that there are exactly 5 causal SNPs in the locus (the argument name is general, but for SuSiE it specifies an exact rather than a max number). Here are the first few lines of the output (seen with `zcat output/finemap.1.35000000.55000000.gz | head`):
+This command takes an input plink file (`example_data/chr1.bed`) and an input summary statistics file (corresponding to an analysis of n=383,290 individuals). The script performs fine-mapping in chromosome 1, in the locus spanning basepair positions 46000000-49000000, using SuSiE. It prints the output to the file `output/finemap.1.46000000.49000000.gz`, and saves the computed LD matrix in the directory `LD_cache`. The argument `--max-num-causal 5` tells SuSiE to assume that there are exactly 5 causal SNPs in the locus (the argument name is general, but for SuSiE it specifies an exact rather than a max number). Here are the first few lines of the output (seen with `zcat output/finemap.1.35000000.55000000.gz | head`):
 ```
 CHR  SNP         BP        A1  A2  SNPVAR       Z             N       P            PIP          BETA_MEAN     BETA_SD      CREDIBLE_SET
-1    rs870357    47912628  T   C   1.70060e-06  -3.85430e+00  383290  1.16061e-04  1.00000e+00  -1.79118e-02  1.60939e-03  1
-1    rs7528714   47966058  G   A   1.18040e-06  5.14320e+00   383290  2.70098e-07  1.00000e+00  1.97360e-02   1.61012e-03  2
-1    rs7528075   47870271  G   A   1.18040e-06  4.40160e+00   383290  1.07456e-05  9.90366e-01  6.32373e-03   1.68307e-03  3
-1    rs212968    48734666  G   A   1.70060e-06  -3.01130e+00  383290  2.60132e-03  9.86576e-01  -5.99848e-03  1.70996e-03  4
-1    rs12567716  48197570  T   C   1.18040e-06  2.14810e+00   383290  3.17058e-02  7.34682e-03  2.55850e-05   3.26743e-04  0
-1    rs3766196   47284526  C   A   6.93040e-06  -5.92360e-02  383290  9.52764e-01  5.34735e-03  7.12473e-06   1.51231e-04  0
-1    rs4511165   48293181  G   A   1.70060e-06  -1.18940e+00  383290  2.34282e-01  3.89067e-03  -1.04089e-05  1.93330e-04  0
-1    rs2622911   47837404  C   A   1.70060e-06  3.12520e+00   383290  1.77684e-03  1.16646e-03  1.26903e-06   6.54465e-05  0
-1    rs215863    48495636  A   G   1.70060e-06  1.80210e-01   383290  8.56988e-01  9.48001e-04  -2.53677e-07  5.00597e-05  0
+1    rs2088102   46032974  T   C   1.70060e-06  1.25500e+01   383290  3.97510e-36  1.00000e+00  1.91941e-02   1.60994e-03  1
+1    rs7528714   47966058  G   A   1.18040e-06  5.14320e+00   383290  2.70098e-07  1.00000e+00  1.84424e-02   1.60920e-03  4
+1    rs870357    47912628  T   C   1.70060e-06  -3.85430e+00  383290  1.16061e-04  1.00000e+00  -1.61992e-02  1.60781e-03  3
+1    rs7528075   47870271  G   A   1.18040e-06  4.40160e+00   383290  1.07456e-05  9.90661e-01  6.54552e-03   1.68805e-03  5
+1    rs212968    48734666  G   A   1.70060e-06  -3.01130e+00  383290  2.60132e-03  9.51385e-01  -5.53938e-03  1.97850e-03  2
+1    rs4511165   48293181  G   A   1.70060e-06  -1.18940e+00  383290  2.34282e-01  3.09750e-02  -1.24825e-04  7.52260e-04  0
+1    rs3766196   47284526  C   A   6.93040e-06  -5.92360e-02  383290  9.52764e-01  8.78914e-03  1.51326e-05   2.18600e-04  0
+1    rs12567716  48197570  T   C   1.18040e-06  2.14810e+00   383290  3.17058e-02  7.28725e-03  2.39232e-05   3.09911e-04  0
+1    rs4927234   48384796  G   A   1.70060e-06  -7.59600e-01  383290  4.47494e-01  1.48081e-03  -1.52787e-06  7.26440e-05  0
 ```
 Columns 1-9 describe the input summary statistics (and are based on data from the input files). The rows are sorted according to PIP in descending order. Columns 10-14 contain the following fields:
 1. **PIP** - posterior causal probability
