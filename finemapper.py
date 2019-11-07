@@ -151,14 +151,18 @@ class Fine_Mapping(object):
             #open meta_file
             df_ldstore_meta = pd.read_table(meta_file, delim_whitespace=True)
             df_ldstore_meta.index = df_ldstore_meta['RSID'] + '.' + df_ldstore_meta['A_allele'] + '.' + df_ldstore_meta['B_allele']
-            if not np.all((self.df_sumstats_locus.index.isin(df_ldstore_meta.index)) | (locus_index_flipped.isin(df_ldstore_meta.index))):
+            is_flipped = locus_index_flipped.isin(df_ldstore_meta.index)
+            is_not_flipped = self.df_sumstats_locus.index.isin(df_ldstore_meta.index)
+            if not np.all(is_flipped | is_not_flipped):
                 raise IOError('Not all variants exist in LDStore output')
+            if np.any(is_flipped):
+                logging.warning('%d variants have flipped alleles compared to the sumstats file. I will flip these alleles'%(is_flipped.sum()))
                 
             #create incl-variants file if needed
             if df_ldstore_meta.shape[0] == self.df_sumstats_locus.shape[0]:
                 use_incl_file = False
             else:
-                assert np.all((self.df_sumstats_locus.index.isin(df_ldstore_meta.index)) | (locus_index_flipped.isin(df_ldstore_meta.index)))
+                assert np.all(is_flipped | is_not_flipped)
                 is_found = (df_ldstore_meta.index.isin(self.df_sumstats_locus.index)) | (df_ldstore_meta.index.isin(locus_index_flipped))
                 df_ldstore_meta = df_ldstore_meta.loc[is_found, ['RSID', 'position', 'chromosome', 'A_allele', 'B_allele']]
                 df_ldstore_meta.to_csv(incl_variants_file, index=False, header=True, sep=' ')
