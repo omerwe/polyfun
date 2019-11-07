@@ -12,10 +12,66 @@ import subprocess
 from importlib import reload
 
 
+def run_executable(cmd, description, good_returncode=0, measure_time=True, check_errors=True, show_output=False, show_command=False):
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    logging.info('Running %s...'%(description))
+    if show_command:
+        logging.info('Command: %s'%(' '.join(cmd)))
+    t0 = time.time()
+    stdout = []
+    if show_output:
+        for line in proc.stdout:
+            if len(line.strip()) > 0:
+                line_str = line.strip().decode("utf-8")
+                stdout.append(line_str)
+                print(line_str)
+        print()
+        stdout = '\n'.join(stdout)
+        _, stderr = proc.communicate()
+    else:
+        stdout, stderr = proc.communicate()
+        if stdout is not None:
+            stdout = stdout.decode('ascii')
+            if len(stdout)==0: stdout=None
+    if stderr is not None:
+        stderr = stderr.decode('ascii')
+        if len(stderr)==0: stderr=None        
+        
+    #if (stderr is not None or proc.returncode != good_returncode):
+    if proc.returncode != good_returncode:
+        if stderr is not None:            
+            logging.error('stderr:\n%s'%(stderr))
+        if stdout is not None and not show_output:            
+            logging.error('stdout:\n%s'%(stdout))
+        raise RuntimeError('%s error'%(description))
+    if measure_time:
+        logging.info('done in %0.2f seconds'%(time.time() - t0))
+        
+    if check_errors and stdout is not None:        
+        for l in stdout.split('\n'):
+            if 'error' in l.lower():
+                logging.error(l)
+                raise RuntimeError('%s reported an error'%(description))
+    if check_errors and stderr is not None:
+            for l in stderr.split('\n'):
+                if 'error' in l.lower():
+                    logging.error(l)
+                    raise RuntimeError('%s reported an error'%(description))
+        
+    return stdout, stderr
+    
+
+
 class Fine_Mapping(object):
     def __init__(self, genotypes_file, sumstats_file, n, chr_num, ldstore_exe, 
-                    sample_file=None, incl_samples=None, cache_dir=None, n_threads=None
-):
+                    sample_file=None, incl_samples=None, cache_dir=None, n_threads=None):
+    
+        #check that data is valid
+        if genotypes_file is not None:        
+            if genotypes_file.endswith('.bgen'):
+                if sample_file is None:
+                    raise IOError('sample-file must be provided with a bgen file')
+    
     
         #read sumstats and filter to target chromosome only
         logging.info('Loading sumstats file...')        
@@ -31,11 +87,9 @@ class Fine_Mapping(object):
         if 'P' not in df_sumstats.columns:
             df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
         logging.info('Loaded sumstats for %d SNPs'%(df_sumstats.shape[0]))
+
         
         #save class members
-        if genotypes_file.endswith('.bgen'):
-            if sample_file is None:
-                raise IOError('sample-file must be provided with a bgen file')
         self.genotypes_file = genotypes_file
         self.n = n
         self.sample_file = sample_file
@@ -47,13 +101,70 @@ class Fine_Mapping(object):
         self.chr = chr_num
         
         
+    def sync_ld_sumstats(self, ld, df_ld_snps):
+        index1 = pd.Index(df_ld_snps['rsid'] + '.' + df_ld_snps['allele1'] + '.' + df_ld_snps['allele2'])
+        index2 = pd.Index(df_ld_snps['rsid'] + '.' + df_ld_snps['allele2'] + '.' + df_ld_snps['allele1'])
+        
+        #make sure that all SNPs in the sumstats file are in the LD file
+        is_ss_not_flipped = self.df_sumstats_locus.index.isin(index1)
+        is_ss_flipped = self.df_sumstats_locus.index.isin(index2)
+        if not np.all(is_ss_flipped | is_ss_not_flipped):
+            raise ValueError('not all SNPs in the sumstats file were found in the LD matrix')
+        
+        #filter LD to only SNPs found in the sumstats file
+        is_ld_not_flipped = index1.isin(self.df_sumstats_locus.index)
+        is_ld_flipped = index2.isin(self.df_sumstats_locus.index)
+        is_found = is_ld_flipped | is_ld_not_flipped
+        if not is_found.all():
+            num_unused = ld.shape[0] - is_found.sum()
+            logging.info('Removing %d SNPs in the LD matrix that are not in the sumstats file'%(num_unused))
+            df_ld_snps = df_ld_snps.loc[is_found]
+            ld = ld[np.ix_(is_found, is_found)]
+            index1 = index1[is_found]
+            index2 = index2[is_found]
             
-    def set_locus(self, locus_start, locus_end, read_ld_matrix=False, verbose=False):
+        #flip flipped alleles
+        index_ld = pd.Series(index1).copy()
+        is_ld_flipped = index2.isin(self.df_sumstats_locus.index)
+        if np.any(is_ld_flipped):
+            logging.warning('Flipping the alleles of %d SNPs in the LD matrix that are flipped compared to the sumstats file'%(is_ld_flipped.sum()))
+            index_ld.loc[is_ld_flipped] = index2[is_ld_flipped]
+            
+        #create the LD dataframe
+        df_ld = pd.DataFrame(ld, index=index_ld, columns=index_ld)
+            
+        #reorder LD to have the same order of SNPs as in df_sumstats
+        assert len(df_ld.index.intersection(self.df_sumstats_locus.index)) == df_ld.shape[0]
+        if np.any(df_ld.index != self.df_sumstats_locus.index):
+            df_ld = df_ld.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
+        
+        #do a final verification that we're synced
+        assert np.all(df_ld.index == self.df_sumstats_locus.index)
+        
+        #update self.df_ld
+        self.df_ld = df_ld
+        
+        
+        
+        
+        
+        
+               
+        
+            
+    def set_locus(self, locus_start, locus_end, extract_ld=True, read_ld_matrix=False, verbose=False):
     
         #update self.df_sumstats_locus
         self.df_sumstats_locus = self.df_sumstats.query('%d <= BP <= %d'%(locus_start, locus_end))
         if self.df_sumstats_locus.shape[0] == 0:
             raise ValueError('No SNPs found in sumstats file in the BP range %d-%d'%(locus_start, locus_end))
+            
+        #if we don't need to extract LD then we're done
+        if not extract_ld:
+            return
+            
+            
+        #define a flipped-alleles index in case of allelic flips between df_sumstats and the genotypes file
         locus_index_flipped = pd.Index(self.df_sumstats_locus['SNP'] + '.' + self.df_sumstats_locus['A2'] + '.' + self.df_sumstats_locus['A1'])
                 
         #define file names
@@ -181,51 +292,58 @@ class Fine_Mapping(object):
             
         #read LD matrix
         if read_ld_matrix or rewrite_ld:
-            df_R = pd.read_table(ld_matrix_file, delim_whitespace=True, index_col=None, header=None)
-            if df_R.shape[0] != df_R.shape[1]:
+            df_ld = pd.read_table(ld_matrix_file, delim_whitespace=True, index_col=None, header=None)
+            if df_ld.shape[0] != df_ld.shape[1]:
                 raise IOError('LDStore LD matrix has inconsistent rows/columns')
+                
+            #if we didn't find the LD matrix in the cache, we just created it so it's guaranteed to be synced with self.df_sumstats_locus.index
             if not found_cached_ld_file:
-                df_R.index = self.df_sumstats_locus.index
-                df_R.columns = self.df_sumstats_locus.index
+                df_ld.index = self.df_sumstats_locus.index
+                df_ld.columns = self.df_sumstats_locus.index
+                
+            #if we found the LD matrix in the cache, we need to sync it with self.df_sumstats_locus.index
             else:
-                df_R.index = cache_snps
-                df_R.columns = cache_snps
-                assert np.all((self.df_sumstats_locus.index.isin(df_R.index)) | (locus_index_flipped.isin(df_R.index)))
-                is_found = (df_R.index.isin(self.df_sumstats_locus.index)) | (df_R.index.isin(locus_index_flipped))
+                df_ld.index = cache_snps
+                df_ld.columns = cache_snps
+                assert np.all((self.df_sumstats_locus.index.isin(df_ld.index)) | (locus_index_flipped.isin(df_ld.index)))
+                
+                #subset LD matrix to only include SNPs in df_sumstats 
+                is_found = (df_ld.index.isin(self.df_sumstats_locus.index)) | (df_ld.index.isin(locus_index_flipped))
                 if not is_found.all():
-                    df_R = df_R.loc[is_found, is_found]
-                assert df_R.shape[0] == self.df_sumstats_locus.shape[0]
+                    df_ld = df_ld.loc[is_found, is_found]
+                assert df_ld.shape[0] == self.df_sumstats_locus.shape[0]
                 
                 #flip reference and alternative alleles if needed
-                is_flipped = df_R.index.isin(locus_index_flipped)
-                is_not_flipped = df_R.index.isin(self.df_sumstats_locus.index)
+                is_flipped = df_ld.index.isin(locus_index_flipped)
+                is_not_flipped = df_ld.index.isin(self.df_sumstats_locus.index)
                 assert np.all(is_flipped | is_not_flipped)
                 if is_flipped.any():
-                    df_splitindex_R = pd.Series(df_R.index).str.split('.', expand=True)
+                    df_splitindex_R = pd.Series(df_ld.index).str.split('.', expand=True)
                     df_splitindex_R.columns = ['SNP', 'A1', 'A2']
-                    R_index_flipped = df_splitindex_R['SNP'] + '.' + df_splitindex_R['A2'] + '.' + df_splitindex_R['A1']
-                    new_index = pd.Series(df_R.index).copy()
-                    new_index.loc[is_flipped] = R_index_flipped
-                    df_R.index = new_index
-                    df_R.columns = new_index
-                    assert np.all(df_R.index.isin(self.df_sumstats_locus.index))
-                    if np.any(df_R.index != self.df_sumstats_locus.index):
-                        df_R = df_R.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
-                
-                # # # is_not_flipped = df_R.index == self.df_sumstats_locus.index
-                # # # is_flipped = df_R.index == locus_index_flipped
-                # # # assert np.all(is_flipped | is_not_flipped)
-                # # # df_R.index = self.df_sumstats_locus.index
-                # # # df_R.columns = self.df_sumstats_locus.index
-                
+                    R_index_flipped = pd.Index(df_splitindex_R['SNP'] + '.' + df_splitindex_R['A2'] + '.' + df_splitindex_R['A1'])
+                    new_index = pd.Series(df_ld.index).copy()
+                    new_index.loc[is_flipped] = R_index_flipped[is_flipped]
+                    
+                    #avoid pandas warnings
+                    if not is_found.all():
+                        df_ld = df_ld.copy()
+                        
+                    df_ld.index = new_index
+                    df_ld.columns = new_index
+                    assert np.all(df_ld.index.isin(self.df_sumstats_locus.index))
+                    if np.any(df_ld.index != self.df_sumstats_locus.index):
+                        df_ld = df_ld.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
+            
+            #do a final verification that we're synced
+            assert np.all(df_ld.index == self.df_sumstats_locus.index)
             
             #rewrite LD matrix if needed
             if rewrite_ld:
-                df_R.to_csv(self.ld_matrix_file, sep=' ', index=False, header=False, float_format='%0.8f')
+                df_ld.to_csv(self.ld_matrix_file, sep=' ', index=False, header=False, float_format='%0.8f')
             
-            #save df_R to a class member if needed
+            #save df_ld to a class member if needed
             if read_ld_matrix:
-                self.df_R = df_R
+                self.df_ld = df_ld
             
 
 
@@ -249,7 +367,7 @@ class Fine_Mapping(object):
             pvalue_cutoff = pvalue_bound
         is_potential_csnp = self.df_sumstats['P']<pvalue_cutoff
         if np.any(is_potential_csnp):
-            R_pot_csnp = self.df_R.loc[is_potential_csnp, is_potential_csnp].values
+            R_pot_csnp = self.df_ld.loc[is_potential_csnp, is_potential_csnp].values
         else:
             return 0
 
@@ -308,12 +426,19 @@ class SUSIE_Wrapper(Fine_Mapping):
         self.susieR = importr('susieR')
         self.R_null = ro.rinterface.NULL
         self.RNULLType = rpy2.rinterface.RNULLType
-               
         
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False):
+        
+    
+        
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld=None, df_ld_snps=None):
+    
+        if not np.isin(np.sum([ld is None, df_ld_snps is None]), [0,2]):
+            raise ValueError('either both or none of ld, df_ld_SNPs should be specified')
     
         #set locus
-        self.set_locus(locus_start, locus_end, read_ld_matrix=True, verbose=verbose)
+        self.set_locus(locus_start, locus_end, read_ld_matrix=True, verbose=verbose, extract_ld=(ld is None))
+        if ld is not None:
+            self.sync_ld_sumstats(ld, df_ld_snps)
         
         #define prior causal probabilities
         if use_prior_causal_prob:
@@ -346,12 +471,12 @@ class SUSIE_Wrapper(Fine_Mapping):
             self.chr,
             locus_start,
             locus_end,
-            self.df_R.shape[0]
+            self.df_ld.shape[0]
             ))
             
         # susie_obj = self.susieR.susie_z(
                 # z=self.df_sumstats_locus['Z'].values.reshape((m,1)),
-                # R=self.df_R.values,
+                # R=self.df_ld.values,
                 # n=self.n,
                 # L=num_causal_snps,
                 # prior_variance=(0.0001 if (prior_var is None) else prior_var),
@@ -364,7 +489,7 @@ class SUSIE_Wrapper(Fine_Mapping):
         susie_obj = self.susieR.susie_bhat(
                 bhat=self.df_sumstats_locus['Z'].values.reshape((m,1)),
                 shat=np.ones((m,1)),
-                R=self.df_R.values,
+                R=self.df_ld.values,
                 n=self.n,
                 L=num_causal_snps,
                 scaled_prior_variance=(0.0001 if (prior_var is None) else prior_var),
@@ -374,9 +499,8 @@ class SUSIE_Wrapper(Fine_Mapping):
                 verbose=verbose,
                 prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
             )            
-        susie_time = time.time()-t0
-        if verbose:
-            logging.info('Done in %0.2f seconds'%(susie_time))
+        susie_time = time.time()-t0        
+        logging.info('Done in %0.2f seconds'%(susie_time))
         
         #extract pip and beta_mean
         pip = np.array(self.susieR.susie_get_pip(susie_obj))
@@ -416,51 +540,3 @@ class SUSIE_Wrapper(Fine_Mapping):
     
 
 
-def run_executable(cmd, description, good_returncode=0, measure_time=True, check_errors=True, show_output=False, show_command=False):
-    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    logging.info('Running %s...'%(description))
-    if show_command:
-        logging.info('Command: %s'%(' '.join(cmd)))
-    t0 = time.time()
-    stdout = []
-    if show_output:
-        for line in proc.stdout:
-            if len(line.strip()) > 0:
-                line_str = line.strip().decode("utf-8")
-                stdout.append(line_str)
-                print(line_str)
-        print()
-        stdout = '\n'.join(stdout)
-        _, stderr = proc.communicate()
-    else:
-        stdout, stderr = proc.communicate()
-        if stdout is not None:
-            stdout = stdout.decode('ascii')
-            if len(stdout)==0: stdout=None
-    if stderr is not None:
-        stderr = stderr.decode('ascii')
-        if len(stderr)==0: stderr=None        
-        
-    #if (stderr is not None or proc.returncode != good_returncode):
-    if proc.returncode != good_returncode:
-        if stderr is not None:            
-            logging.error('stderr:\n%s'%(stderr))
-        if stdout is not None and not show_output:            
-            logging.error('stdout:\n%s'%(stdout))
-        raise RuntimeError('%s error'%(description))
-    if measure_time:
-        logging.info('done in %0.2f seconds'%(time.time() - t0))
-        
-    if check_errors and stdout is not None:        
-        for l in stdout.split('\n'):
-            if 'error' in l.lower():
-                logging.error(l)
-                raise RuntimeError('%s reported an error'%(description))
-    if check_errors and stderr is not None:
-            for l in stderr.split('\n'):
-                if 'error' in l.lower():
-                    logging.error(l)
-                    raise RuntimeError('%s reported an error'%(description))
-        
-    return stdout, stderr
-    
