@@ -228,15 +228,15 @@ python run_finemapper.py \
     --sumstats example_data/chr1.finemap_sumstats.txt.gz \
     --n 383290 \
     --chr 1 \
-    --start 46000000 \
-    --end 49000000 \
+    --start 46000001 \
+    --end 49000001 \
     --method susie \
     --max-num-causal 5 \
     --cache-dir LD_cache \
-    --out output/finemap.1.46000000.49000000.gz \
+    --out output/finemap.1.46000001.49000001.gz \
     --ldstore <PATH_TO_LDSTORE_EXECUTABLE>
 ```
-This command takes an input plink file (`example_data/chr1.bed`) and an input summary statistics file (corresponding to an analysis of n=383,290 individuals). The script performs fine-mapping in chromosome 1, in the locus spanning basepair positions 46000000-49000000, using SuSiE. It prints the output to the file `output/finemap.1.46000000.49000000.gz`, and saves the computed LD matrix in the directory `LD_cache`. The argument `--max-num-causal 5` tells SuSiE to assume that there are exactly 5 causal SNPs in the locus (the argument name is general, but for SuSiE it specifies an exact rather than a max number). Here are the first few lines of the output (seen with `zcat output/finemap.1.35000000.55000000.gz | head`):
+This command takes an input plink file (`example_data/chr1.bed`) and an input summary statistics file (corresponding to an analysis of n=383,290 individuals). The script performs fine-mapping in chromosome 1, in the locus spanning basepair positions 46000001-49000001, using SuSiE. It prints the output to the file `output/finemap.1.46000001.49000001.gz`, and saves the computed LD matrix in the directory `LD_cache`. The argument `--max-num-causal 5` tells SuSiE to assume that there are exactly 5 causal SNPs in the locus (the argument name is general, but for SuSiE it specifies an exact rather than a max number). Here are the first few lines of the output (seen with `zcat output/finemap.1.46000001.49000001.gz | head`):
 ```
 CHR  SNP         BP        A1  A2  SNPVAR       Z             N       P            PIP          BETA_MEAN     BETA_SD      CREDIBLE_SET
 1    rs2088102   46032974  T   C   1.70060e-06  1.25500e+01   383290  3.97510e-36  1.00000e+00  1.91941e-02   1.60994e-03  1
