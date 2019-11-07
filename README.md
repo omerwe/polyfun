@@ -217,7 +217,8 @@ Below we explain how to use the estimated prior causal probabilities with SuSiE 
 The script `run_finemapper` performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. The script takes an input a file with summary statistics and one of three LD data sources:
 1. A plink file with genotypes from a reference panel
 2. A bgen file with genotypes from a reference panel
-3. A pre-computed LD matrix from a reference panel.
+3. A pre-computed LD matrix from the UK Biobank. We have made summary LD information for 2,763 3Mb-long regions spanning the entire genome freely available to download [here](https://data.broadinstitute.org/alkesgroup/UKBB_LD), for those wishing to fine-map UK Biobank data (see details below).
+
 If you provide a plink or a bgen file, the script will compute an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. The script can also cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
 
 To run `run_finemapper` with SuSiE, you need to install [rpy2](https://rpy2.bitbucket.io/) and [the SuSiE package](https://github.com/stephenslab/susieR) on your system. To run it with FINEMAP, you need to install [the FINEMAP software](http://www.christianbenner.com) on your system. 
@@ -262,7 +263,7 @@ Columns 1-9 describe the input summary statistics (and are based on data from th
 4. **CREDIBLE_SET** - the index of the first (typically smallest) credible set that the SNP belongs to (0 means none).
 
 #### Example 2: Fine-mapping with pre-computed summary LD information from the UK Biobank
-To run this example you will need to download an LD matrix that was pre-computed using N=337K unrelated British-ancestry individuals from the UK Biobank **(warning: This is a large download, requiring ~1GB of disk space)**. Ideally you should only do this when analyzinng UK Biobank individuals, or closely-matched British-ancestry individuals.
+To run this example you will need to download summary LD information that we pre-computed using N=337K unrelated British-ancestry individuals from the UK Biobank **(warning: This is a large download, requiring ~1GB of disk space)**. Ideally you should only do this when analyzinng UK Biobank individuals, or closely-matched British-ancestry individuals.
 ```
 #download an LD matrix
 mkdir -p LD_cache
@@ -292,7 +293,7 @@ python run_finemapper.py \
 #### Overview of all command like arguments of run_finemapper
 We now describe the command-lime arguments of `run_finemapper` in detail:
 1. **--geno** - The name of a .bgen file, or the *prefix* of the name of a plink file (without the suffix .bed). `run_finemapper` will compute an LD matrix using the genotypes in this file. **Warning: this file should ideally contain genotypes of the same individuals used to generate summary statistics, or at least very closely matched individuals. Using an external reference panel in fine-mapping is strongly discouraged and can lead to severe false-positive results** (see [Benner et al. 2017 AJHG](https://www.cell.com/ajhg/fulltext/S0002-9297(17)30334-8), [Ulirsch et al. 2019 Nat Genet](https://www.nature.com/articles/s41588-019-0362-6) for an investigation of this issue).
-2. **--ld** - Instead of --geno you can provide the prefix of an LD matrix that we pre-computed using N=337K unrelated British-ancestry individuals from the UK Biobank (see example 2 above). For every such matrix you need two files: A .npz file with the actual LD matrix, and a .gz file with identities of the SNPs in the LD matrix. [We have made LD matrices for 2,763 3Mb-long regions spanning the entire genome freely available to download](https://data.broadinstitute.org/alkesgroup/UKBB_LD/).
+2. **--ld** - Instead of --geno you can provide the prefix of the name of summary LD information file that we pre-computed using N=337K unrelated British-ancestry individuals from the UK Biobank (see example 2 above). For every such matrix you need two files: A .npz file with the actual LD matrix, and a .gz file with identities of the SNPs in the LD matrix. We have made LD matrices for 2,763 3Mb-long regions spanning the entire genome freely available to download [here](https://data.broadinstitute.org/alkesgroup/UKBB_LD/).
 3. **--sumstats** - The name of a summary statistics file, which must include the columns `SNP`, `CHR`, `BP`, `A1`, `A2`, `Z` (z-score). This file can also include a column called `SNPVAR` that specifies prior per-SNP heritability. If it exists (and unless requested otherwise), `run_finemapper` will use this column to perform functionally-informed fine-mapping. We recommend using the output files of PolyFun as input sumstats files for `run_finemapper`.
 4. **--n** - the sample size used to generate summary statistics. In case the summary statistics were computed with [BOLT-LMM](https://data.broadinstitute.org/alkesgroup/BOLT-LMM), we recommend specifying the [effective sample size](https://www.nature.com/articles/s41588-018-0144-6) (this quantity is automatically computed by `munge_polyfun_sumstats.py`).
 5. **--chr** - the target chromosome to fine-map.
