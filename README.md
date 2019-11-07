@@ -261,9 +261,8 @@ Columns 1-9 describe the input summary statistics (and are based on data from th
 3. **BETA_SD** - posterior standard deviation of causal effect size
 4. **CREDIBLE_SET** - the index of the first (typically smallest) credible set that the SNP belongs to (0 means none).
 
-#### Example 2: Fine-mapping with genotypes from a plink file
-To run this example you will need to download an LD matrix that was pre-computed using N=337K British-ancestry individuals from the UK Biobank **(warning: This is a large download, requiring ~1GB of disk space)**.
-
+#### Example 2: Fine-mapping with pre-computed summary LD information from the UK Biobank
+To run this example you will need to download an LD matrix that was pre-computed using N=337K unrelated British-ancestry individuals from the UK Biobank **(warning: This is a large download, requiring ~1GB of disk space)**. Ideally you should only do this when analyzinng UK Biobank individuals, or closely-matched British-ancestry individuals.
 ```
 #download an LD matrix
 mkdir -p LD_cache
@@ -292,22 +291,23 @@ python run_finemapper.py \
 
 #### Overview of all command like arguments of run_finemapper
 We now describe the command-lime arguments of `run_finemapper` in detail:
-1. **--geno** - The name of a .bgen file, or the *prefix* of the name of a plink file (without the suffix .bed). `run_finemapper` will compute an LD matrix using the genotypes in this file. **Warning: this file should ideally contain the same individuals used to generate summary statistics, or at least very closely matched individuals. Using an external reference panel in fine-mapping is strongly discouraged and can lead to severe false-positive results** (see [Benner et al. 2017 AJHG](https://www.cell.com/ajhg/fulltext/S0002-9297(17)30334-8), [Ulirsch et al. 2019 Nat Genet](https://www.nature.com/articles/s41588-019-0362-6) for an investigation of this issue).
-2. **--sumstats** - The name of a summary statistics file, which must include the columns `SNP`, `CHR`, `BP`, `A1`, `A2`, `Z` (z-score). This file can also include a column called `SNPVAR` that specifies prior per-SNP heritability. If it exists (and unless requested otherwise), `run_finemapper` will use this column to perform functionally-informed fine-mapping. We recommend using the output files of PolyFun as input sumstats files for `run_finemapper`.
-3. **--n** - the sample size used to generate summary statistics. In case the summary statistics were computed with [BOLT-LMM](https://data.broadinstitute.org/alkesgroup/BOLT-LMM), we recommend specifying the [effective sample size](https://www.nature.com/articles/s41588-018-0144-6) (this quantity is automatically computed by `munge_polyfun_sumstats.py`).
-4. **--chr** - the target chromosome to fine-map.
-5. **--start**, **--end** - the start and end positions of the target locus to finemap (base pair coordinates).
-6. **--method** - the fine-mapping method. `run_finemapper` currently supports only `--method susie`, but FINEMAP support is coming soon.
-7. **--max-num-causal** - the max number of causal SNPs that can be modeled (for FINEMAP) or the exact number (for SuSiE).
-8. **--cache-dir** - a directory that will cache LD matrices for future reuse. If not specified, LD matrices will be saved to a temp directory and deleted after the script terminates.
-9. **--out** - the name of the output file.
-10. **--ldstore** - the path of the [LDstore](http://www.christianbenner.com) executable on your system.
-11. **--non-funct** - if specified, `run_finemapper` will perform non-functionally informed fine-mapping. In this case it does not require that the sumstats file has a column called `SNPVAR`.
-12. **--verbose** - if specified, `run_finemapper` and the tools it runs will print more detailed output messages.
-13. **--hess** - if specified, the prior causal effect size variance will be determined using a modified [HESS](https://www.sciencedirect.com/science/article/pii/S0002929716301483) procedure, as described in the PolyFun paper. Otherwise, the causal effect size variance will be estimated by SuSiE and/or FINEMAP.
-14. **--sample-file** - if you provide a bgen file for `--geno`, you must also provide a SNPTEST2 sample file, like for other tools that use bgen data. This is a simple text file without a header and a single column that contains individual ids. If `--geno` is a plink file, you do not need to provide this argument. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
-15. **--incl-samples** - an optional text file without a header and with a single column that includes the ids of a subset of individuals to use in the LD matrix computation. This can be provided for both plink and bgen files. If not provided, all individuals will be used. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
-16. **--threads** - the number of CPU threads that LDstore will use to compute LD matrices (if not specified, use the max number of available CPU cores).
+1. **--geno** - The name of a .bgen file, or the *prefix* of the name of a plink file (without the suffix .bed). `run_finemapper` will compute an LD matrix using the genotypes in this file. **Warning: this file should ideally contain genotypes of the same individuals used to generate summary statistics, or at least very closely matched individuals. Using an external reference panel in fine-mapping is strongly discouraged and can lead to severe false-positive results** (see [Benner et al. 2017 AJHG](https://www.cell.com/ajhg/fulltext/S0002-9297(17)30334-8), [Ulirsch et al. 2019 Nat Genet](https://www.nature.com/articles/s41588-019-0362-6) for an investigation of this issue).
+2. **--ld** - Instead of --geno you can provide the prefix of an LD matrix that we pre-computed using N=337K unrelated British-ancestry individuals from the UK Biobank (see example 2 above). For every such matrix you need two files: A .npz file with the actual LD matrix, and a .gz file with identities of the SNPs in the LD matrix. [We have made LD matrices for 2,763 3Mb-long regions spanning the entire genome freely available to download](https://data.broadinstitute.org/alkesgroup/UKBB_LD/).
+3. **--sumstats** - The name of a summary statistics file, which must include the columns `SNP`, `CHR`, `BP`, `A1`, `A2`, `Z` (z-score). This file can also include a column called `SNPVAR` that specifies prior per-SNP heritability. If it exists (and unless requested otherwise), `run_finemapper` will use this column to perform functionally-informed fine-mapping. We recommend using the output files of PolyFun as input sumstats files for `run_finemapper`.
+4. **--n** - the sample size used to generate summary statistics. In case the summary statistics were computed with [BOLT-LMM](https://data.broadinstitute.org/alkesgroup/BOLT-LMM), we recommend specifying the [effective sample size](https://www.nature.com/articles/s41588-018-0144-6) (this quantity is automatically computed by `munge_polyfun_sumstats.py`).
+5. **--chr** - the target chromosome to fine-map.
+6. **--start**, **--end** - the start and end positions of the target locus to finemap (base pair coordinates).
+7. **--method** - the fine-mapping method. `run_finemapper` currently supports only `--method susie`, but FINEMAP support is coming soon.
+8. **--max-num-causal** - the max number of causal SNPs that can be modeled (for FINEMAP) or the exact number (for SuSiE).
+9. **--cache-dir** - a directory that will cache LD matrices for future reuse. If not specified, LD matrices will be saved to a temp directory and deleted after the script terminates.
+10. **--out** - the name of the output file.
+11. **--ldstore** - the path of the [LDstore](http://www.christianbenner.com) executable on your system.
+12. **--non-funct** - if specified, `run_finemapper` will perform non-functionally informed fine-mapping. In this case it does not require that the sumstats file has a column called `SNPVAR`.
+13. **--verbose** - if specified, `run_finemapper` and the tools it runs will print more detailed output messages.
+14. **--hess** - if specified, the prior causal effect size variance will be determined using a modified [HESS](https://www.sciencedirect.com/science/article/pii/S0002929716301483) procedure, as described in the PolyFun paper. Otherwise, the causal effect size variance will be estimated by SuSiE and/or FINEMAP.
+15. **--sample-file** - if you provide a bgen file for `--geno`, you must also provide a SNPTEST2 sample file, like for other tools that use bgen data. This is a simple text file without a header and a single column that contains individual ids. If `--geno` is a plink file, you do not need to provide this argument. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
+16. **--incl-samples** - an optional text file without a header and with a single column that includes the ids of a subset of individuals to use in the LD matrix computation. This can be provided for both plink and bgen files. If not provided, all individuals will be used. Please see the [LDstore website](http://www.christianbenner.com) for more information and examples.
+17. **--threads** - the number of CPU threads that LDstore will use to compute LD matrices (if not specified, use the max number of available CPU cores).
 
 ## Using prior causal probabilities in SuSiE directly
 All you have to do is provide SuSiE the flag **prior_weights** with per-SNP heritability estimates from PolyFun (i.e., the contents of the column `SNPVAR`).
