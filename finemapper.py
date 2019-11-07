@@ -54,6 +54,7 @@ class Fine_Mapping(object):
         self.df_sumstats_locus = self.df_sumstats.query('%d <= BP <= %d'%(locus_start, locus_end))
         if self.df_sumstats_locus.shape[0] == 0:
             raise ValueError('No SNPs found in sumstats file in the BP range %d-%d'%(locus_start, locus_end))
+        locus_index_flipped = pd.Index(self.df_sumstats_locus['SNP'] + '.' + self.df_sumstats_locus['A2'] + '.' + self.df_sumstats_locus['A1'])
                 
         #define file names
         if self.cache_dir is None:
@@ -97,7 +98,7 @@ class Fine_Mapping(object):
                 else:
                     continue
                 df_meta.index = df_meta['RSID'] + '.' + df_meta['A_allele'] + '.' + df_meta['B_allele']
-                if not np.all(self.df_sumstats_locus.index.isin(df_meta.index)):
+                if not np.all((self.df_sumstats_locus.index.isin(df_meta.index)) | (locus_index_flipped.isin(df_meta.index))):
                     continue
             
                 #if we got here than we found a suitable LD file
@@ -150,15 +151,16 @@ class Fine_Mapping(object):
             #open meta_file
             df_ldstore_meta = pd.read_table(meta_file, delim_whitespace=True)
             df_ldstore_meta.index = df_ldstore_meta['RSID'] + '.' + df_ldstore_meta['A_allele'] + '.' + df_ldstore_meta['B_allele']
-            if not np.all(self.df_sumstats_locus.index.isin(df_ldstore_meta.index)):
+            if not np.all((self.df_sumstats_locus.index.isin(df_ldstore_meta.index)) | (locus_index_flipped.isin(df_ldstore_meta.index))):
                 raise IOError('Not all variants exist in LDStore output')
                 
             #create incl-variants file if needed
             if df_ldstore_meta.shape[0] == self.df_sumstats_locus.shape[0]:
                 use_incl_file = False
             else:
-                assert np.all(self.df_sumstats_locus.index.isin(df_ldstore_meta.index))
-                df_ldstore_meta = df_ldstore_meta.loc[self.df_sumstats_locus.index, ['RSID', 'position', 'chromosome', 'A_allele', 'B_allele']]
+                assert np.all((self.df_sumstats_locus.index.isin(df_ldstore_meta.index)) | (locus_index_flipped.isin(df_ldstore_meta.index)))
+                is_found = (df_ldstore_meta.index.isin(self.df_sumstats_locus.index)) | (df_ldstore_meta.index.isin(locus_index_flipped))
+                df_ldstore_meta = df_ldstore_meta.loc[is_found, ['RSID', 'position', 'chromosome', 'A_allele', 'B_allele']]
                 df_ldstore_meta.to_csv(incl_variants_file, index=False, header=True, sep=' ')
                 use_incl_file = True
             
@@ -183,10 +185,35 @@ class Fine_Mapping(object):
                 df_R.columns = self.df_sumstats_locus.index
             else:
                 df_R.index = cache_snps
-                df_R.columns = cache_snps                
-                assert np.all(self.df_sumstats_locus.index.isin(df_R.index))                
-                if df_R.shape[0] > self.df_sumstats_locus.shape[0]:
-                    df_R = df_R.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
+                df_R.columns = cache_snps
+                assert np.all((self.df_sumstats_locus.index.isin(df_R.index)) | (locus_index_flipped.isin(df_R.index)))
+                is_found = (df_R.index.isin(self.df_sumstats_locus.index)) | (df_R.index.isin(locus_index_flipped))
+                if not is_found.all():
+                    df_R = df_R.loc[is_found, is_found]
+                assert df_R.shape[0] == self.df_sumstats_locus.shape[0]
+                
+                #flip reference and alternative alleles if needed
+                is_flipped = df_R.index.isin(locus_index_flipped)
+                is_not_flipped = df_R.index.isin(self.df_sumstats_locus.index)
+                assert np.all(is_flipped | is_not_flipped)
+                if is_flipped.any():
+                    df_splitindex_R = pd.Series(df_R.index).str.split('.', expand=True)
+                    df_splitindex_R.columns = ['SNP', 'A1', 'A2']
+                    R_index_flipped = df_splitindex_R['SNP'] + '.' + df_splitindex_R['A2'] + '.' + df_splitindex_R['A1']
+                    new_index = pd.Series(df_R.index).copy()
+                    new_index.loc[is_flipped] = R_index_flipped
+                    df_R.index = new_index
+                    df_R.columns = new_index
+                    assert np.all(df_R.index.isin(self.df_sumstats_locus.index))
+                    if np.any(df_R.index != self.df_sumstats_locus.index):
+                        df_R = df_R.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
+                
+                # # # is_not_flipped = df_R.index == self.df_sumstats_locus.index
+                # # # is_flipped = df_R.index == locus_index_flipped
+                # # # assert np.all(is_flipped | is_not_flipped)
+                # # # df_R.index = self.df_sumstats_locus.index
+                # # # df_R.columns = self.df_sumstats_locus.index
+                
             
             #rewrite LD matrix if needed
             if rewrite_ld:
@@ -310,11 +337,13 @@ class SUSIE_Wrapper(Fine_Mapping):
         #run SuSiE
         t0 = time.time()
         m = self.df_sumstats_locus.shape[0]        
-        logging.info('Starting %s SuSiE fine-mapping for chromosome %d BP %d-%d'%(
+        logging.info('Starting %s SuSiE fine-mapping for chromosome %d BP %d-%d (%d SNPs)'%(
             ('functionally-informed' if use_prior_causal_prob else 'non-functionally informed'),
             self.chr,
             locus_start,
-            locus_end))
+            locus_end,
+            self.df_R.shape[0]
+            ))
             
         # susie_obj = self.susieR.susie_z(
                 # z=self.df_sumstats_locus['Z'].values.reshape((m,1)),
