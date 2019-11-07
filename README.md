@@ -475,7 +475,6 @@ python polyfun.py \
     --w-ld-chr example_data/weights.
 ```
 <br>
-<br>
 
 **Q**: Why am I getting all kinds of strange error messages?
 <br>
