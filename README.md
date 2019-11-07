@@ -224,7 +224,7 @@ To run `run_finemapper` with SuSiE, you need to install [rpy2](https://rpy2.bitb
 
 We will first show two use examples and then describe all the command line arguments in detail.
 
-##### Example 1: Fine-mapping with genotypes from a plink file
+#### Example 1: Fine-mapping with genotypes from a plink file
 ```
 mkdir -p LD_cache
 mkdir -o output
@@ -261,8 +261,8 @@ Columns 1-9 describe the input summary statistics (and are based on data from th
 3. **BETA_SD** - posterior standard deviation of causal effect size
 4. **CREDIBLE_SET** - the index of the first (typically smallest) credible set that the SNP belongs to (0 means none).
 
-##### Example 2: Fine-mapping with genotypes from a plink file
-To run this example you will need to download an LD matrix that was pre-computed using N=337K British-ancestry individuals from the UK Biobank (**warning: This is a large download, requiring ~1GB of disk space).
+#### Example 2: Fine-mapping with genotypes from a plink file
+To run this example you will need to download an LD matrix that was pre-computed using N=337K British-ancestry individuals from the UK Biobank **(warning: This is a large download, requiring ~1GB of disk space)**.
 
 ```
 #download an LD matrix
@@ -290,7 +290,7 @@ python run_finemapper.py \
 
 
 
-##### Overview of all command like arguments of run_finemapper
+#### Overview of all command like arguments of run_finemapper
 We now describe the command-lime arguments of `run_finemapper` in detail:
 1. **--geno** - The name of a .bgen file, or the *prefix* of the name of a plink file (without the suffix .bed). `run_finemapper` will compute an LD matrix using the genotypes in this file. **Warning: this file should ideally contain the same individuals used to generate summary statistics, or at least very closely matched individuals. Using an external reference panel in fine-mapping is strongly discouraged and can lead to severe false-positive results** (see [Benner et al. 2017 AJHG](https://www.cell.com/ajhg/fulltext/S0002-9297(17)30334-8), [Ulirsch et al. 2019 Nat Genet](https://www.nature.com/articles/s41588-019-0362-6) for an investigation of this issue).
 2. **--sumstats** - The name of a summary statistics file, which must include the columns `SNP`, `CHR`, `BP`, `A1`, `A2`, `Z` (z-score). This file can also include a column called `SNPVAR` that specifies prior per-SNP heritability. If it exists (and unless requested otherwise), `run_finemapper` will use this column to perform functionally-informed fine-mapping. We recommend using the output files of PolyFun as input sumstats files for `run_finemapper`.
@@ -478,6 +478,7 @@ python polyfun.py \
 **Q**: Why am I getting all kinds of strange error messages?
 <br>
 **A**: Before reporting an error, please make sure that you have updated versions of all the required packages. In particular, you should have pandas version >=0.24.0, which includes many features not found in previous versions. You can check your version of pandas by typing the following in a python shell:
+
 ```
 import pandas as pd
 pd.__version__
