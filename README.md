@@ -476,6 +476,7 @@ python polyfun.py \
 ```
 <br>
 <br>
+
 **Q**: Why am I getting all kinds of strange error messages?
 <br>
 **A**: Before reporting an error, please make sure that you have updated versions of all the required packages. In particular, you should have pandas version >=0.24.0, which includes many features not found in previous versions. You can check your version of pandas by typing the following in a python shell:
