@@ -214,11 +214,17 @@ The `SNPVAR` column contains per-SNP heritabilities. These can be used directly 
 Below we explain how to use the estimated prior causal probabilities with SuSiE and FINEMAP. We recommend using the script **run_finemapper.py**, which saves many of the preprocessing steps requires to perform fine-mapping (e.g. handling allelic flips between the summary statistics and reference genotypes). Alternatively, you can run SuSiE or FINEMAP directly with the prior causal probabilities computed by PolyFun, as described below.
 
 ## Using prior causal probabilities using the run_finemapper script
-The script `run_finemapper` takes an input a file with summary statistics and a file with genotypes from a reference panel, and performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. `run_finemapper` computes an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. `run_finemapper` can cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
+The script `run_finemapper` performs functionally-informed fine-mapping using methods like SuSiE or FINEMAP. It works seamlessly with PolyFun by taking input files created by `munge_polyfun_sumstats.py` or by PolyFun itself. The script takes an input a file with summary statistics and one of three LD data sources:
+1. A plink file with genotypes from a reference panel
+2. A bgen file with genotypes from a reference panel
+3. A pre-computed LD matrix from a reference panel.
+If you provide a plink or a bgen file, the script will compute an LD matrix using [LDstore](http://www.christianbenner.com), which must be installed on your system. The script can also cache LD matrices on disk, which can save substantial time and effort when re-analyzing the same data multiple times with different configurations (which always happens).
 
 To run `run_finemapper` with SuSiE, you need to install [rpy2](https://rpy2.bitbucket.io/) and [the SuSiE package](https://github.com/stephenslab/susieR) on your system. To run it with FINEMAP, you need to install [the FINEMAP software](http://www.christianbenner.com) on your system. 
 
-We will first show a use example and then describe all the command line arguments:
+We will first show two use examples and then describe all the command line arguments in detail.
+
+##### Example 1: Fine-mapping with genotypes from a plink file
 ```
 mkdir -p LD_cache
 mkdir -o output
@@ -255,6 +261,36 @@ Columns 1-9 describe the input summary statistics (and are based on data from th
 3. **BETA_SD** - posterior standard deviation of causal effect size
 4. **CREDIBLE_SET** - the index of the first (typically smallest) credible set that the SNP belongs to (0 means none).
 
+##### Example 2: Fine-mapping with genotypes from a plink file
+To run this example you will need to download an LD matrix that was pre-computed using N=337K British-ancestry individuals from the UK Biobank (**warning: This is a large download, requiring ~1GB of disk space).
+
+```
+#download an LD matrix
+mkdir -p LD_cache
+mkdir -o output
+mkdir -p LD_temp
+cd LD_temp
+wget https://data.broadinstitute.org/alkesgroup/UKBB_LD/chr1_46000001_49000001.npz
+wget https://data.broadinstitute.org/alkesgroup/UKBB_LD/chr1_46000001_49000001.gz
+cd ..
+
+#run fine-mapper
+python run_finemapper.py \
+    --ld LD_temp/chr1_46000001_49000001 \
+    --sumstats example_data/chr1.finemap_sumstats.txt.gz \
+    --n 383290 \
+    --chr 1 \
+    --start 46000001 \
+    --end 49000001 \
+    --method susie \
+    --max-num-causal 5 \
+    --out output/finemap.UKB.1.46000001.49000001.gz
+```
+
+
+
+
+##### Overview of all command like arguments of run_finemapper
 We now describe the command-lime arguments of `run_finemapper` in detail:
 1. **--geno** - The name of a .bgen file, or the *prefix* of the name of a plink file (without the suffix .bed). `run_finemapper` will compute an LD matrix using the genotypes in this file. **Warning: this file should ideally contain the same individuals used to generate summary statistics, or at least very closely matched individuals. Using an external reference panel in fine-mapping is strongly discouraged and can lead to severe false-positive results** (see [Benner et al. 2017 AJHG](https://www.cell.com/ajhg/fulltext/S0002-9297(17)30334-8), [Ulirsch et al. 2019 Nat Genet](https://www.nature.com/articles/s41588-019-0362-6) for an investigation of this issue).
 2. **--sumstats** - The name of a summary statistics file, which must include the columns `SNP`, `CHR`, `BP`, `A1`, `A2`, `Z` (z-score). This file can also include a column called `SNPVAR` that specifies prior per-SNP heritability. If it exists (and unless requested otherwise), `run_finemapper` will use this column to perform functionally-informed fine-mapping. We recommend using the output files of PolyFun as input sumstats files for `run_finemapper`.
@@ -436,6 +472,15 @@ python polyfun.py \
     --sumstats example_data/sumstats.parquet \
     --ref-ld-chr example_data/annotations.,my_annot. \
     --w-ld-chr example_data/weights.
+```
+<br>
+<br>
+**Q**: Why am I getting all kinds of strange error messages?
+<br>
+**A**: Before reporting an error, please make sure that you have updated versions of all the required packages. In particular, you should have pandas version >=0.24.0, which includes many features not found in previous versions. You can check your version of pandas by typing the following in a python shell:
+```
+import pandas as pd
+pd.__version__
 ```
 
 <br><br>
