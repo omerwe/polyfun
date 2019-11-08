@@ -167,6 +167,59 @@ class PolyLoc(PolyFun):
         df_binsize.to_csv(args.output_prefix+'.binsize', sep='\t', index=True)
         
         
+    def compute_per_bin_h2(self, prop_h2, prop_h2_jk, df_binsize):
+        
+        #compute required quantities
+        sum_prop_h2 = np.cumsum(prop_h2)
+        prop_h2_stderr = np.std(prop_h2_jk, axis=1, ddof=0) * np.sqrt(prop_h2_jk.shape[1]-1)
+        sum_prop_h2_jk = np.cumsum(prop_h2_jk, axis=0)
+        sum_prop_h2_stderr = np.std(sum_prop_h2_jk, axis=1, ddof=0) * np.sqrt(prop_h2_jk.shape[1]-1)
+        
+        #create df_bin_h2
+        df_bin_h2 = df_binsize.copy()
+        df_bin_h2['SUM_BINSIZE'] = df_bin_h2['BIN_SIZE'].cumsum()
+        df_bin_h2['%H2'] = prop_h2
+        df_bin_h2['%H2_STDERR'] = prop_h2_stderr
+        df_bin_h2['SUM_%H2'] = sum_prop_h2
+        df_bin_h2['SUM_%H2_STDERR'] = sum_prop_h2_stderr
+        
+        return df_bin_h2
+    
+    
+    def compute_Mp(self, p, cumsum_prop_h2, cumnum_binsize):
+
+        if p==1: p=0.99999999
+        assert np.all(np.any(cumsum_prop_h2 >= p, axis=0))
+        num_jk = cumsum_prop_h2.shape[1]
+        
+        last_bin_index = np.argmax(cumsum_prop_h2 >= p, axis=0)
+        num_snps_bin1 = np.zeros(num_jk, dtype=np.int)
+        h2_bin1 = np.zeros(num_jk)
+        num_snps_bin1[last_bin_index != 0] = cumnum_binsize[last_bin_index[last_bin_index != 0] - 1]
+        h2_bin1[last_bin_index != 0] = cumsum_prop_h2[last_bin_index[last_bin_index != 0] - 1, np.arange(num_jk)[last_bin_index != 0]]
+            
+        num_snps_bin2 = cumnum_binsize[last_bin_index]        
+        h2_bin2 = cumsum_prop_h2[last_bin_index, np.arange(num_jk)]
+        slope = (num_snps_bin2-num_snps_bin1).astype(np.float) / (h2_bin2-h2_bin1)
+        assert not np.any(np.isnan(slope))
+        Mp = np.ceil(num_snps_bin1 + slope * (p - h2_bin1)).astype(np.int)        
+        
+        return Mp
+            
+    
+    def compute_Mp_df(self, prop_h2, prop_h2_jk, cumnum_binsize):    
+    
+        cumsum_prop_h2 = np.cumsum(prop_h2)
+        cumsum_prop_h2_jk = np.cumsum(prop_h2_jk, axis=0)
+        dicts_list = []
+        for p in np.arange(1,101):
+            Mp = self.compute_Mp(p/100., np.reshape(cumsum_prop_h2, (cumsum_prop_h2.shape[0], 1)), cumnum_binsize)[0]
+            #import ipdb; ipdb.set_trace()
+            Mp_jk = self.compute_Mp(p/100., cumsum_prop_h2_jk, cumnum_binsize)
+            Mp_stderr = np.std(Mp_jk, ddof=0) * np.sqrt(len(Mp_jk)-1)
+            dicts_list.append({'p':p, 'Mp':Mp, 'Mp_STDERR':Mp_stderr})
+        df_Mp = pd.DataFrame(dicts_list)
+        return df_Mp
         
     def compute_polyloc(self, args):
     
@@ -180,26 +233,29 @@ class PolyLoc(PolyFun):
         #load bin sizes
         df_binsize = pd.read_table(args.output_prefix+'.binsize', sep='\t')
         
-        #compute stderrs of per-bin h^2
-        h2_delete = taus_jk.T * df_binsize['BIN_SIZE'].values[:, np.newaxis]        
-        h2_delete = h2_delete / h2_delete.sum(axis=0)
-        h2_delete_stderr = np.std(h2_delete, axis=1, ddof=0) * np.sqrt(h2_delete.shape[1]-1)
-        sum_h2_delete = np.cumsum(h2_delete, axis=0)
-        sum_h2_delete_stderr = np.std(sum_h2_delete, axis=1, ddof=0) * np.sqrt(h2_delete.shape[1]-1)        
+        #compute prop_h2 for the main analysis and for each jackknife block
+        prop_h2 = taus * df_binsize['BIN_SIZE'].values
+        prop_h2 /= prop_h2.sum()
+        prop_h2_jk = taus_jk.T * df_binsize['BIN_SIZE'].values[:, np.newaxis]
+        prop_h2_jk = prop_h2_jk / prop_h2_jk.sum(axis=0)
         
-        #compute df_polyloc
-        df_polyloc = df_binsize
-        df_polyloc['SUM_BINSIZE'] = df_polyloc['BIN_SIZE'].cumsum()
-        df_polyloc['%H2'] = taus * df_polyloc['BIN_SIZE']
-        df_polyloc['%H2'] /= df_polyloc['%H2'].sum()
-        df_polyloc['%H2_stderr'] = h2_delete_stderr
-        df_polyloc['SUM_%H2'] = df_polyloc['%H2'].cumsum()
-        df_polyloc['SUM_%H2_stderr'] = sum_h2_delete_stderr
+        #compuute per-bin h^2 and stderrs
+        df_bin_h2 = self.compute_per_bin_h2(prop_h2, prop_h2_jk, df_binsize)
         
-        #write df_polyloc to output file
-        outfile = args.output_prefix+'.polyloc'
-        df_polyloc.to_csv(args.output_prefix+'.polyloc', sep='\t', float_format='%0.5f', index=False)
-        logging.info('Wrote output to %s'%(outfile))
+        #compute df_Mp
+        cumnum_binsize = df_binsize['BIN_SIZE'].cumsum().values
+        df_Mp = self.compute_Mp_df(prop_h2, prop_h2_jk, cumnum_binsize)
+        
+        #write df_bin_h2 to output file
+        outfile = args.output_prefix+'.bin_h2'
+        df_bin_h2.to_csv(outfile, sep='\t', float_format='%0.5f', index=False)
+        logging.info('Wrote per-bin heritability to %s'%(outfile))
+        
+        #write df_Mp to output file
+        outfile = args.output_prefix+'.Mp'
+        df_Mp.to_csv(outfile, sep='\t', float_format='%0.5f', index=False)
+        logging.info('Wrote Mp estimates to %s'%(outfile))
+        
         
 
     def polyloc_main(self, args):
