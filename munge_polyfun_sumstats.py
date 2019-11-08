@@ -72,7 +72,7 @@ def rename_df_columns(df, min_info_score, min_maf):
         allele1_col = find_df_column(df_sumstats, ['ALLELE1', 'A1'])
         allele0_col = find_df_column(df_sumstats, ['ALLELE2', 'A2'])
     
-    return df.rename(columns={allele1_col:'A1', allele0_col:'A2', a1freq_col:'MAF', bp_column:'BP', 
+    return df.rename(columns={snp_column:'SNP', allele1_col:'A1', allele0_col:'A2', a1freq_col:'MAF', bp_column:'BP', 
                      chr_column:'CHR', info_col:'INFO', beta_col:'BETA', se_col:'SE', pvalue_col:'P', z_col:'Z'}, errors='ignore')
 
 
