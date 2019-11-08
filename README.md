@@ -36,6 +36,8 @@ It is recommended (but not required) to also install the following:
 
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
 
+The `finemapper` script also requires the  [LDstore](http://www.christianbenner.com/) program, which should be installed on your system. 
+
 
 We recommend running PolyFun/PolyLoc via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the Python packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
 
@@ -43,6 +45,17 @@ Once all the prerequisite packages are installed, you can install PolyFun/PolyLo
 ```
 git clone https://github.com/omerwe/polyfun
 ```
+
+<br><br>
+
+# Testing the installation
+We recommend testing PolyFun by invoking the script:
+```
+test_polyfun.py --ldstore <ldstore_executable>
+```
+where `ldstore_executable` is the path to the [LDstore](http://www.christianbenner.com/) executable on your system. If the script completes without an error, everything is fine. If you omit the `--ldstore` flag, the `finemapper` functionality will not be tested.
+
+
 
 
 <br><br>
