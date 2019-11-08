@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import logging
+import scipy.stats as stats
 from tqdm import tqdm
 from polyfun import PolyFun, configure_logger, get_file_name, SNP_COLUMNS, check_package_versions
 
@@ -207,15 +208,16 @@ class PolyLoc(PolyFun):
         return Mp
             
     
-    def compute_Mp_df(self, prop_h2, prop_h2_jk, cumnum_binsize):    
+    def compute_Mp_df(self, prop_h2, prop_h2_jk, cumnum_binsize, outlier_coef=25):    
     
         cumsum_prop_h2 = np.cumsum(prop_h2)
         cumsum_prop_h2_jk = np.cumsum(prop_h2_jk, axis=0)
         dicts_list = []
         for p in np.arange(1,101):
             Mp = self.compute_Mp(p/100., np.reshape(cumsum_prop_h2, (cumsum_prop_h2.shape[0], 1)), cumnum_binsize)[0]
-            #import ipdb; ipdb.set_trace()
             Mp_jk = self.compute_Mp(p/100., cumsum_prop_h2_jk, cumnum_binsize)
+            is_outlier_jk = np.abs(Mp_jk - np.median(Mp_jk)) > stats.iqr(Mp_jk) * outlier_coef
+            Mp_jk = Mp_jk[~is_outlier_jk]
             Mp_stderr = np.std(Mp_jk, ddof=0) * np.sqrt(len(Mp_jk)-1)
             dicts_list.append({'p':p, 'Mp':Mp, 'Mp_STDERR':Mp_stderr})
         df_Mp = pd.DataFrame(dicts_list)
