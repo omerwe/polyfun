@@ -106,8 +106,6 @@ class PolyLoc(PolyFun):
     def __init__(self):
         pass
         
-        
-        
     def load_posterior_betas(self, args):
         if args.posterior.endswith('.parquet'):
             df_posterior = pd.read_parquet(args.posterior)
@@ -173,19 +171,30 @@ class PolyLoc(PolyFun):
     def compute_polyloc(self, args):
     
         #run S-LDSC and compute taus
-        self.run_ldsc(args, use_ridge=False, nn=True, evenodd_split=False, keep_large=True)        
+        self.run_ldsc(args, use_ridge=False, nn=True, evenodd_split=False, keep_large=True, n_blocks=200)
         hsqhat = self.hsqhat
         jknife = hsqhat.jknife
         taus = jknife.est[0, :hsqhat.n_annot] / hsqhat.Nbar
+        taus_jk = jknife.delete_values[:, :hsqhat.n_annot] / hsqhat.Nbar
         
         #load bin sizes
         df_binsize = pd.read_table(args.output_prefix+'.binsize', sep='\t')
         
+        #compute stderrs of per-bin h^2
+        h2_delete = taus_jk.T * df_binsize['BIN_SIZE'].values[:, np.newaxis]        
+        h2_delete = h2_delete / h2_delete.sum(axis=0)
+        h2_delete_stderr = np.std(h2_delete, axis=1, ddof=0) * np.sqrt(h2_delete.shape[1]-1)
+        sum_h2_delete = np.cumsum(h2_delete, axis=0)
+        sum_h2_delete_stderr = np.std(sum_h2_delete, axis=1, ddof=0) * np.sqrt(h2_delete.shape[1]-1)        
+        
         #compute df_polyloc
         df_polyloc = df_binsize
+        df_polyloc['SUM_BINSIZE'] = df_polyloc['BIN_SIZE'].cumsum()
         df_polyloc['%H2'] = taus * df_polyloc['BIN_SIZE']
         df_polyloc['%H2'] /= df_polyloc['%H2'].sum()
+        df_polyloc['%H2_stderr'] = h2_delete_stderr
         df_polyloc['SUM_%H2'] = df_polyloc['%H2'].cumsum()
+        df_polyloc['SUM_%H2_stderr'] = sum_h2_delete_stderr
         
         #write df_polyloc to output file
         outfile = args.output_prefix+'.polyloc'
