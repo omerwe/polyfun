@@ -435,18 +435,18 @@ python polyloc.py \
 ```
 The output of this command is a polygenic localization table. Here is the output of this example, which you can see by typing `cat output/polyloc_test.polyloc`:
 ```
-BIN  BIN_SIZE  %H2      SUM_%H2
-1    10        0.17250  0.17250
-2    32        0.13510  0.30760
-3    70        0.12648  0.43408
-4    110       0.13666  0.57074
-5    193       0.15129  0.72203
-6    255       0.09629  0.81832
-7    315       0.07411  0.89243
-8    410       0.05337  0.94580
-9    492       0.05057  0.99637
-10   639       0.00363  1.00000
-11   949       0.00000  1.00000
+BIN  BIN_SIZE  SUM_BINSIZE  %H2      %H2_stderr  SUM_%H2  SUM_%H2_stderr
+1    10        10           0.17250  0.01015     0.17250  0.01015
+2    32        42           0.13510  0.01878     0.30760  0.01970
+3    70        112          0.12648  0.01779     0.43408  0.02313
+4    110       222          0.13666  0.01394     0.57074  0.02198
+5    193       415          0.15129  0.01394     0.72203  0.02134
+6    255       670          0.09629  0.01070     0.81832  0.01907
+7    315       985          0.07411  0.00857     0.89243  0.01611
+8    410       1395         0.05337  0.00840     0.94580  0.01297
+9    492       1887         0.05057  0.00877     0.99637  0.00807
+10   639       2526         0.00363  0.00807     1.00000  0.00000
+11   949       3475         0.00000  0.00000     1.00000  0.00000
 ```
 The output shows that PolyLoc partitioned SNPs into 11 bins of similar posterior per-SNP heritability. The first bin includes 10 SNPs that jointly explain 17.25% of the total SNP heritability, the second bin includes 32 SNPs that jointly explain 13.5% of the total SNP heritability, and so on. The identities of the SNPs in each bin are the SNPs in the posterior effect sizes file, ranked according to their posterior per-SNP heritability estimates (i.e., the sum of their squared posterior mean and their squared posterior standard deviation). That is, the SNPs in bin 1 are the 10 SNPs with the largest posterior per-SNP heritability, the SNPs in bin 2 are the next top ranked 32 SNPs, and so on.
 
