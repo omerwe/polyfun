@@ -11,6 +11,13 @@ from tqdm import tqdm
 MAX_CHI2=80
 SNP_COLUMNS = ['CHR', 'SNP', 'BP', 'A1', 'A2']
 
+def check_package_versions():
+    from pkg_resources import parse_version
+    if parse_version(pd.__version__) < parse_version('0.24.0'):
+        raise ValueError('your pandas version is too old --- please update pandas')
+    
+
+
 def __filter__(fname, noun, verb, merge_obj):
     merged_list = None
     if fname:
@@ -238,14 +245,14 @@ class PolyFun:
     def __init__(self):
         pass
         
-    def run_ldsc(self, args, use_ridge, nn, keep_large, evenodd_split):
+    def run_ldsc(self, args, use_ridge, nn, keep_large, evenodd_split, n_blocks=2):
 
         #prepare LDSC objects
         log = Logger()
         args.h2 = args.sumstats
         args.ref_ld = None
         args.w_ld = None
-        args.n_blocks = 2
+        args.n_blocks = n_blocks
         args.M = None
         args.not_M_5_50 = True
         
@@ -863,6 +870,10 @@ if __name__ == '__main__':
     parser.add_argument('--w-ld-chr', help='Suffix of LD-score weights files (as in ldsc)')
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun output file names')    
+    
+    
+    #check package versions
+    check_package_versions()
     
     #show splash screen
     splash_screen()

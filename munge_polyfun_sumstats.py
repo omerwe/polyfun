@@ -5,6 +5,12 @@ import time
 import scipy.stats as stats
 import logging
 
+def check_package_versions():
+    from pkg_resources import parse_version
+    if parse_version(pd.__version__) < parse_version('0.24.0'):
+        raise ValueError('your pandas version is too old --- please update pandas')
+    
+
 
 def configure_logger(out_prefix):
 
@@ -184,6 +190,10 @@ if __name__ == '__main__':
     parser.add_argument('--no-neff', default=False, action='store_true', help='If specified, use the true rather than the effective sample size in BOLT-LMM runs')
     args = parser.parse_args()
     
+    #check package versions
+    check_package_versions()    
+    
+    #configure the logger
     configure_logger(args.out)
     
     logging.info('Reading sumstats file...')

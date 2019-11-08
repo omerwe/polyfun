@@ -3,6 +3,12 @@ import numpy as np
 import os
 
 
+def check_package_versions():
+    from pkg_resources import parse_version
+    if parse_version(pd.__version__) < parse_version('0.24.0'):
+        raise ValueError('your pandas version is too old --- please update pandas')
+    
+
 if __name__ == '__main__':
 
     import argparse
@@ -11,6 +17,9 @@ if __name__ == '__main__':
     parser.add_argument('--out', required=True, help='Prefix of the name of the output file')
     parser.add_argument('--q', type=int, default=100, help='The maximum ratio between the largest and smallest prior causal probabilities')
     args = parser.parse_args()
+    
+    #check package versions
+    check_package_versions()
     
     #read snps file
     df_snps = pd.read_table(args.snps, delim_whitespace=True)    

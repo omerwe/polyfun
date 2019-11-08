@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from finemapper import SUSIE_Wrapper
-from polyfun import configure_logger
+from polyfun import configure_logger, check_package_versions
 import logging
 import os
 import scipy.sparse as sparse
@@ -75,6 +75,9 @@ if __name__ == '__main__':
     parser.add_argument('--sample-file', default=None, help='BGEN files must be used together with a sample file')
     parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to exclude from fine-mapping')
     parser.add_argument('--out', required=True, help='name of the output file')
+    
+    #check package versions
+    check_package_versions()
     
     #show splash screen
     splash_screen()

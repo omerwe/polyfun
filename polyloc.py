@@ -5,7 +5,7 @@ import sys
 import time
 import logging
 from tqdm import tqdm
-from polyfun import PolyFun, configure_logger, get_file_name, SNP_COLUMNS
+from polyfun import PolyFun, configure_logger, get_file_name, SNP_COLUMNS, check_package_versions
 
 
 def splash_screen():
