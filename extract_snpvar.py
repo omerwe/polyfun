@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import os
+import logging
+from polyfun import configure_logger
 
 
 def check_package_versions():
@@ -15,11 +17,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--snps', required=True, help='Whitespace-delimited file with SNPs to extract. Must include columns A1,A2 and either (1) SNP or (2) both CHR and BP')
     parser.add_argument('--out', required=True, help='Prefix of the name of the output file')
+    parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, the script will not terminate if some SNPs are not found in the meta file')
     parser.add_argument('--q', type=int, default=100, help='The maximum ratio between the largest and smallest prior causal probabilities')
     args = parser.parse_args()
     
     #check package versions
     check_package_versions()
+    
+    #configure logger
+    configure_logger(args.out)
     
     #read snps file
     df_snps = pd.read_table(args.snps, delim_whitespace=True)    
@@ -88,7 +94,11 @@ if __name__ == '__main__':
                           + df_meta['A2']
         df_miss = df_snps.loc[~df_snps.index.isin(df_meta.index)]
         df_miss.to_csv(args.out+'.miss.gz', sep='\t', index=False, compression='gzip')
-        raise ValueError('Not all SNPs in the SNPs file were found in the meta file. Wrote a list of missing SNPs to %s'%(args.out+'.miss.gz'))
+        error_message = 'Not all SNPs in the SNPs file were found in the meta file. Wrote a list of missing SNPs to %s'%(args.out+'.miss.gz')
+        if args.allow_missing:
+            logging.warning(error_message)
+        else:
+            raise ValueError(error_message)
         
     #normalize the prior-causal probabilities
     df['SNPVAR'] = df['snpvar_bin'] #/ df['snpvar_bin'].sum()
@@ -96,7 +106,7 @@ if __name__ == '__main__':
     del df['snpvar_bin']
         
     #write output to file
-    print('Writing output file to %s'%(args.out))
+    logging.info('Writing output file to %s'%(args.out))
     df.to_csv(args.out, sep='\t', index=False, float_format='%0.4e')
     
         
