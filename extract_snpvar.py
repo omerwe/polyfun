@@ -69,10 +69,12 @@ if __name__ == '__main__':
     df_meta = pd.concat([df_meta, df_meta2], axis=0)    
     
     #merge the dfs
-    if 'SNP' in df_snps.columns:
-        df = df_meta.merge(df_snps, on=['SNP', 'A1', 'A2'], how='inner')
+    if np.all(np.isin(['SNP', 'CHR', 'BP'], df_snps.columns)):
+        df = df_meta.merge(df_snps, on=['SNP', 'CHR', 'BP', 'A1', 'A2'], how='inner')
+    elif 'SNP' in df_snps.columns:
+        df = df_meta.merge(df_snps.drop(columns=['CHR', 'BP'], errors='ignore'), on=['SNP', 'A1', 'A2'], how='inner')
     else:
-        df = df_meta.merge(df_snps, on=['CHR', 'BP', 'A1', 'A2'], how='inner')
+        df = df_meta.merge(df_snps.drop(columns=['SNP'], errors='ignore'), on=['CHR', 'BP', 'A1', 'A2'], how='inner')
         
     #If we didn't find everything, write a list of missing SNPs to an output file
     if df.shape[0] < df_snps.shape[0]:
