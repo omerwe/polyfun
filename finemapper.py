@@ -432,6 +432,9 @@ class SUSIE_Wrapper(Fine_Mapping):
         
     def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld=None, df_ld_snps=None):
     
+        #check params
+        if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
+            raise ValueError('SNPVAR column not found in sumstats file')
         if not np.isin(np.sum([ld is None, df_ld_snps is None]), [0,2]):
             raise ValueError('either both or none of ld, df_ld_SNPs should be specified')
     
@@ -442,8 +445,6 @@ class SUSIE_Wrapper(Fine_Mapping):
         
         #define prior causal probabilities
         if use_prior_causal_prob:
-            if 'SNPVAR' not in self.df_sumstats_locus.columns:
-                raise ValueError('SNPVAR column not found in sumstats file')
             prior_weights = self.df_sumstats_locus['SNPVAR'].copy().values
             prior_weights /= prior_weights.sum()
             assert np.isclose(prior_weights.sum(), 1)
