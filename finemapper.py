@@ -425,7 +425,7 @@ class SUSIE_Wrapper(Fine_Mapping):
         from rpy2.robjects.packages import importr
         self.susieR = importr('susieR')
         self.R_null = ro.rinterface.NULL
-        self.RNULLType = rpy2.rinterface.RNULLType
+        #self.RNULLType = rpy2.rinterface.RNULLType
         
         
     
@@ -526,12 +526,15 @@ class SUSIE_Wrapper(Fine_Mapping):
         self.susie_dict = {key:np.array(susie_obj.rx2(key)) for key in list(susie_obj.names)}
         df_susie['CREDIBLE_SET'] = 0
         susie_sets = self.susie_dict['sets'][0]
-        if type(susie_sets) != self.RNULLType:
+        #if type(susie_sets) != self.RNULLType:
+        try:
             for set_i, susie_set in enumerate(susie_sets):
                 is_in_set = np.zeros(df_susie.shape[0], dtype=np.bool)
                 is_in_set[np.array(susie_set)-1] = True
                 is_in_set[df_susie['CREDIBLE_SET']>0] = False
                 df_susie.loc[is_in_set, 'CREDIBLE_SET'] = set_i+1
+        except TypeError:
+            pass
         
         return df_susie
         
