@@ -631,7 +631,11 @@ class PolyFun:
                 raise ValueError('sumstats file has a missing column: %s'%(col))        
         df_snpvar = df_snpvar.merge(df_sumstats, on=['SNP', 'A1', 'A2'])
         if df_snpvar.shape[0] < df_sumstats.shape[0]:
-            raise ValueError('not all SNPs in the sumstats file are also in the annotations file')
+            error_message = 'not all SNPs in the sumstats file are also in the annotations file'
+            if args.allow_missing:
+                logging.warning(error_message)
+            else:
+                raise ValueError(error_message)
 
         #iterate over chromosomes 
         for chr_num in tqdm(range(1,23)):
@@ -870,6 +874,7 @@ if __name__ == '__main__':
     parser.add_argument('--w-ld-chr', help='Suffix of LD-score weights files (as in ldsc)')
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun output file names')    
+    parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, PolyFun will not terminate if some SNPs with sumstats are not found in the annotations files')
     
     
     #check package versions
