@@ -13,7 +13,7 @@ SNP_COLUMNS = ['CHR', 'SNP', 'BP', 'A1', 'A2']
 
 def check_package_versions():
     from pkg_resources import parse_version
-    if parse_version(pd.__version__) < parse_version('0.24.0'):
+    if parse_version(pd.__version__) < parse_version('0.25.0'):
         raise ValueError('your pandas version is too old --- please update pandas')
     
 
