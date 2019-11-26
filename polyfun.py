@@ -744,7 +744,19 @@ class PolyFun:
         #make sure that all SNPs have a bin
         df_bim.index = df_bim['CHR'].astype(str) + '.' + df_bim['BP'].astype(str) + '.' + df_bim['A1'] + '.' + df_bim['A2']
         if np.any(~df_bim.index.isin(df_bins_chr.index)):
-            raise ValueError('Not all SNPs were assigned a bin (meaning some SNPS are not in the annotation files)')
+            error_msg = 'Not all SNPs were assigned a bin (meaning some SNPS are not in the annotation files)'
+            if args.allow_missing:
+                is_good_snp = df_bim.index.isin(df_bins_chr.index)
+                if not np.any(is_good_snp):
+                    raise ValueError('No SNPs in chromosome %d have annotations'%(chr_num))
+                keep_snps = np.where(is_good_snp)[0]
+                df_bim = df_bim.loc[is_good_snp]
+                logging.warning(error_msg)
+                logging.warning('Keeping only %d SNPs in chromosome %d that have annotations'%(df_bim.shape[0], chr_num))
+            else:
+                raise ValueError(error_msg)
+        else:
+            keep_snps = None
             
         #rearrange df_bins_chr to match the order of SNPs in the plink file
         if (df_bins_chr.shape[0] > df_bim.shape[0]) or np.any(df_bins_chr.index != df_bim.index):
@@ -771,7 +783,7 @@ class PolyFun:
         #read plink file    
         logging.info('Loading SNP file...')
         bed_file = get_file_name(args, 'bed', chr_num)
-        geno_array = ldscore.PlinkBEDFile(bed_file, n, array_snps, keep_snps=None,
+        geno_array = ldscore.PlinkBEDFile(bed_file, n, array_snps, keep_snps=keep_snps,
             keep_indivs=keep_indivs, mafMin=None)
 
             
