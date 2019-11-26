@@ -796,12 +796,12 @@ class PolyFun:
             coords = np.array(list(range(geno_array.m)))
         elif args.ld_wind_kb:
             max_dist = args.ld_wind_kb*1000
-            coords = np.array(df_bim['BP'])[geno_array.kept_snps]
+            coords = np.array(df_bim['BP'])#[geno_array.kept_snps]
             if len(np.unique(coords)) == 1:
                 raise ValueError('bim file has no basepair data --- please use a different ld-wind option')
         elif args.ld_wind_cm:
             max_dist = args.ld_wind_cm
-            coords = np.array(df_bim['CM'])[geno_array.kept_snps]
+            coords = np.array(df_bim['CM'])#[geno_array.kept_snps]
             if len(np.unique(coords)) == 1:
                 raise ValueError('bim file has no CM data --- please use a different ld-wind option')
             
