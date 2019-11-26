@@ -752,7 +752,7 @@ class PolyFun:
                 keep_snps = np.where(is_good_snp)[0]
                 df_bim = df_bim.loc[is_good_snp]
                 logging.warning(error_msg)
-                logging.warning('Keeping only %d SNPs in chromosome %d that have annotations'%(df_bim.shape[0], chr_num))
+                logging.warning('Keeping only %d/%d SNPs in chromosome %d that have annotations'%(df_bim.shape[0], len(is_good_snp), chr_num))
             else:
                 raise ValueError(error_msg)
         else:
