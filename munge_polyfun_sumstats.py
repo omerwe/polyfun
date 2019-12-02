@@ -60,11 +60,14 @@ def rename_df_columns(df_sumstats, min_info_score, min_maf):
     bp_column = find_df_column(df_sumstats, ['BP', 'POS', 'POSITION', 'COORDINATE', 'BASEPAIR'])
     snp_column = find_df_column(df_sumstats, ['SNP', 'RSID', 'RS', 'NAME'])
     a1freq_col = find_df_column(df_sumstats, ['A1FREQ', 'freq', 'MAF', 'FRQ'], allow_missing=(min_maf is None or min_maf<=0))
-    info_col = find_df_column(df_sumstats, 'INFO', allow_missing=(min_info_score is None or min_info_score<=0))
+    info_col = find_df_column(df_sumstats, 'INFO', allow_missing=True)
     beta_col = find_df_column(df_sumstats, ['BETA', 'EFF', 'EFFECT', 'EFFECT_SIZE'], allow_missing=True)
     se_col = find_df_column(df_sumstats, ['SE'], allow_missing=True)
     pvalue_col = find_df_column(df_sumstats, ['P_BOLT_LMM', 'P', 'PVALUE', 'P-VALUE', 'P_value', 'PVAL'], allow_missing=True)
     z_col = find_df_column(df_sumstats, ['Z', 'ZSCORE', 'Z_SCORE'], allow_missing=True)    
+    n_col = find_df_column(df_sumstats, ['N', 'sample_size'], allow_missing=True)    
+    ncase_col = find_df_column(df_sumstats, ['N_cases', 'Ncase'], allow_missing=True)    
+    ncontrol_col = find_df_column(df_sumstats, ['N_controls', 'Ncontrol'], allow_missing=True)    
     try:
         allele1_col = find_df_column(df_sumstats, ['ALLELE1', 'A1'])
         allele0_col = find_df_column(df_sumstats, ['ALLELE0', 'A0'])
@@ -72,8 +75,11 @@ def rename_df_columns(df_sumstats, min_info_score, min_maf):
         allele1_col = find_df_column(df_sumstats, ['ALLELE1', 'A1'])
         allele0_col = find_df_column(df_sumstats, ['ALLELE2', 'A2'])
     
-    return df_sumstats.rename(columns={snp_column:'SNP', allele1_col:'A1', allele0_col:'A2', a1freq_col:'MAF', bp_column:'BP', 
-                     chr_column:'CHR', info_col:'INFO', beta_col:'BETA', se_col:'SE', pvalue_col:'P', z_col:'Z'}, errors='ignore')
+    return df_sumstats.rename(columns={snp_column:'SNP', allele1_col:'A1', 
+              allele0_col:'A2', a1freq_col:'MAF', bp_column:'BP', 
+             chr_column:'CHR', info_col:'INFO', beta_col:'BETA', 
+             se_col:'SE', pvalue_col:'P', z_col:'Z', n_col:'N',
+             ncase_col:'N_CASES', ncontrol_col:'N_CONTROLS'}, errors='ignore')
 
 
 
@@ -129,10 +135,13 @@ def filter_sumstats(df_sumstats, min_info_score=None, min_maf=None, remove_stran
 
     #Filter SNPs based on INFO score    
     if min_info_score is not None and min_info_score>0:        
-        is_good_info_snp = (df_sumstats['INFO'] >= min_info_score)
-        is_good_snp = is_good_snp & is_good_info_snp
-        if np.any(~is_good_info_snp):
-            logging.info('Removing %d SNPs with INFO<%0.2f'%(np.sum(~is_good_info_snp), min_info_score))
+        if 'INFO' not in df_sumstats.columns:
+            logging.warning('Could not find INFO column. Please set --min-INFO 0 to omit this warning.')
+        else:
+            is_good_info_snp = (df_sumstats['INFO'] >= min_info_score)
+            is_good_snp = is_good_snp & is_good_info_snp
+            if np.any(~is_good_info_snp):
+                logging.info('Removing %d SNPs with INFO<%0.2f'%(np.sum(~is_good_info_snp), min_info_score))
     
     #filter SNPs based on MAF
     if min_maf is not None and min_maf>0:        
@@ -171,6 +180,10 @@ def filter_sumstats(df_sumstats, min_info_score=None, min_maf=None, remove_stran
     
     
 
+def compute_casecontrol_neff(df_sumstats):
+    logging.info('Computing the effective sample size for case-control data...')    
+    Neff = (4.0 / (1.0/df_sumstats['N_CASES'] + 1.0/df_sumstats['N_CONTROLS'])).astype(np.int)
+    return Neff
 
     
     
@@ -181,7 +194,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()    
     parser.add_argument('--sumstats', required=True, help='Input summary statistics file')
     parser.add_argument('--out', required=True, help='Name of output file')
-    parser.add_argument('--n', type=int, required=True, help='Sample size')
+    parser.add_argument('--n', type=int, default=None, help='Sample size. If not specified, will try to infer this from the input file')
     parser.add_argument('--min-info', type=float, default=0.6, help='Minimum INFO score (set to zero to avoid INFO-based filtering)')
     parser.add_argument('--min-maf', type=float, default=0.001, help='Minimum MAF (set to zero to avoid MAF-based filtering)')
     parser.add_argument('--remove-strand-ambig', default=False, action='store_true', help='If specified, strand-ambigous SNPs will be removed')
@@ -209,11 +222,25 @@ if __name__ == '__main__':
 
     #compute Neff    
     if 'CHISQ_BOLT_LMM' in df_sumstats.columns and not args.no_neff:
+        if args.n is not None:
+            raise ValueError('--n must be specified with BOLT input files')
         Neff = compute_Neff(df_sumstats, args.n, args.chi2_cutoff)
         logging.info('Effective sample size is %s'%(Neff))
         df_sumstats['N']  = Neff
-    else:
+    elif args.n is not None:
+        if 'N' in df_sumstats.columns:
+            raise ValueError('cannot both specify --n and have an N column in the sumstats file')
+        if 'N_CASES' in df_sumstats.columns or N_CONTROLS in df_sumstats.columns:
+            raise ValueError('cannot both specify --n and have an N_cases/N_controls column in the sumstats file')
         df_sumstats['N']  = args.n
+    elif 'N' in df_sumstats.columns:
+        if 'N_CASES' in df_sumstats.columns or N_CONTROLS in df_sumstats.columns:
+            raise ValueError('cannot both have an N column and N_cases/N_controls columns in the sumstats file')
+        pass
+    elif 'N_CASES' in df_sumstats.columns and 'N_CONTROLS' in df_sumstats.columns:
+        df_sumstats['N']  = compute_casecontrol_neff(df_sumstats)
+    else:
+        raise ValueError('must specify sample size, via either (1) --n flag; (2) N column in the sumstats file; or (3) Two columns N_cases, N_controls in the sumstats file')
     
     # #create SNP string
     # df_sumstats['SNP'] = df_sumstats['SNP'].astype('str') + '.' + \
