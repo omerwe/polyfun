@@ -222,7 +222,7 @@ if __name__ == '__main__':
 
     #compute Neff    
     if 'CHISQ_BOLT_LMM' in df_sumstats.columns and not args.no_neff:
-        if args.n is not None:
+        if args.n is None:
             raise ValueError('--n must be specified with BOLT input files')
         Neff = compute_Neff(df_sumstats, args.n, args.chi2_cutoff)
         logging.info('Effective sample size is %s'%(Neff))
