@@ -140,8 +140,8 @@ class PolyLoc(PolyFun):
             df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), delim_whitespace=True, names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'])            
             df_bim_list.append(df_bim_chr)
         df_bim = pd.concat(df_bim_list, axis=0)
-        df_bim.index = df_bim['SNP'] + df_bim['A1'] + df_bim['A2']
-        self.df_bins.index = self.df_bins['SNP'] + self.df_bins['A1'] + self.df_bins['A2']
+        df_bim.index = df_bim['CHR'].astype(str) + '.' + df_bim['BP'].astype(str) + '.' + df_bim['A1'] + '.' + df_bim['A2']
+        self.df_bins.index = self.df_bins['CHR'].astype(str) + '.' + self.df_bins['BP'].astype(str) + '.' + self.df_bins['A1'] + '.' + self.df_bins['A2']
         
         #make sure that all variants in the posterior file are also in the plink files
         if np.any(~self.df_bins.index.isin(df_bim.index)):

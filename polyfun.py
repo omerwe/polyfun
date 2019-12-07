@@ -625,11 +625,11 @@ class PolyFun:
         #merge snpvar with sumstats
         if args.sumstats.endswith('.parquet'): df_sumstats = pd.read_parquet(args.sumstats)            
         else: df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
-        df_sumstats.drop(columns=['CHR', 'BP'], errors='ignore', inplace=True)
-        for col in ['SNP', 'A1', 'A2']:
+        df_sumstats.drop(columns=['SNP'], errors='ignore', inplace=True)
+        for col in ['CHR', 'BP', 'A1', 'A2']:
             if col not in df_sumstats.columns:
                 raise ValueError('sumstats file has a missing column: %s'%(col))        
-        df_snpvar = df_snpvar.merge(df_sumstats, on=['SNP', 'A1', 'A2'])
+        df_snpvar = df_snpvar.merge(df_sumstats, on=['CHR', 'BP', 'A1', 'A2'])
         if df_snpvar.shape[0] < df_sumstats.shape[0]:
             error_message = 'not all SNPs in the sumstats file are also in the annotations file'
             if args.allow_missing:
@@ -727,7 +727,7 @@ class PolyFun:
         df_bim = array_snps.df
         
         #heuristically reduce df_bins_chr to a small superset of the relevant SNPs        
-        df_bins_chr = df_bins_chr.loc[df_bins_chr['SNP'].isin(df_bim['SNP'])]
+        df_bins_chr = df_bins_chr.loc[df_bins_chr['BP'].isin(df_bim['BP'])]
         
         #duplicate df_bins_chr to make sure we have no flipped alleles that will cause a mess
         bins_index1 =     df_bins_chr['CHR'].astype(str) + '.' \

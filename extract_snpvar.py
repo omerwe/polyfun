@@ -3,7 +3,7 @@ import numpy as np
 import os
 import logging
 from polyfun import configure_logger
-
+from pyarrow import ArrowIOError
 
 def check_package_versions():
     from pkg_resources import parse_version
@@ -28,7 +28,10 @@ if __name__ == '__main__':
     configure_logger(args.out)
     
     #read snps file
-    df_snps = pd.read_table(args.snps, delim_whitespace=True)    
+    try:
+        df_snps = pd.read_parquet(args.snps)
+    except ArrowIOError:
+        df_snps = pd.read_table(args.snps, delim_whitespace=True)
     if 'A1' not in df_snps.columns:
         raise ValueError('missing column A1')
     if 'A2' not in df_snps.columns:
@@ -57,10 +60,10 @@ if __name__ == '__main__':
     assert np.isclose(snpvar_sum3, snpvar_sum)    
     
     #subset df_meta to include a small superset of df_snps
-    if 'SNP' in df_snps.columns:
-        df_meta = df_meta.loc[df_meta['SNP'].isin(df_snps['SNP'])]
-    else:
+    if 'BP' in df_snps.columns:
         df_meta = df_meta.loc[df_meta['BP'].isin(df_snps['BP'])]
+    else:
+        df_meta = df_meta.loc[df_meta['SNP'].isin(df_snps['SNP'])]
     
     #duplicate df_meta to include every SNP twice, with alternating A1/A2 alleles (to handle allele flips)
     df_meta2 = df_meta.copy()
@@ -69,29 +72,27 @@ if __name__ == '__main__':
     df_meta = pd.concat([df_meta, df_meta2], axis=0)    
     
     #merge the dfs
-    if np.all(np.isin(['SNP', 'CHR', 'BP'], df_snps.columns)):
-        df = df_meta.merge(df_snps, on=['SNP', 'CHR', 'BP', 'A1', 'A2'], how='inner')
-    elif 'SNP' in df_snps.columns:
-        df = df_meta.merge(df_snps.drop(columns=['CHR', 'BP'], errors='ignore'), on=['SNP', 'A1', 'A2'], how='inner')
+    if np.all(np.isin(['CHR', 'BP'], df_snps.columns)):
+        df = df_meta.merge(df_snps, on=['CHR', 'BP', 'A1', 'A2'], how='inner')
     else:
-        df = df_meta.merge(df_snps.drop(columns=['SNP'], errors='ignore'), on=['CHR', 'BP', 'A1', 'A2'], how='inner')
+        df = df_meta.merge(df_snps.drop(columns=['CHR', 'BP'], errors='ignore'), on=['SNP', 'A1', 'A2'], how='inner')
         
     #If we didn't find everything, write a list of missing SNPs to an output file
     if df.shape[0] < df_snps.shape[0]:
-        if 'SNP' in df_snps.columns:
-            df_snps.index = df_snps['SNP'] + '.' \
-                          + df_snps['A1'] + '.' \
-                          + df_snps['A2']
-            df_meta.index = df_meta['SNP'] + '.' \
-                          + df_meta['A1'] + '.' \
-                          + df_meta['A2']
-        else:
+        if np.all(np.isin(['CHR', 'BP'], df_snps.columns)):
             df_snps.index = df_snps['CHR'].astype(str) + '.' \
                           + df_snps['BP'].astype(str) + '.' \
                           + df_snps['A1'] + '.' \
                           + df_snps['A2']
             df_meta.index = df_meta['CHR'].astype(str) + '.' \
                           + df_meta['BP'].astype(str) + '.' \
+                          + df_meta['A1'] + '.' \
+                          + df_meta['A2']
+        else:
+            df_snps.index = df_snps['SNP'] + '.' \
+                          + df_snps['A1'] + '.' \
+                          + df_snps['A2']
+            df_meta.index = df_meta['SNP'] + '.' \
                           + df_meta['A1'] + '.' \
                           + df_meta['A2']
         df_miss = df_snps.loc[~df_snps.index.isin(df_meta.index)]

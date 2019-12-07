@@ -174,7 +174,7 @@ def _read_sumstats(args, log, fh, alleles=True, dropna=False):
     if np.any(sumstats.index.duplicated()):
         m = len(sumstats)
         sumstats = sumstats.loc[~sumstats.index.duplicated()]
-        log.log('Dropped {M} SNPs with duplicated rs numbers.'.format(M=m - len(sumstats)))
+        log.log('Dropped {M} duplicated SNPs.'.format(M=m - len(sumstats)))
 
     return sumstats
 

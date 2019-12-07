@@ -20,6 +20,8 @@ def series_eq(x, y):
 def read_csv(fh, **kwargs):
     if fh.endswith('.hdf'):
         df = pd.read_hdf(fh)
+        if 'usecols' in kwargs.keys():
+            df = df[kwargs['usecols']]
     elif fh.endswith('.parquet'):
         df = pd.read_parquet(fh)
         if 'usecols' in kwargs.keys():
@@ -88,7 +90,7 @@ def sumstats(fh, alleles=True, dropna=True):
     '''Parses .sumstats files. See docs/file_formats_sumstats.txt.'''
     dtype_dict = {'SNP': str,   'Z': float, 'N': float, 'A1': str, 'A2': str}
     compression = get_compression(fh)
-    usecols = ['SNP', 'Z', 'N']
+    usecols = ['SNP', 'CHR', 'BP', 'Z', 'N']
     #if alleles:
     usecols += ['A1', 'A2']
 
@@ -100,9 +102,11 @@ def sumstats(fh, alleles=True, dropna=True):
     if dropna:
         x = x.dropna(how='any')
         
-    x['snpid'] = x['SNP'] + '.' \
+    x['snpid'] = x['CHR'].astype(str) + '.' \
+               + x['BP'].astype(str) + '.' \
                + x['A1'] + '.' \
                + x['A2']
+    x.drop(columns=['CHR', 'BP'], inplace=True)
     x.set_index('snpid', drop=True, inplace=True)
 
 
@@ -141,7 +145,8 @@ def l2_parser(fh, compression):
         assert 'CHR' in x.columns
         assert 'BP' in x.columns
     if 'A1' in x.columns and 'A2' in x.columns:
-        x['snpid'] = x['SNP'] + '.' \
+        x['snpid'] = x['CHR'].astype(str) + '.' \
+                   + x['BP'].astype(str) + '.' \
                    + x['A1'] + '.' \
                    + x['A2']
         x.set_index('snpid', drop=True, inplace=True)
