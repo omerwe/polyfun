@@ -30,6 +30,18 @@ def read_csv(fh, **kwargs):
         df = pd.read_csv(fh, delim_whitespace=True, na_values='.', **kwargs)
     
     return df
+    
+def set_snpid_index(df):
+    df['A1_first'] = (df['A1'] < df['A2']) | (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
+    df['A1s'] = df['A2'].copy()
+    df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
+    df['A2s'] = df['A1'].copy()
+    df.loc[df['A1_first'], 'A2s'] = df.loc[df['A1_first'], 'A2'].copy()
+    df.index = df['CHR'].astype(str) + '.' + df['BP'].astype(str) + '.' + df['A1s'] + '.' + df['A2s']
+    df.index.name = 'snpid'
+    df.drop(columns=['A1_first', 'A1s', 'A2s'], inplace=True)
+    return df
+
 
 
 def sub_chr(s, chr):
@@ -102,12 +114,8 @@ def sumstats(fh, alleles=True, dropna=True):
     if dropna:
         x = x.dropna(how='any')
         
-    x['snpid'] = x['CHR'].astype(str) + '.' \
-               + x['BP'].astype(str) + '.' \
-               + x['A1'] + '.' \
-               + x['A2']
+    x = set_snpid_index(x)
     x.drop(columns=['CHR', 'BP'], inplace=True)
-    x.set_index('snpid', drop=True, inplace=True)
 
 
     return x
@@ -145,11 +153,7 @@ def l2_parser(fh, compression):
         assert 'CHR' in x.columns
         assert 'BP' in x.columns
     if 'A1' in x.columns and 'A2' in x.columns:
-        x['snpid'] = x['CHR'].astype(str) + '.' \
-                   + x['BP'].astype(str) + '.' \
-                   + x['A1'] + '.' \
-                   + x['A2']
-        x.set_index('snpid', drop=True, inplace=True)
+        x = set_snpid_index(x)
     else:
         ###x.set_index('SNP', inplace=True, drop=False)
         logging.warning('%s doesn\'t have A1,A2 columns'%(fh))
