@@ -163,7 +163,9 @@ def l2_parser(fh, compression):
 
 def annot_parser(fh, compression, frqfile_full=None, compression_frq=None, anno=None):
     '''Parse annot files'''
-    df_annot = read_csv(fh, header=0, compression=compression).drop(['SNP', 'BP', 'CM' 'A1', 'A2'], axis=1, errors='ignore').astype(float)
+    df_annot = read_csv(fh, header=0, compression=compression)
+    df_annot.drop(columns=['SNP', 'BP', 'CM', 'CHR', 'A1', 'A2'], inplace=True, errors='ignore')
+    df_annot = df_annot.astype(float)
     if (anno is not None):
         for a in anno:
             assert a in df_annot.columns

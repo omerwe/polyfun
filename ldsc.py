@@ -9,17 +9,16 @@ LDSC is a command line tool for estimating
 
 '''
 
-import ldscore.ldscore as ld
-import ldscore.parse as ps
-import ldscore.sumstats as sumstats
-import ldscore.regressions as reg
+import ldsc_polyfun.ldscore as ld
+import ldsc_polyfun.parse as ps
+import ldsc_polyfun.sumstats as sumstats
+import ldsc_polyfun.regressions as reg
 import numpy as np
 import pandas as pd
 from subprocess import call
 from itertools import product
 import time, sys, traceback, argparse
 from functools import reduce
-
 
 try:
     x = pd.DataFrame({'A': [1, 2, 3]})

@@ -17,6 +17,20 @@ def check_package_versions():
         raise ValueError('your pandas version is too old --- please update pandas')
     
 
+def set_snpid_index(df, copy=False):
+    if copy:
+        df = df.copy()
+    df['A1_first'] = (df['A1'] < df['A2']) | (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
+    df['A1s'] = df['A2'].copy()
+    df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
+    df['A2s'] = df['A1'].copy()
+    df.loc[df['A1_first'], 'A2s'] = df.loc[df['A1_first'], 'A2'].copy()
+    df.index = df['CHR'].astype(str) + '.' + df['BP'].astype(str) + '.' + df['A1s'] + '.' + df['A2s']
+    df.index.name = 'snpid'
+    df.drop(columns=['A1_first', 'A1s', 'A2s'], inplace=True)
+    return df
+
+
 
 def __filter__(fname, noun, verb, merge_obj):
     merged_list = None
@@ -628,14 +642,19 @@ class PolyFun:
         df_sumstats.drop(columns=['SNP'], errors='ignore', inplace=True)
         for col in ['CHR', 'BP', 'A1', 'A2']:
             if col not in df_sumstats.columns:
-                raise ValueError('sumstats file has a missing column: %s'%(col))        
-        df_snpvar = df_snpvar.merge(df_sumstats, on=['CHR', 'BP', 'A1', 'A2'])
+                raise ValueError('sumstats file has a missing column: %s'%(col))
+        df_snpvar = set_snpid_index(df_snpvar, copy=True)
+        df_sumstats = set_snpid_index(df_sumstats)
+        svpvar_cols = df_snpvar.columns.copy()
+        df_snpvar.drop(columns=['CHR', 'BP', 'A1', 'A2'], inplace=True)
+        df_snpvar = df_snpvar.merge(df_sumstats, left_index=True, right_index=True)
+        df_snpvar = df_snpvar[list(svpvar_cols) + [c for c in df_sumstats.columns if c not in list(svpvar_cols)]]
         if df_snpvar.shape[0] < df_sumstats.shape[0]:
             error_message = 'not all SNPs in the sumstats file are also in the annotations file'
             if args.allow_missing:
-                logging.warning(error_message)
+                logging.warning(error_message + '. Keeping %d/%d SNPs'%(df_snpvar.shape[0], df_sumstats.shape[0]))
             else:
-                raise ValueError(error_message)
+                raise ValueError(error_message + '. If you wish to omit the missing SNPs, please use the flag --allow-missing')
 
         #iterate over chromosomes 
         for chr_num in tqdm(range(1,23)):
@@ -728,21 +747,10 @@ class PolyFun:
         
         #heuristically reduce df_bins_chr to a small superset of the relevant SNPs        
         df_bins_chr = df_bins_chr.loc[df_bins_chr['BP'].isin(df_bim['BP'])]
-        
-        #duplicate df_bins_chr to make sure we have no flipped alleles that will cause a mess
-        bins_index1 =     df_bins_chr['CHR'].astype(str) + '.' \
-                        + df_bins_chr['BP'].astype(str) + '.' \
-                        + df_bins_chr['A1'] + '.' \
-                        + df_bins_chr['A2']
-        df_bins_chr2 = df_bins_chr.copy()
-        df_bins_chr2['A2'] = df_bins_chr['A1'].copy()
-        df_bins_chr2['A1'] = df_bins_chr['A2'].copy()
-        df_bins_chr.index  = df_bins_chr['CHR'].astype(str) + '.' + df_bins_chr['BP'].astype(str) + '.' + df_bins_chr['A1'] + '.' + df_bins_chr['A2']
-        df_bins_chr2.index = df_bins_chr2['CHR'].astype(str) + '.' + df_bins_chr2['BP'].astype(str) + '.' + df_bins_chr2['A1'] + '.' + df_bins_chr2['A2']        
-        df_bins_chr = pd.concat([df_bins_chr, df_bins_chr2], axis=0)
-        
+        df_bins_chr = set_snpid_index(df_bins_chr)
+
         #make sure that all SNPs have a bin
-        df_bim.index = df_bim['CHR'].astype(str) + '.' + df_bim['BP'].astype(str) + '.' + df_bim['A1'] + '.' + df_bim['A2']
+        df_bim = set_snpid_index(df_bim)
         if np.any(~df_bim.index.isin(df_bins_chr.index)):
             error_msg = 'Not all SNPs were assigned a bin (meaning some SNPS are not in the annotation files)'
             if args.allow_missing:
@@ -754,7 +762,7 @@ class PolyFun:
                 logging.warning(error_msg)
                 logging.warning('Keeping only %d/%d SNPs in chromosome %d that have annotations'%(df_bim.shape[0], len(is_good_snp), chr_num))
             else:
-                raise ValueError(error_msg)
+                raise ValueError(error_msg + '. If you wish to omit the missing SNPs, please use the flag --allow-missing')
         else:
             keep_snps = None
             

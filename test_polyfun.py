@@ -16,13 +16,13 @@ def compare_dfs(dir1, dir2, filename):
     else: df1 = pd.read_table(file1, delim_whitespace=True)
     if file2.endswith('.parquet'): df2 = pd.read_parquet(file2)
     else: df2 = pd.read_table(file2, delim_whitespace=True)
-    assert np.all(df1.shape == df2.shape)
-    assert np.all(df1.columns == df2.columns)
+    assert np.all(df1.shape == df2.shape), 'found dimension mismatch between %s and %s'%(file1, file2)
+    assert np.all(df1.columns == df2.columns), 'found mismatch between %s and %s'%(file1, file2)
     for c in df1.columns:
         if is_numeric_dtype(df1[c]):
-            assert np.allclose(df1[c], df2[c])
+            assert np.allclose(df1[c], df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
         else:
-            assert np.all(df1[c] == df2[c])
+            assert np.all(df1[c] == df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
 
     
     

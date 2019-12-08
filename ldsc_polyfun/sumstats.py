@@ -307,7 +307,7 @@ def estimate_h2(args, log):
     chisq = s(sumstats.Z**2).astype(np.float32)
     if chisq_max is not None and not args.keep_large:
         ii = np.ravel(chisq < chisq_max)
-        sumstats = sumstats.ix[ii, :]
+        sumstats = sumstats.loc[ii, :]
         log.log('Removed {M} SNPs with chi^2 > {C} ({N} SNPs remain)'.format(
                 C=chisq_max, N=np.sum(ii), M=n_snp-np.sum(ii)))
         n_snp = np.sum(ii)  # lambdas are late-binding, so this works
