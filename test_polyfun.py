@@ -23,10 +23,46 @@ def compare_dfs(dir1, dir2, filename):
             assert np.allclose(df1[c], df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
         else:
             assert np.all(df1[c] == df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
+            
+     
+          
+def is_susie_installed():
+    try:
+        import rpy2
+        import rpy2.robjects.numpy2ri as numpy2ri
+        import rpy2.robjects as ro
+        ro.conversion.py2ri = numpy2ri
+        numpy2ri.activate()
+        from rpy2.robjects.packages import importr
+        susieR = importr('susieR')
+    except:
+        return False
+    return True
+
+           
+def is_Ckmeans_installed():        
+    try:
+        import rpy2
+        import rpy2.robjects.numpy2ri as numpy2ri
+        try:
+            from importlib import reload
+            reload(rpy2.robjects.numpy2ri)
+        except:
+            pass
+        import rpy2.robjects as ro
+        ro.conversion.py2ri = numpy2ri
+        numpy2ri.activate()
+        from rpy2.robjects.packages import importr
+        importr('Ckmeans.1d.dp')
+        median_seg_func = ro.r('Ckmedian.1d.dp')
+        mean_seg_func = ro.r('Ckmeans.1d.dp')            
+    except:
+        return False
+    return True
 
     
     
-def test_munge_sumstats(tmpdir):
+def test_munge_sumstats(tmpdir, python3_exe):
     script_path = os.path.dirname(os.path.realpath(__file__))
     example_dir = os.path.join(script_path, 'example_data')
     gold_dir = os.path.join(script_path, 'gold')
@@ -36,11 +72,17 @@ def test_munge_sumstats(tmpdir):
     output_file = os.path.join(tmpdir, outfile)
     gold_file = os.path.join(gold_dir, outfile)
     
-    os.system('python %s --sumstats %s --out %s --n 327209 --min-info 0.6 --min-maf 0.001'%(script_exe, input_file, output_file))
+    os.system('%s %s --sumstats %s --out %s --n 327209 --min-info 0.6 --min-maf 0.001'%(python3_exe, script_exe, input_file, output_file))
     compare_dfs(tmpdir, gold_dir, outfile)
     
     
-def test_polyfun(tmpdir):
+def test_polyfun(tmpdir, python3_exe):
+
+    if not is_Ckmeans_installed():
+        print('Skipping polyfun tests becuase CkMeans is not installed')
+        return
+
+
     script_path = os.path.dirname(os.path.realpath(__file__))
     example_dir = os.path.join(script_path, 'example_data')
     gold_dir = os.path.join(script_path, 'gold')
@@ -52,24 +94,29 @@ def test_polyfun(tmpdir):
     plink_prefix =  os.path.join(example_dir, 'reference.')
     
     #polyfun stage 2
-    os.system('python %s --compute-h2-L2 --output-prefix %s --sumstats %s --ref-ld-chr %s --w-ld-chr %s'%
-             (script_exe, output_prefix, sumstats_file, ref_ld_prefix, w_ld_prefix))    
+    os.system('%s %s --compute-h2-L2 --output-prefix %s --sumstats %s --ref-ld-chr %s --w-ld-chr %s'%
+             (python3_exe, script_exe, output_prefix, sumstats_file, ref_ld_prefix, w_ld_prefix))    
     for outfile in ['testrun.22.bins.parquet', 'testrun.22.snpvar_ridge_constrained.gz', 'testrun.22.snpvar_ridge.gz', 'testrun.22.l2.M']:
         compare_dfs(tmpdir, gold_dir, outfile)
         
     #polyfun stage 3
-    os.system('python %s --compute-ldscores --output-prefix %s --bfile-chr %s'%
-             (script_exe, output_prefix, plink_prefix))    
+    os.system('%s %s --compute-ldscores --output-prefix %s --bfile-chr %s'%
+             (python3_exe, script_exe, output_prefix, plink_prefix))    
     compare_dfs(tmpdir, gold_dir, 'testrun.22.l2.ldscore.parquet')
         
     #polyfun stage 4
-    os.system('python %s --compute-h2-bins --output-prefix %s --sumstats %s --w-ld-chr %s'%
-             (script_exe, output_prefix, sumstats_file, w_ld_prefix))    
+    os.system('%s %s --compute-h2-bins --output-prefix %s --sumstats %s --w-ld-chr %s'%
+             (python3_exe, script_exe, output_prefix, sumstats_file, w_ld_prefix))    
     compare_dfs(tmpdir, gold_dir, 'testrun.22.snpvar_constrained.gz')
     
     
     
-def test_polyloc(tmpdir):
+def test_polyloc(tmpdir, python3_exe):
+
+    if not is_Ckmeans_installed():
+        print('Skipping polyloc tests becuase CkMeans is not installed')
+        return
+
     script_path = os.path.dirname(os.path.realpath(__file__))
     example_dir = os.path.join(script_path, 'example_data')
     gold_dir = os.path.join(script_path, 'gold')
@@ -80,20 +127,21 @@ def test_polyloc(tmpdir):
     plink_prefix =  os.path.join(example_dir, 'reference.')
     posterior_file = os.path.join(example_dir, 'posterior_betas.gz')
     
-    #polyloc stage 1
-    os.system('python %s --compute-partitions --output-prefix %s --posterior %s --bfile-chr %s'%
-             (script_exe, output_prefix, posterior_file, plink_prefix))    
+    #polyloc stage 1        
+    os.system('%s %s --compute-partitions --output-prefix %s --posterior %s --bfile-chr %s'%
+             (python3_exe, script_exe, output_prefix, posterior_file, plink_prefix))
     for outfile in ['polyloc_test.22.bins.parquet', 'polyloc_test.22.l2.M']:
         compare_dfs(tmpdir, gold_dir, outfile)
+        
     
     #polyloc stage 2
-    os.system('python %s --compute-ldscores --output-prefix %s --bfile-chr %s'%
-             (script_exe, output_prefix, plink_prefix))        
+    os.system('%s %s --compute-ldscores --output-prefix %s --bfile-chr %s'%
+             (python3_exe, script_exe, output_prefix, plink_prefix))        
     compare_dfs(tmpdir, gold_dir, 'polyloc_test.22.l2.ldscore.parquet')
     
     #polyloc stage 3
-    os.system('python %s --compute-polyloc --output-prefix %s --w-ld-chr %s --sumstats %s'%
-             (script_exe, output_prefix, w_ld_prefix, sumstats_file))
+    os.system('%s %s --compute-polyloc --output-prefix %s --w-ld-chr %s --sumstats %s'%
+             (python3_exe, script_exe, output_prefix, w_ld_prefix, sumstats_file))
     for outfile in ['polyloc_test.bin_h2', 'polyloc_test.Mp']:
         compare_dfs(tmpdir, gold_dir, outfile)
         
@@ -102,7 +150,7 @@ def test_polyloc(tmpdir):
    
     
         
-def test_extract_snpvar(tmpdir):
+def test_extract_snpvar(tmpdir, python3_exe):
     script_path = os.path.dirname(os.path.realpath(__file__))
     example_dir = os.path.join(script_path, 'example_data')
     gold_dir = os.path.join(script_path, 'gold')
@@ -112,11 +160,16 @@ def test_extract_snpvar(tmpdir):
     output_file = os.path.join(tmpdir, outfile)
     gold_file = os.path.join(gold_dir, outfile)    
     
-    os.system('python %s --snps %s --out %s'%(script_exe, input_file, output_file))
+    os.system('%s %s --snps %s --out %s'%(python3_exe, script_exe, input_file, output_file))
     compare_dfs(tmpdir, gold_dir, outfile)
 
 
-def test_finemapper(tmpdir, ldstore_exe):
+def test_finemapper(tmpdir, ldstore_exe, python3_exe):
+
+    if not is_susie_installed():
+        print('Skipping fine-mapping test because either rpy2 or SuSiE are not properly installed. Please try reinstalling rpy2 and/or SuSiE')
+        return
+
     script_path = os.path.dirname(os.path.realpath(__file__))
     example_dir = os.path.join(script_path, 'example_data')
     gold_dir = os.path.join(script_path, 'gold')
@@ -126,7 +179,7 @@ def test_finemapper(tmpdir, ldstore_exe):
     outfile = 'finemap.1.46000001.49000001.gz'
     output_file = os.path.join(tmpdir, outfile)
     
-    os.system('python %s \
+    os.system('%s %s \
        --geno %s \
        --sumstats %s \
        --n 383290 \
@@ -138,7 +191,7 @@ def test_finemapper(tmpdir, ldstore_exe):
         --out %s \
         --ldstore %s \
        '
-       %(script_exe, plink_file, sumstats_file, output_file, ldstore_exe))
+       %(python3_exe, script_exe, plink_file, sumstats_file, output_file, ldstore_exe))
    
     compare_dfs(tmpdir, gold_dir, outfile)    
    
@@ -151,18 +204,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--ldstore', default=None, help='Path to ldstore executable')
+    parser.add_argument('--python3', default='python', help='python 3 executable')
     args = parser.parse_args()
     temp_dir = tempfile.mkdtemp()
     
     if args.ldstore is None:
         print('Skipping finemapper tests because --ldstore was not specified')
     else:
-        test_finemapper(temp_dir, args.ldstore)
+        test_finemapper(temp_dir, args.ldstore, args.python3)
         
-    test_polyloc(temp_dir)
-    test_polyfun(temp_dir)
-    test_extract_snpvar(temp_dir)
-    test_munge_sumstats(temp_dir)
+    test_polyloc(temp_dir, args.python3)
+    test_polyfun(temp_dir, args.python3)
+    test_extract_snpvar(temp_dir, args.python3)
+    test_munge_sumstats(temp_dir, args.python3)
     
     
     
