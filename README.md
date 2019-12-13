@@ -52,9 +52,9 @@ git clone https://github.com/omerwe/polyfun
 # Testing the installation
 We recommend testing PolyFun by invoking the script:
 ```
-python test_polyfun.py --ldstore <ldstore_executable>
+python test_polyfun.py --python3 <python3_exe> --ldstore <ldstore_executable>
 ```
-where `ldstore_executable` is the path to the [LDstore](http://www.christianbenner.com/) executable on your system. If the script completes without an error, everything is fine. If you omit the `--ldstore` flag, the `finemapper` functionality will not be tested.
+where `python3_exe` (optional) is the command you type to start a python3 session (default is `python`) and `ldstore_executable` is the path to the [LDstore](http://www.christianbenner.com/) executable on your system. If the script completes without an error, everything is fine. If you omit the `--ldstore` flag, the `finemapper` functionality will not be tested. If you see any errors, please consult the [FAQ](https://github.com/omerwe/polyfun/wiki/5.-FAQ).
 
 
 
