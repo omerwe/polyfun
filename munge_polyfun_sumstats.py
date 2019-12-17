@@ -59,7 +59,7 @@ def rename_df_columns(df_sumstats, min_info_score, min_maf):
     chr_column = find_df_column(df_sumstats, ['CHR', 'CHROMOSOME', 'CHROM'])
     bp_column = find_df_column(df_sumstats, ['BP', 'POS', 'POSITION', 'COORDINATE', 'BASEPAIR'])
     snp_column = find_df_column(df_sumstats, ['SNP', 'RSID', 'RS', 'NAME'])
-    a1freq_col = find_df_column(df_sumstats, ['A1FREQ', 'freq', 'MAF', 'FRQ'], allow_missing=(min_maf is None or min_maf<=0))
+    a1freq_col = find_df_column(df_sumstats, ['A1FREQ', 'freq', 'MAF', 'FRQ'], allow_missing=True)
     info_col = find_df_column(df_sumstats, 'INFO', allow_missing=True)
     beta_col = find_df_column(df_sumstats, ['BETA', 'EFF', 'EFFECT', 'EFFECT_SIZE'], allow_missing=True)
     se_col = find_df_column(df_sumstats, ['SE'], allow_missing=True)
@@ -136,7 +136,7 @@ def filter_sumstats(df_sumstats, min_info_score=None, min_maf=None, remove_stran
     #Filter SNPs based on INFO score    
     if min_info_score is not None and min_info_score>0:        
         if 'INFO' not in df_sumstats.columns:
-            logging.warning('Could not find INFO column. Please set --min-INFO 0 to omit this warning.')
+            logging.warning('Could not find INFO column. Please set --min-info 0 to omit this warning.')
         else:
             is_good_info_snp = (df_sumstats['INFO'] >= min_info_score)
             is_good_snp = is_good_snp & is_good_info_snp
@@ -145,10 +145,13 @@ def filter_sumstats(df_sumstats, min_info_score=None, min_maf=None, remove_stran
     
     #filter SNPs based on MAF
     if min_maf is not None and min_maf>0:        
-        is_good_maf_snp = (df_sumstats['MAF'].between(min_maf, 1-min_maf))
-        is_good_snp = is_good_snp & is_good_maf_snp
-        if np.any(~is_good_maf_snp):
-            logging.info('Removing %d SNPs with MAF<%s'%(np.sum(~is_good_maf_snp), min_maf))
+        if 'MAF' not in df_sumstats.columns:
+            logging.warning('Could not find MAF column. Please set --min-maf 0 to omit this warning.')
+        else:
+            is_good_maf_snp = (df_sumstats['MAF'].between(min_maf, 1-min_maf))
+            is_good_snp = is_good_snp & is_good_maf_snp
+            if np.any(~is_good_maf_snp):
+                logging.info('Removing %d SNPs with MAF<%s'%(np.sum(~is_good_maf_snp), min_maf))
         
 
     #find strand ambiguous summary statistics
