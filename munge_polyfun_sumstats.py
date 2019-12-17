@@ -230,11 +230,11 @@ if __name__ == '__main__':
     elif args.n is not None:
         if 'N' in df_sumstats.columns:
             raise ValueError('cannot both specify --n and have an N column in the sumstats file')
-        if 'N_CASES' in df_sumstats.columns or N_CONTROLS in df_sumstats.columns:
+        if 'N_CASES' in df_sumstats.columns or 'N_CONTROLS' in df_sumstats.columns:
             raise ValueError('cannot both specify --n and have an N_cases/N_controls column in the sumstats file')
         df_sumstats['N']  = args.n
     elif 'N' in df_sumstats.columns:
-        if 'N_CASES' in df_sumstats.columns or N_CONTROLS in df_sumstats.columns:
+        if 'N_CASES' in df_sumstats.columns or 'N_CONTROLS' in df_sumstats.columns:
             raise ValueError('cannot both have an N column and N_cases/N_controls columns in the sumstats file')
         pass
     elif 'N_CASES' in df_sumstats.columns and 'N_CONTROLS' in df_sumstats.columns:
