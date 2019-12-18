@@ -239,6 +239,7 @@ def _merge_and_log(ld, sumstats, noun, log):
     sumstats = smart_merge(ld, sumstats)
     msg = 'After merging with {F}, {N} SNPs remain.'
     if len(sumstats) == 0:
+        msg += ' Please make sure that your annotation files include the SNPs in your sumstats files (please see the PolyFun wiki for details on downloading functional annotations)'
         raise ValueError(msg.format(N=len(sumstats), F=noun))
     else:
         log.log(msg.format(N=len(sumstats), F=noun))
