@@ -262,7 +262,7 @@ class LstsqJackknifeSlow(Jackknife):
         if nn:  # non-negative least squares
             #func = lambda x, y: np.atleast_2d(nnls(x, np.array(y).T[0])[0])
             xtx = x.T.dot(x)
-            lasso = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx, positive=True, max_iter=10000)
+            lasso = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx, positive=True, max_iter=10000, random_state=0)
             self.est = lasso.fit(x,y[:,0]).coef_.reshape((1, x.shape[1]))
         else:
             func = lambda x, y: np.atleast_2d(
@@ -288,7 +288,7 @@ class LstsqJackknifeSlow(Jackknife):
                 y_noblock = np.delete(y, slice(s[i], s[i+1]), axis=0)
                 x_block = x[s[i] : s[i+1]]
                 xtx_noblock = xtx - x_block.T.dot(x_block)
-                lasso_noblock = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx_noblock, positive=True, max_iter=10000)
+                lasso_noblock = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx_noblock, positive=True, max_iter=10000, random_state=0)
                 jk_est = lasso_noblock.fit(x_noblock, y_noblock[:,0]).coef_.reshape((1, x.shape[1]))
                 ###z = nnls(x_noblock, y_noblock[:,0])[0]
                 ###assert np.allclose(z, jk_est[0])

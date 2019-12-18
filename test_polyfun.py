@@ -12,6 +12,10 @@ from pandas.api.types import is_numeric_dtype
 def compare_dfs(dir1, dir2, filename):
     file1 = os.path.join(dir1, filename)
     file2 = os.path.join(dir2, filename)
+    if not os.path.exists(file1):
+        raise IOError('%s not found'%(file1))
+    if not os.path.exists(file2):
+        raise IOError('%s not found'%(file2))
     if file1.endswith('.parquet'): df1 = pd.read_parquet(file1)
     else: df1 = pd.read_table(file1, delim_whitespace=True)
     if file2.endswith('.parquet'): df2 = pd.read_parquet(file2)
@@ -19,8 +23,14 @@ def compare_dfs(dir1, dir2, filename):
     assert np.all(df1.shape == df2.shape), 'found dimension mismatch between %s and %s'%(file1, file2)
     assert np.all(df1.columns == df2.columns), 'found mismatch between %s and %s'%(file1, file2)
     for c in df1.columns:
+        if c=='CREDIBLE_SET':
+            continue
         if is_numeric_dtype(df1[c]):
-            assert np.allclose(df1[c], df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
+            if c=='Mp_STDERR': atol=1e-1
+            elif c=='BETA_MEAN': atol=1e-3
+            elif c=='PIP': atol=1e-2
+            else: atol=1e-4
+            assert np.allclose(df1[c], df2[c], atol=atol), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
         else:
             assert np.all(df1[c] == df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
             
