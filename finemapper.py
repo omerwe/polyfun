@@ -487,19 +487,34 @@ class SUSIE_Wrapper(Fine_Mapping):
                 # verbose=verbose,
                 # prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
             # )
-        susie_obj = self.susieR.susie_bhat(
-                bhat=self.df_sumstats_locus['Z'].values.reshape((m,1)),
-                shat=np.ones((m,1)),
-                R=self.df_ld.values,
-                n=self.n,
-                L=num_causal_snps,
-                scaled_prior_variance=(0.0001 if (prior_var is None) else prior_var),
-                estimate_prior_variance=(prior_var is None),
-                residual_variance=(self.R_null if (residual_var is None) else residual_var),
-                estimate_residual_variance=(residual_var is None),
-                verbose=verbose,
-                prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
-            )            
+        try:
+            susie_obj = self.susieR.susie_suff_stat(
+                    bhat=self.df_sumstats_locus['Z'].values.reshape((m,1)),
+                    shat=np.ones((m,1)),
+                    R=self.df_ld.values,
+                    n=self.n,
+                    L=num_causal_snps,
+                    scaled_prior_variance=(0.0001 if (prior_var is None) else prior_var),
+                    estimate_prior_variance=(prior_var is None),
+                    residual_variance=(self.R_null if (residual_var is None) else residual_var),
+                    estimate_residual_variance=(residual_var is None),
+                    verbose=verbose,
+                    prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
+                )
+        except:
+            susie_obj = self.susieR.susie_bhat(
+                    bhat=self.df_sumstats_locus['Z'].values.reshape((m,1)),
+                    shat=np.ones((m,1)),
+                    R=self.df_ld.values,
+                    n=self.n,
+                    L=num_causal_snps,
+                    scaled_prior_variance=(0.0001 if (prior_var is None) else prior_var),
+                    estimate_prior_variance=(prior_var is None),
+                    residual_variance=(self.R_null if (residual_var is None) else residual_var),
+                    estimate_residual_variance=(residual_var is None),
+                    verbose=verbose,
+                    prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
+                )
         susie_time = time.time()-t0        
         logging.info('Done in %0.2f seconds'%(susie_time))
         
