@@ -15,7 +15,7 @@ We also provide a script called **finemapper** that facilitates fine-mapping wit
 <br>
 
 # Manual
-We provide a detailed manual of PolyFun, PolyLoc and finemapper in the [Wiki page](https://github.com/omerwe/polyfun/wiki).
+We provide a detailed manual of PolyFun, PolyLoc and finemapper in the [Wiki page](https://github.com/omerwe/polyfun/wiki). If you run into any issues, please check [the FAQ](https://github.com/omerwe/polyfun/wiki/5.-FAQ) first.
 
 
 
