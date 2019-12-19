@@ -1,0 +1,25 @@
+name: polyfun
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - tqdm
+  - r-wavethresh
+  - pyarrow
+  - python=3.6
+  - scikit-learn
+  - r-lattice
+  - r-ckmeans.1d.dp
+  - r-stringi
+  - bitarray
+  - r-base
+  - r
+  - r-matrixstats
+  - networkx
+  - rpy2
+  - scipy
+  - r-devtools
+  - numpy
+  - pandas
+  - r-expm
+
