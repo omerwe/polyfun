@@ -746,7 +746,7 @@ class PolyFun:
         df_bim = array_snps.df
         
         #heuristically reduce df_bins_chr to a small superset of the relevant SNPs        
-        df_bins_chr = df_bins_chr.loc[df_bins_chr['BP'].isin(df_bim['BP'])]
+        df_bins_chr = df_bins_chr.loc[df_bins_chr['BP'].isin(df_bim['BP'])].copy()
         df_bins_chr = set_snpid_index(df_bins_chr)
 
         #make sure that all SNPs have a bin
