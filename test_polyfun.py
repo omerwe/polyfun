@@ -189,7 +189,7 @@ def test_finemapper(tmpdir, ldstore_exe, python3_exe):
     outfile = 'finemap.1.46000001.49000001.gz'
     output_file = os.path.join(tmpdir, outfile)
     
-    os.system('%s %s \
+    finemapper_cmd = '%s %s \
        --geno %s \
        --sumstats %s \
        --n 383290 \
@@ -200,9 +200,11 @@ def test_finemapper(tmpdir, ldstore_exe, python3_exe):
        --max-num-causal 5 \
         --out %s \
         --ldstore %s \
-       '
-       %(python3_exe, script_exe, plink_file, sumstats_file, output_file, ldstore_exe))
-   
+       ' \
+       %(python3_exe, script_exe, plink_file, sumstats_file, output_file, ldstore_exe)
+    
+    #print(finemapper_cmd)
+    os.system(finemapper_cmd)
     compare_dfs(tmpdir, gold_dir, outfile)    
    
    

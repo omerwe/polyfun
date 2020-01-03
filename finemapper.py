@@ -12,6 +12,22 @@ import subprocess
 from importlib import reload
 
 
+def set_snpid_index(df, copy=False):
+    if copy:
+        df = df.copy()
+    df['A1_first'] = (df['A1'] < df['A2']) | (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
+    df['A1s'] = df['A2'].copy()
+    df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
+    df['A2s'] = df['A1'].copy()
+    df.loc[df['A1_first'], 'A2s'] = df.loc[df['A1_first'], 'A2'].copy()
+    df.index = df['CHR'].astype(str) + '.' + df['BP'].astype(str) + '.' + df['A1s'] + '.' + df['A2s']
+    df.index.name = 'snpid'
+    df.drop(columns=['A1_first', 'A1s', 'A2s'], inplace=True)
+    return df
+
+
+
+
 def run_executable(cmd, description, good_returncode=0, measure_time=True, check_errors=True, show_output=False, show_command=False):
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     logging.info('Running %s...'%(description))
@@ -83,7 +99,7 @@ class Fine_Mapping(object):
             raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))
         if np.any(df_sumstats['CHR'] != chr_num):
             df_sumstats = df_sumstats.query('CHR==%s'%(chr_num)).copy()
-        df_sumstats.index = df_sumstats['SNP'] + '.' + df_sumstats['A1'] + '.' + df_sumstats['A2']
+        df_sumstats = set_snpid_index(df_sumstats)
         if 'P' not in df_sumstats.columns:
             df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
         logging.info('Loaded sumstats for %d SNPs'%(df_sumstats.shape[0]))
@@ -102,54 +118,27 @@ class Fine_Mapping(object):
         
         
     def sync_ld_sumstats(self, ld, df_ld_snps):
-        index1 = pd.Index(df_ld_snps['rsid'] + '.' + df_ld_snps['allele1'] + '.' + df_ld_snps['allele2'])
-        index2 = pd.Index(df_ld_snps['rsid'] + '.' + df_ld_snps['allele2'] + '.' + df_ld_snps['allele1'])
+        df_ld_snps = set_snpid_index(df_ld_snps)
+        assert ld.shape[0] == df_ld_snps.shape[0]
+        assert ld.shape[0] == ld.shape[1]
+        df_ld = pd.DataFrame(ld, index=df_ld_snps.index, columns=df_ld_snps.index)
         
         #make sure that all SNPs in the sumstats file are in the LD file
-        is_ss_not_flipped = self.df_sumstats_locus.index.isin(index1)
-        is_ss_flipped = self.df_sumstats_locus.index.isin(index2)
-        if not np.all(is_ss_flipped | is_ss_not_flipped):
+        if not np.all(self.df_sumstats_locus.index.isin(df_ld.index)):
             raise ValueError('not all SNPs in the sumstats file were found in the LD matrix')
         
         #filter LD to only SNPs found in the sumstats file
-        is_ld_not_flipped = index1.isin(self.df_sumstats_locus.index)
-        is_ld_flipped = index2.isin(self.df_sumstats_locus.index)
-        is_found = is_ld_flipped | is_ld_not_flipped
-        if not is_found.all():
-            num_unused = ld.shape[0] - is_found.sum()
-            logging.info('Removing %d SNPs in the LD matrix that are not in the sumstats file'%(num_unused))
-            df_ld_snps = df_ld_snps.loc[is_found]
-            ld = ld[np.ix_(is_found, is_found)]
-            index1 = index1[is_found]
-            index2 = index2[is_found]
-            
-        #flip flipped alleles
-        index_ld = pd.Series(index1).copy()
-        is_ld_flipped = index2.isin(self.df_sumstats_locus.index)
-        if np.any(is_ld_flipped):
-            logging.warning('Flipping the alleles of %d SNPs in the LD matrix that are flipped compared to the sumstats file'%(is_ld_flipped.sum()))
-            index_ld.loc[is_ld_flipped] = index2[is_ld_flipped]
-            
-        #create the LD dataframe
-        df_ld = pd.DataFrame(ld, index=index_ld, columns=index_ld)
-            
-        #reorder LD to have the same order of SNPs as in df_sumstats
-        assert len(df_ld.index.intersection(self.df_sumstats_locus.index)) == df_ld.shape[0]
-        if np.any(df_ld.index != self.df_sumstats_locus.index):
+        if df_ld.shape[0] != self.df_sumstats_locus.shape[0] or np.any(df_ld.index != self.df_sumstats_locus.index):
             df_ld = df_ld.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
-        
+            df_ls_snps = df_ld_snps.loc[df_ld.index]
+
         #do a final verification that we're synced
         assert np.all(df_ld.index == self.df_sumstats_locus.index)
+        assert np.all(df_ld_snps.index == self.df_sumstats_locus.index)
         
         #update self.df_ld
         self.df_ld = df_ld
-        
-        
-        
-        
-        
-        
-               
+        self.df_ld_snps = df_ld_snps
         
             
     def set_locus(self, locus_start, locus_end, extract_ld=True, read_ld_matrix=False, verbose=False):
@@ -163,10 +152,6 @@ class Fine_Mapping(object):
         if not extract_ld:
             return
             
-            
-        #define a flipped-alleles index in case of allelic flips between df_sumstats and the genotypes file
-        locus_index_flipped = pd.Index(self.df_sumstats_locus['SNP'] + '.' + self.df_sumstats_locus['A2'] + '.' + self.df_sumstats_locus['A1'])
-                
         #define file names
         if self.cache_dir is None:
             ld_dir = tempfile.mkdtemp()
@@ -179,13 +164,11 @@ class Fine_Mapping(object):
         bcor_file = ldstore_basename+'.bcor'
         meta_file = ldstore_basename+'.meta.txt'
         incl_variants_file = ldstore_basename+'.incl'
-        ld_matrix_file = ldstore_basename+'.ld'
         self.ld_matrix_file = ldstore_basename+'.ld'
         ld_matrix_file = self.ld_matrix_file
 
         #check if we already have the required file in the cache
         found_cached_ld_file = False
-        rewrite_ld = False
         if self.cache_dir is not None:
             if self.incl_samples is None:
                 fname_pattern = '%s.%d'%(os.path.basename(self.genotypes_file), self.chr)
@@ -203,21 +186,20 @@ class Fine_Mapping(object):
                 incl_file_cached = ld_file[:-3]+'.incl'
                 meta_file_cached = ld_file[:-3]+'.meta.txt'
                 if os.path.exists(incl_file_cached):
-                    df_meta = pd.read_table(incl_file_cached, sep=' ')
+                    df_ld_snps = pd.read_table(incl_file_cached, sep=' ')
                 elif os.path.exists(meta_file_cached):
-                    df_meta = pd.read_table(meta_file_cached, sep=' ')
+                    df_ld_snps = pd.read_table(meta_file_cached, sep=' ')
                 else:
                     continue
-                df_meta.index = df_meta['RSID'] + '.' + df_meta['A_allele'] + '.' + df_meta['B_allele']
-                if not np.all((self.df_sumstats_locus.index.isin(df_meta.index)) | (locus_index_flipped.isin(df_meta.index))):
+                df_ld_snps.rename(columns={'RSID':'SNP', 'position':'BP', 'chromosome':'CHR', 'A_allele':'A1', 'B_allele':'A2'}, inplace=True, errors='raise')
+                df_ld_snps = set_snpid_index(df_ld_snps)
+                if not np.all(self.df_sumstats_locus.index.isin(df_ld_snps.index)):
                     continue
             
                 #if we got here than we found a suitable LD file
                 ld_matrix_file = ld_file
                 logging.info('Found an existing LD file containing all SNPs with sumstats in chromosome %d BP %d-%d'%(self.chr, locus_start, locus_end))
                 found_cached_ld_file = True
-                cache_snps = df_meta.index
-                rewrite_ld = (not read_ld_matrix and len(cache_snps) > self.df_sumstats_locus.shape[0])
                 break
         
         #run LDstore if we didnt find a suitable file in the cache
@@ -236,8 +218,9 @@ class Fine_Mapping(object):
             else:
                 raise IOError('Neither a plink nor a bgen file was found')
             if self.incl_samples is not None:
+                ldstore_cmd += ['--incl-samples', self.incl_samples]
+            if self.sample_file is not None:
                 ldstore_cmd += ['--samples', self.sample_file]        
-                ldstore_cmd += ['--incl-samples', self.incl_samples]        
             run_executable(ldstore_cmd, 'LDStore', measure_time=True, show_output=verbose, show_command=verbose)
                 
             #run LDStore merge if needed
@@ -260,23 +243,20 @@ class Fine_Mapping(object):
             run_executable(ldstore_meta_cmd, 'LDStore meta', measure_time=False, show_output=verbose, show_command=verbose)
         
             #open meta_file
-            df_ldstore_meta = pd.read_table(meta_file, delim_whitespace=True)
-            df_ldstore_meta.index = df_ldstore_meta['RSID'] + '.' + df_ldstore_meta['A_allele'] + '.' + df_ldstore_meta['B_allele']
-            is_flipped = locus_index_flipped.isin(df_ldstore_meta.index)
-            is_not_flipped = self.df_sumstats_locus.index.isin(df_ldstore_meta.index)
-            if not np.all(is_flipped | is_not_flipped):
+            df_ld_snps = pd.read_table(meta_file, delim_whitespace=True)
+            df_ld_snps.rename(columns={'RSID':'SNP', 'position':'BP', 'chromosome':'CHR', 'A_allele':'A1', 'B_allele':'A2'}, inplace=True, errors='raise')
+            df_ld_snps = set_snpid_index(df_ld_snps)
+            if not np.all(self.df_sumstats_locus.index.isin(df_ld_snps.index)):
                 raise IOError('Not all variants exist in LDStore output')
-            if np.any(is_flipped):
-                logging.warning('%d variants have flipped alleles compared to the sumstats file. I will flip these alleles'%(is_flipped.sum()))
                 
             #create incl-variants file if needed
-            if df_ldstore_meta.shape[0] == self.df_sumstats_locus.shape[0]:
+            if df_ld_snps.shape[0] == self.df_sumstats_locus.shape[0]:
                 use_incl_file = False
             else:
-                assert np.all(is_flipped | is_not_flipped)
-                is_found = (df_ldstore_meta.index.isin(self.df_sumstats_locus.index)) | (df_ldstore_meta.index.isin(locus_index_flipped))
-                df_ldstore_meta = df_ldstore_meta.loc[is_found, ['RSID', 'position', 'chromosome', 'A_allele', 'B_allele']]
-                df_ldstore_meta.to_csv(incl_variants_file, index=False, header=True, sep=' ')
+                df_ld_snps = df_ld_snps.loc[df_ld_snps.index.isin(self.df_sumstats_locus.index)]
+                df_ldstore_meta_out = df_ld_snps[['SNP', 'BP', 'CHR', 'A1', 'A2']].copy()
+                df_ldstore_meta_out.rename(columns={'SNP':'RSID', 'BP':'position', 'CHR':'chromosome', 'A1':'A_allele', 'A2':'B_allele'}, inplace=True, errors='raise')
+                df_ldstore_meta_out.to_csv(incl_variants_file, index=False, header=True, sep=' ')
                 use_incl_file = True
             
             #extract LD matrix to a text file (finally!!!)        
@@ -291,59 +271,23 @@ class Fine_Mapping(object):
             
             
         #read LD matrix
-        if read_ld_matrix or rewrite_ld:
+        if read_ld_matrix:
             df_ld = pd.read_table(ld_matrix_file, delim_whitespace=True, index_col=None, header=None)
             if df_ld.shape[0] != df_ld.shape[1]:
                 raise IOError('LDStore LD matrix has inconsistent rows/columns')
                 
-            #if we didn't find the LD matrix in the cache, we just created it so it's guaranteed to be synced with self.df_sumstats_locus.index
-            if not found_cached_ld_file:
-                df_ld.index = self.df_sumstats_locus.index
-                df_ld.columns = self.df_sumstats_locus.index
-                
-            #if we found the LD matrix in the cache, we need to sync it with self.df_sumstats_locus.index
-            else:
-                df_ld.index = cache_snps
-                df_ld.columns = cache_snps
-                assert np.all((self.df_sumstats_locus.index.isin(df_ld.index)) | (locus_index_flipped.isin(df_ld.index)))
-                
-                #subset LD matrix to only include SNPs in df_sumstats 
-                is_found = (df_ld.index.isin(self.df_sumstats_locus.index)) | (df_ld.index.isin(locus_index_flipped))
-                if not is_found.all():
-                    df_ld = df_ld.loc[is_found, is_found]
-                assert df_ld.shape[0] == self.df_sumstats_locus.shape[0]
-                
-                #flip reference and alternative alleles if needed
-                is_flipped = df_ld.index.isin(locus_index_flipped)
-                is_not_flipped = df_ld.index.isin(self.df_sumstats_locus.index)
-                assert np.all(is_flipped | is_not_flipped)
-                if is_flipped.any():
-                    df_splitindex_R = pd.Series(df_ld.index).str.split('.', expand=True)
-                    df_splitindex_R.columns = ['SNP', 'A1', 'A2']
-                    R_index_flipped = pd.Index(df_splitindex_R['SNP'] + '.' + df_splitindex_R['A2'] + '.' + df_splitindex_R['A1'])
-                    new_index = pd.Series(df_ld.index).copy()
-                    new_index.loc[is_flipped] = R_index_flipped[is_flipped]
-                    
-                    #avoid pandas warnings
-                    if not is_found.all():
-                        df_ld = df_ld.copy()
-                        
-                    df_ld.index = new_index
-                    df_ld.columns = new_index
-                    assert np.all(df_ld.index.isin(self.df_sumstats_locus.index))
-                    if np.any(df_ld.index != self.df_sumstats_locus.index):
-                        df_ld = df_ld.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
-            
+            #if we didn't find the LD matrix in the cache, we just created it
+            df_ld.index = df_ld_snps.index
+            df_ld.columns = df_ld_snps.index            
+            assert np.all(self.df_sumstats_locus.index.isin(df_ld.index))
+            if df_ld.shape[0] != self.df_sumstats_locus.shape[0] or np.any(df_ld.index != self.df_sumstats_locus.index):
+                df_ld = df_ld.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
+
             #do a final verification that we're synced
             assert np.all(df_ld.index == self.df_sumstats_locus.index)
             
-            #rewrite LD matrix if needed
-            if rewrite_ld:
-                df_ld.to_csv(self.ld_matrix_file, sep=' ', index=False, header=False, float_format='%0.8f')
-            
-            #save df_ld to a class member if needed
-            if read_ld_matrix:
-                self.df_ld = df_ld
+            self.df_ld = df_ld
+            self.df_ld_snps = df_ld_snps
             
 
 
@@ -449,6 +393,15 @@ class SUSIE_Wrapper(Fine_Mapping):
             prior_weights /= prior_weights.sum()
             assert np.isclose(prior_weights.sum(), 1)
             
+        #flip effect sizes if needed
+        assert np.all(self.df_ld_snps['SNP'] == self.df_sumstats_locus['SNP'])
+        assert np.all(self.df_ld_snps['BP'] == self.df_sumstats_locus['BP'])
+        is_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A2']
+        is_not_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A1']
+        assert np.all(is_flipped | is_not_flipped)
+        bhat = self.df_sumstats_locus['Z'].values.copy()
+        if np.any(is_flipped):
+            bhat[is_flipped.values] *= -1
             
         #Use HESS to estimate causal effect sizes
         if hess:
@@ -489,7 +442,7 @@ class SUSIE_Wrapper(Fine_Mapping):
             # )
         try:
             susie_obj = self.susieR.susie_suff_stat(
-                    bhat=self.df_sumstats_locus['Z'].values.reshape((m,1)),
+                    bhat=bhat.reshape((m,1)),
                     shat=np.ones((m,1)),
                     R=self.df_ld.values,
                     n=self.n,
@@ -503,7 +456,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                 )
         except:
             susie_obj = self.susieR.susie_bhat(
-                    bhat=self.df_sumstats_locus['Z'].values.reshape((m,1)),
+                    bhat=bhat.reshape((m,1)),
                     shat=np.ones((m,1)),
                     R=self.df_ld.values,
                     n=self.n,
