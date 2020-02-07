@@ -66,6 +66,7 @@ if __name__ == '__main__':
     parser.add_argument('--ldstore', default=None, help='Path to an LDstore executable file')
     parser.add_argument('--threads', type=int, default=None, help='The number of CPU cores LDstore will use (if not specified, LDstore will use the max number of CPU cores available')
     parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
+    parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')
     
     parser.add_argument('--max-num-causal', required=True, type=int, help='Number of causal SNPs')
     parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
@@ -115,7 +116,7 @@ if __name__ == '__main__':
                                     cache_dir=args.cache_dir)
         df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
                      use_prior_causal_prob=not args.non_funct, prior_var=None, residual_var=None, hess=args.hess,
-                     verbose=args.verbose, ld=ld, df_ld_snps=df_ld_snps)
+                     verbose=args.verbose, ld=ld, df_ld_snps=df_ld_snps, debug_dir=args.debug_dir)
     elif args.method == 'finemap':
         raise ValueError('FINEMAP is not yet supported')
     else:

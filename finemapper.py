@@ -374,7 +374,7 @@ class SUSIE_Wrapper(Fine_Mapping):
         
     
         
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld=None, df_ld_snps=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld=None, df_ld_snps=None, debug_dir=None):
     
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -427,6 +427,29 @@ class SUSIE_Wrapper(Fine_Mapping):
             locus_end,
             self.df_ld.shape[0]
             ))
+            
+        #save variables to debug dir if needed
+        if debug_dir is not None:
+            os.makedirs(debug_dir, exist_ok=True)
+            logging.info('Saving debug info to: %s'%(debug_dir))
+            np.savetxt(os.path.join(debug_dir, 'bhat.txt'), bhat)
+            np.savetxt(os.path.join(debug_dir, 'R.txt'), self.df_ld.values)
+            np.savetxt(os.path.join(debug_dir, 'n.txt'), [self.n])
+            np.savetxt(os.path.join(debug_dir, 'L.txt'), [num_causal_snps])
+            np.savetxt(os.path.join(debug_dir, 'residual_var.txt'), [np.nan] if (residual_var is None) else [residual_var])
+            np.savetxt(os.path.join(debug_dir, 'prior_var.txt'), [np.nan] if (prior_var is None) else [prior_var])
+            np.savetxt(os.path.join(debug_dir, 'prior_weights.txt'), [np.nan] if use_prior_causal_prob else prior_weights)
+            
+            #create a zipped debug file
+            import zipfile
+            debug_files = glob.glob(os.path.join(debug_dir, '*.txt'))
+            zip_file = os.path.join(debug_dir, 'debug.zip')
+            zf = zipfile.ZipFile(zip_file, mode='w')
+            for debug_file in debug_files:
+                zf.write(debug_file, os.path.basename(debug_file), compress_type=zipfile.ZIP_DEFLATED)
+                
+
+            
             
         # susie_obj = self.susieR.susie_z(
                 # z=self.df_sumstats_locus['Z'].values.reshape((m,1)),
