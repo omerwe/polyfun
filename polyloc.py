@@ -321,8 +321,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     #check that the output directory exists
-    if os.path.isabs(args.output_prefix) and not os.path.exists(os.path.dirname(args.output_prefix)):
-        raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.output_prefix)))
+    if len(os.path.dirname(args.output_prefix))>0 and not os.path.exists(os.path.dirname(args.output_prefix)):
+        raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.output_prefix)))    
     
     #configure logger
     configure_logger(args.output_prefix)
