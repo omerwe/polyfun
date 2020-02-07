@@ -4,6 +4,7 @@ import os
 import time
 import scipy.stats as stats
 import logging
+from pandas.api.types import is_integer_dtype
 
 def check_package_versions():
     from pkg_resources import parse_version
@@ -188,6 +189,16 @@ def compute_casecontrol_neff(df_sumstats):
     Neff = (4.0 / (1.0/df_sumstats['N_CASES'] + 1.0/df_sumstats['N_CONTROLS'])).astype(np.int)
     return Neff
 
+
+def sanity_checks(df_sumstats):
+    if np.any(df_sumstats['CHR'].isnull()):
+        raise ValueError('Some SNPs have a null chromosome value')
+    if np.any(df_sumstats['BP'].isnull()):
+        raise ValueError('Some SNPs have a null base-pair value')
+    if not is_integer_dtype(df_sumstats['CHR']):
+        raise ValueError('Some chromosome values are not integers. Please double-check your input')
+    if not is_integer_dtype(df_sumstats['BP']):
+        raise ValueError('Some base-pair values are not integers. Please double-check your input')
     
     
     
@@ -222,6 +233,9 @@ if __name__ == '__main__':
 
     #filter sumstats
     df_sumstats = filter_sumstats(df_sumstats, min_info_score=args.min_info, min_maf=args.min_maf, remove_strand_ambig=args.remove_strand_ambig, keep_hla=args.keep_hla)
+    
+    #do some sanity checks
+    sanity_checks(df_sumstats)
 
     #compute Neff    
     if 'CHISQ_BOLT_LMM' in df_sumstats.columns and not args.no_neff:
