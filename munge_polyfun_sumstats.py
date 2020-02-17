@@ -62,7 +62,7 @@ def rename_df_columns(df_sumstats, min_info_score, min_maf):
     snp_column = find_df_column(df_sumstats, ['SNP', 'RSID', 'RS', 'NAME'])
     a1freq_col = find_df_column(df_sumstats, ['A1FREQ', 'freq', 'MAF', 'FRQ'], allow_missing=True)
     info_col = find_df_column(df_sumstats, 'INFO', allow_missing=True)
-    beta_col = find_df_column(df_sumstats, ['BETA', 'EFF', 'EFFECT', 'EFFECT_SIZE'], allow_missing=True)
+    beta_col = find_df_column(df_sumstats, ['BETA', 'EFF', 'EFFECT', 'EFFECT_SIZE', 'OR'], allow_missing=True)
     se_col = find_df_column(df_sumstats, ['SE'], allow_missing=True)
     pvalue_col = find_df_column(df_sumstats, ['P_BOLT_LMM', 'P', 'PVALUE', 'P-VALUE', 'P_value', 'PVAL'], allow_missing=True)
     z_col = find_df_column(df_sumstats, ['Z', 'ZSCORE', 'Z_SCORE'], allow_missing=True)    
