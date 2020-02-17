@@ -201,6 +201,13 @@ def sanity_checks(df_sumstats):
         raise ValueError('Some base-pair values are not integers. Please double-check your input')
     
     
+def convert_odds_ratio_to_log(df_sumstats):
+    if 'OR' in df_sumstats.columns and np.all(df_sumstats['OR']>0):
+        df_sumstats['OR'] = np.log(df_sumstats['OR'])
+        logging.info('Converting OR column to log-odds')
+    return df_sumstats
+        
+    
     
 if __name__ == '__main__':
 
@@ -223,10 +230,14 @@ if __name__ == '__main__':
     #configure the logger
     configure_logger(args.out)
     
+    #read sumstats file
     logging.info('Reading sumstats file...')
     t0 = time.time()
     df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
     logging.info('Done in %0.2f seconds'%(time.time()-t0))
+    
+    #convert odds-ratio to log-odds ratio if needed
+    df_sumstats = convert_odds_ratio_to_log(df_sumstats)
     
     #rename df_sumstats columns
     df_sumstats = rename_df_columns(df_sumstats, min_info_score=args.min_info, min_maf=args.min_maf)
