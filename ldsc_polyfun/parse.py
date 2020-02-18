@@ -190,7 +190,7 @@ def ldscore(fh, num=None):
     if num is not None:  # num files, e.g., one per chromosome
         first_fh = sub_chr(fh, 1) + suffix
         s, compression = which_compression(first_fh)
-        compression = None
+        ###compression = None
         chr_ld = []
         for i in tqdm(range(1, num+1)):
             chr_ld.append(l2_parser(sub_chr(fh, i) + suffix + s, compression))
