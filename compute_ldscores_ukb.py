@@ -183,6 +183,7 @@ def compute_ldscores_chr(df_annot_chr, ld_dir):
         if len(index_intersect)==0:
             raise ValueError('no SNPs in chromosome %d BP %d-%d had LD info'%(chr_num, region_start, region_end))
         if len(index_intersect) < df_R_region.shape[0]:
+            logging.warning('Only %d/%d SNPs in chromosome %d BP %d-%d have annotations info. This may severely down-bias the LD-scores'%(len(index_intersect), df_R_region.shape[0], chr_num, region_start, region_end))
             is_keep = df_R_region.index.isin(index_intersect)
             df_R_region = df_R_region.loc[is_keep, is_keep]
         if df_annot_region.shape[0] != df_R_region.shape[0] or np.any(df_annot_region.index != df_R_region.index):
