@@ -9,6 +9,8 @@ import urllib.request
 from pyarrow import ArrowIOError
 import tempfile
 import scipy.sparse as sparse
+from pandas.api.types import is_numeric_dtype
+
 
 UKBB_LD_URL = 'https://data.broadinstitute.org/alkesgroup/UKBB_LD'
 REGION_LENGTH = 3000000
@@ -75,6 +77,12 @@ def read_annot(annot_file):
     assert 'BP' in df_annot.columns
     assert 'A1' in df_annot.columns
     assert 'A2' in df_annot.columns
+    
+    for c in df_annot.columns:
+        if c in META_COLUMNS: continue
+        if not is_numeric_dtype(df_annot[c]):
+            raise ValueError('Annotation %s does not have numeric values'%(c))
+        
     
     df_annot = set_snpid_index(df_annot)
     
