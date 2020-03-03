@@ -128,9 +128,10 @@ class Fine_Mapping(object):
             raise ValueError('not all SNPs in the sumstats file were found in the LD matrix')
         
         #filter LD to only SNPs found in the sumstats file
+        assert not np.any(self.df_sumstats_locus.index.duplicated())
         if df_ld.shape[0] != self.df_sumstats_locus.shape[0] or np.any(df_ld.index != self.df_sumstats_locus.index):
             df_ld = df_ld.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
-            df_ls_snps = df_ld_snps.loc[df_ld.index]
+            df_ld_snps = df_ld_snps.loc[df_ld.index]
 
         #do a final verification that we're synced
         assert np.all(df_ld.index == self.df_sumstats_locus.index)
