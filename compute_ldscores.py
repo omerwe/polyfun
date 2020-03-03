@@ -6,6 +6,7 @@ import time
 from ldsc_polyfun import ldscore, parse
 import logging
 from tqdm import tqdm
+from pandas.api.types import is_numeric_dtype
 
 
 def __filter__(fname, noun, verb, merge_obj):
@@ -95,6 +96,12 @@ def compute_ldscores(args):
         assert np.all(df_annot['A1'] == df_bim['A1'].values)
         assert np.all(df_annot['A2'] == df_bim['A2'].values)
         df_annot.set_index(['CHR', 'BP', 'SNP', 'A1', 'A2'], drop=True, inplace=True)
+        
+        #make sure that the remaining annotations are numeric
+        for c in df_annot.columns:
+            if not is_numeric_dtype(df_annot[c]):
+                raise ValueError('Annotation %s does not have numeric values'%(c))
+        
 
     #find #individuals in bfile
     fam_file = args.bfile+'.fam'
