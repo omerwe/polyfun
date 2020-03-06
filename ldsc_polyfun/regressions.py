@@ -483,7 +483,7 @@ class Hsq(LD_Score_Regression):
         diff_est = np.dot(overlap_matrix_diff,self.coef)
         diff_cov = np.dot(np.dot(overlap_matrix_diff,self.coef_cov),overlap_matrix_diff.T)
         diff_se = np.sqrt(np.diag(diff_cov))
-        diff_p = ['NA' if diff_se[i]==0 else 2*tdist.sf(abs(diff_est[i]/diff_se[i]),self.n_blocks) \
+        diff_p = [np.nan if diff_se[i]==0 else 2*tdist.sf(abs(diff_est[i]/diff_se[i]),self.n_blocks) \
             for i in range(self.n_annot)]
         
         coef_z = []

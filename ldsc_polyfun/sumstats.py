@@ -343,7 +343,7 @@ def estimate_h2(args, log):
 
         # overlap_matrix = overlap_matrix[np.array(~novar_cols), np.array(~novar_cols)]#np.logical_not
         df_results = hsqhat._overlap_output(ref_ld_cnames, overlap_matrix, M_annot, M_tot, args.print_coefficients)
-        df_results.to_csv(args.out+'.results', sep="\t", index=False, na_rep='NA')
+        df_results.to_csv(args.out+'.results', sep="\t", index=False, na_rep='NA', float_format='%0.4e')
         log.log('Results printed to '+args.out+'.results')
 
     return hsqhat
