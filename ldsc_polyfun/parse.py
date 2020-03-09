@@ -126,8 +126,8 @@ def ldscore_fromlist(flist, num=None):
     ldscore_array = []
     for fh_i, fh in enumerate(flist):
         y = ldscore(fh, num)
-        if len(ldscore_array)>0:
-            if (not series_eq(y.SNP, ldscore_array[0].SNP)) or (not series_eq(y.index, ldscore_array[0].index)):
+        if len(ldscore_array)>0:            
+            if (not series_eq(y.SNP, ldscore_array[0].SNP)) or (not series_eq(y.index, ldscore_array[0].index)):                
                 raise ValueError('LD Scores for concatenation must have identical SNP columns (and A1/A2 columns if such columns exist).')
             else:  # keep SNP and CHR column from only the first file
                 y = y.drop(columns=['SNP', 'CHR'], axis=1)
@@ -274,9 +274,9 @@ def annot(fh_list, num=None, frqfile=None, anno=None):
 
             annot_matrix_chr_list = [np.matrix(df_annot_chr) for df_annot_chr in df_annot_chr_list]
             if len(annot_matrix_chr_list)==1:
-                annot_matrix_chr = np.hstack(annot_matrix_chr_list)
-            else:
                 annot_matrix_chr = annot_matrix_chr_list[0]
+            else:
+                annot_matrix_chr = np.hstack(annot_matrix_chr_list)
             y.append(np.dot(annot_matrix_chr.T, annot_matrix_chr))
             M_tot += len(df_annot_chr_list[0])
 
