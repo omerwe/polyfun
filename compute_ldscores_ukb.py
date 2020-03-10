@@ -10,6 +10,7 @@ from pyarrow import ArrowIOError
 import tempfile
 import scipy.sparse as sparse
 from pandas.api.types import is_numeric_dtype
+from polyfun_utils import configure_logger, set_snpid_index
 
 
 UKBB_LD_URL = 'https://data.broadinstitute.org/alkesgroup/UKBB_LD'
@@ -18,14 +19,7 @@ UKB_N=337545
 META_COLUMNS = ['SNP', 'CHR', 'BP', 'A1', 'A2']
 
 
-class TqdmHandler(logging.StreamHandler):
-    def __init__(self):
-        logging.StreamHandler.__init__(self)
 
-    def emit(self, record):
-        msg = self.format(record)
-        tqdm.write(msg)
-        
         
 class TqdmUpTo(tqdm):
     """
@@ -36,35 +30,6 @@ class TqdmUpTo(tqdm):
         if tsize is not None: self.total = tsize            
         self.update(b * bsize - self.n)
 
-
-def configure_logger(out_prefix):
-
-    logFormatter = logging.Formatter("[%(levelname)s]  %(message)s")
-    logger = logging.getLogger()
-    logger.setLevel(logging.NOTSET)
-    
-    consoleHandler = TqdmHandler()
-    consoleHandler.setFormatter(logFormatter)
-    logger.addHandler(consoleHandler)
-    
-    fileHandler = logging.FileHandler(out_prefix+'.log')
-    fileHandler.setFormatter(logFormatter)
-    logger.addHandler(fileHandler)
-    
-    
-def set_snpid_index(df, copy=False):
-    if copy:
-        df = df.copy()
-    df['A1_first'] = (df['A1'] < df['A2']) | (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
-    df['A1s'] = df['A2'].copy()
-    df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
-    df['A2s'] = df['A1'].copy()
-    df.loc[df['A1_first'], 'A2s'] = df.loc[df['A1_first'], 'A2'].copy()
-    df.index = df['CHR'].astype(str) + '.' + df['BP'].astype(str) + '.' + df['A1s'] + '.' + df['A2s']
-    df.index.name = 'snpid'
-    df.drop(columns=['A1_first', 'A1s', 'A2s'], inplace=True)
-    return df
-    
     
 def read_annot(annot_file):
     try:

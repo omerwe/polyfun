@@ -5,28 +5,7 @@ import time
 import scipy.stats as stats
 import logging
 from pandas.api.types import is_integer_dtype
-
-def check_package_versions():
-    from pkg_resources import parse_version
-    if parse_version(pd.__version__) < parse_version('0.25.0'):
-        raise ValueError('your pandas version is too old --- please update pandas')
-    
-
-
-def configure_logger(out_prefix):
-
-    logFormatter = logging.Formatter("[%(levelname)s]  %(message)s")
-    logger = logging.getLogger()
-    logger.setLevel(logging.NOTSET)
-    
-    consoleHandler = logging.StreamHandler()
-    consoleHandler.setFormatter(logFormatter)
-    logger.addHandler(consoleHandler)
-    
-    fileHandler = logging.FileHandler(out_prefix+'.log')
-    fileHandler.setFormatter(logFormatter)
-    logger.addHandler(fileHandler)
-
+from polyfun_utils import check_package_versions, configure_logger
 
 
 def compute_Neff(df_sumstats, n, chi2_cutoff=30):
@@ -199,6 +178,16 @@ def sanity_checks(df_sumstats):
         raise ValueError('Some chromosome values are not integers. Please double-check your input')
     if not is_integer_dtype(df_sumstats['BP']):
         raise ValueError('Some base-pair values are not integers. Please double-check your input')
+        
+    #check for duplicates
+    df_snp = df_sumstats['CHR'].astype('str') + '.' + \
+             df_sumstats['BP'].astype('str') + '.' + \
+             df_sumstats['A1'].astype('str') + '.' + \
+             df_sumstats['A2'].astype('str')
+    if np.any(df_snp.duplicated()):
+        raise ValueError('The input file includes duplicate SNPs')
+    
+    #compute Z    
     
     
 def convert_odds_ratio_to_log(df_sumstats):

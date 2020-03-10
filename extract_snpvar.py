@@ -2,14 +2,9 @@ import pandas as pd
 import numpy as np
 import os
 import logging
-from polyfun import configure_logger
 from pyarrow import ArrowIOError
+from polyfun_utils import check_package_versions, configure_logger
 
-def check_package_versions():
-    from pkg_resources import parse_version
-    if parse_version(pd.__version__) < parse_version('0.25.0'):
-        raise ValueError('your pandas version is too old --- please update pandas')
-    
 
 if __name__ == '__main__':
 

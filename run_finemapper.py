@@ -73,6 +73,9 @@ if __name__ == '__main__':
     parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
     parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
     parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
+    parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, SNPs with sumstats that are not \
+                            found in the LD panel will be omitted. This is not recommended, because the omitted SNPs may be causal,\
+                            which could lead to false positive results')
     
     parser.add_argument('--sample-file', default=None, help='BGEN files must be used together with a sample file')
     parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to exclude from fine-mapping')
@@ -121,7 +124,7 @@ if __name__ == '__main__':
                                     cache_dir=args.cache_dir)
         df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
                      use_prior_causal_prob=not args.non_funct, prior_var=None, residual_var=None, hess=args.hess,
-                     verbose=args.verbose, ld=ld, df_ld_snps=df_ld_snps, debug_dir=args.debug_dir)
+                     verbose=args.verbose, ld=ld, df_ld_snps=df_ld_snps, debug_dir=args.debug_dir, allow_missing=args.allow_missing)
     elif args.method == 'finemap':
         raise ValueError('FINEMAP is not yet supported')
     else:

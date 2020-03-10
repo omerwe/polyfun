@@ -5,8 +5,9 @@ import sys
 import time
 from ldsc_polyfun import ldscore, parse
 import logging
-from tqdm import tqdm
 from pandas.api.types import is_numeric_dtype
+from polyfun_utils import configure_logger
+
 
 
 def __filter__(fname, noun, verb, merge_obj):
@@ -28,31 +29,6 @@ def __filter__(fname, noun, verb, merge_obj):
         return merged_list
 
 
-
-class TqdmHandler(logging.StreamHandler):
-    def __init__(self):
-        logging.StreamHandler.__init__(self)
-
-    def emit(self, record):
-        msg = self.format(record)
-        tqdm.write(msg)
-
-
-def configure_logger(out_prefix):
-
-    logFormatter = logging.Formatter("[%(levelname)s]  %(message)s")
-    logger = logging.getLogger()
-    logger.setLevel(logging.NOTSET)
-    
-    consoleHandler = TqdmHandler()
-    consoleHandler.setFormatter(logFormatter)
-    logger.addHandler(consoleHandler)
-    
-    fileHandler = logging.FileHandler(out_prefix+'.log')
-    fileHandler.setFormatter(logFormatter)
-    logger.addHandler(fileHandler)
-    
-        
         
 def compute_ldscores(args):
 

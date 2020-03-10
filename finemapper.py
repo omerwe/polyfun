@@ -10,20 +10,7 @@ import tempfile
 import glob
 import subprocess
 from importlib import reload
-
-
-def set_snpid_index(df, copy=False):
-    if copy:
-        df = df.copy()
-    df['A1_first'] = (df['A1'] < df['A2']) | (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
-    df['A1s'] = df['A2'].copy()
-    df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
-    df['A2s'] = df['A1'].copy()
-    df.loc[df['A1_first'], 'A2s'] = df.loc[df['A1_first'], 'A2'].copy()
-    df.index = df['CHR'].astype(str) + '.' + df['BP'].astype(str) + '.' + df['A1s'] + '.' + df['A2s']
-    df.index.name = 'snpid'
-    df.drop(columns=['A1_first', 'A1s', 'A2s'], inplace=True)
-    return df
+from polyfun_utils import set_snpid_index
 
 
 
@@ -117,7 +104,7 @@ class Fine_Mapping(object):
         self.chr = chr_num
         
         
-    def sync_ld_sumstats(self, ld, df_ld_snps):
+    def sync_ld_sumstats(self, ld, df_ld_snps, allow_missing=False):
         df_ld_snps = set_snpid_index(df_ld_snps)
         assert ld.shape[0] == df_ld_snps.shape[0]
         assert ld.shape[0] == ld.shape[1]
@@ -125,7 +112,16 @@ class Fine_Mapping(object):
         
         #make sure that all SNPs in the sumstats file are in the LD file
         if not np.all(self.df_sumstats_locus.index.isin(df_ld.index)):
-            raise ValueError('not all SNPs in the sumstats file were found in the LD matrix')
+            if allow_missing:
+                num_missing = np.sum(~self.df_sumstats_locus.index.isin(df_ld.index))
+                logging.warning('%d variants with sumstats were not found in the LD file and will be omitted (please note that this may lead to false positives if the omitted SNPs are causal!)'%(num_missing))            
+                self.df_sumstats_locus = self.df_sumstats_locus.loc[self.df_sumstats_locus.index.isin(df_ld.index)]
+                assert np.all(self.df_sumstats_locus.index.isin(df_ld.index))
+            else:
+                error_msg = ('not all SNPs in the sumstats file were found in the LD matrix!'
+                            'You could drop the missing SNPs with the flag --allow-missing, but please note that'
+                            ' these omitted SNPs may be causal, in which case you may get false positive results...')
+                raise ValueError(error_msg)
         
         #filter LD to only SNPs found in the sumstats file
         assert not np.any(self.df_sumstats_locus.index.duplicated())
@@ -142,7 +138,7 @@ class Fine_Mapping(object):
         self.df_ld_snps = df_ld_snps
         
             
-    def set_locus(self, locus_start, locus_end, extract_ld=True, read_ld_matrix=False, verbose=False):
+    def set_locus(self, locus_start, locus_end, extract_ld=True, read_ld_matrix=False, verbose=False, allow_missing=False):
     
         #update self.df_sumstats_locus
         self.df_sumstats_locus = self.df_sumstats.query('%d <= BP <= %d'%(locus_start, locus_end))
@@ -248,7 +244,16 @@ class Fine_Mapping(object):
             df_ld_snps.rename(columns={'RSID':'SNP', 'position':'BP', 'chromosome':'CHR', 'A_allele':'A1', 'B_allele':'A2'}, inplace=True, errors='raise')
             df_ld_snps = set_snpid_index(df_ld_snps)
             if not np.all(self.df_sumstats_locus.index.isin(df_ld_snps.index)):
-                raise IOError('Not all variants exist in LDStore output')
+                if allow_missing:
+                    num_missing = np.sum(~self.df_sumstats_locus.index.isin(df_ld_snps.index))
+                    logging.warning('%d variants with sumstats were not found in the LD file and will be omitted (please note that this may lead to false positives if the omitted SNPs are causal!)'%(num_missing))
+                    self.df_sumstats_locus = self.df_sumstats_locus.loc[self.df_sumstats_locus.index.isin(df_ld_snps.index)]
+                    assert np.all(self.df_sumstats_locus.index.isin(df_ld_snps.index))
+                else:
+                    error_msg = ('not all SNPs in the sumstats file were found in the LD matrix!'
+                                'You could drop the missing SNPs with the flag --allow-missing, but please note that'
+                                ' these omitted SNPs may be causal, in which case you may get false positive results...')
+                    raise ValueError(error_msg)
                 
             #create incl-variants file if needed
             if df_ld_snps.shape[0] == self.df_sumstats_locus.shape[0]:
@@ -375,7 +380,7 @@ class SUSIE_Wrapper(Fine_Mapping):
         
     
         
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld=None, df_ld_snps=None, debug_dir=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld=None, df_ld_snps=None, debug_dir=None, allow_missing=False):
     
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -384,9 +389,9 @@ class SUSIE_Wrapper(Fine_Mapping):
             raise ValueError('either both or none of ld, df_ld_SNPs should be specified')
     
         #set locus
-        self.set_locus(locus_start, locus_end, read_ld_matrix=True, verbose=verbose, extract_ld=(ld is None))
+        self.set_locus(locus_start, locus_end, read_ld_matrix=True, verbose=verbose, extract_ld=(ld is None), allow_missing=allow_missing)
         if ld is not None:
-            self.sync_ld_sumstats(ld, df_ld_snps)
+            self.sync_ld_sumstats(ld, df_ld_snps, allow_missing=allow_missing)
         
         #define prior causal probabilities
         if use_prior_causal_prob:

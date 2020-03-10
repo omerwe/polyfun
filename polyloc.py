@@ -5,8 +5,9 @@ import sys
 import time
 import logging
 import scipy.stats as stats
-from tqdm import tqdm
-from polyfun import PolyFun, configure_logger, get_file_name, SNP_COLUMNS, check_package_versions, set_snpid_index
+from polyfun import PolyFun
+from polyfun_utils import configure_logger, set_snpid_index, get_file_name
+from polyfun_utils import SNP_COLUMNS
 
 
 def splash_screen():
