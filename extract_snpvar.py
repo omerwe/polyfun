@@ -68,7 +68,7 @@ if __name__ == '__main__':
     
     #merge the dfs
     if np.all(np.isin(['CHR', 'BP'], df_snps.columns)):
-        df = df_meta.merge(df_snps, on=['CHR', 'BP', 'A1', 'A2'], how='inner')
+        df = df_meta.merge(df_snps.drop(columns=['SNP'], errors='ignore'), on=['CHR', 'BP', 'A1', 'A2'], how='inner')
     else:
         df = df_meta.merge(df_snps.drop(columns=['CHR', 'BP'], errors='ignore'), on=['SNP', 'A1', 'A2'], how='inner')
         
