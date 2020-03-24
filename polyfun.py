@@ -295,7 +295,7 @@ class PolyFun:
             #make sure that the chromosome exists in one set
             found_chrom = np.any([chr_num in chr_set for chr_set in jknife.chromosome_sets])
             if not found_chrom:
-                raise ValueError('not all chromosomes have a taus estimate - please make sure that the sumstats span all 22 human chromosomes')
+                raise ValueError('not all chromosomes have a taus estimate - please make sure that the intersection of SNPs with sumstats and with annotations data spans all 22 human chromosomes')
 
             #find the relevant set number
             set_num=None
@@ -313,7 +313,7 @@ class PolyFun:
             hsqhat = self.hsqhat
             jknife = hsqhat.jknife
             if len(jknife.est_loco) != 22:
-                raise ValueError('not all chromosomes have a taus estimate - please make sure that the sumstats span all 22 human chromosomes')
+                raise ValueError('not all chromosomes have a taus estimate - please make sure that the intersection of SNPs with sumstats and with annotations data spans all 22 human chromosomes')
             taus = jknife.est_loco[chr_num-1][:hsqhat.n_annot] / hsqhat.Nbar
             
         #compute and return the snp variances
