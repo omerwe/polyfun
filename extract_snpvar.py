@@ -105,7 +105,10 @@ if __name__ == '__main__':
         
     #write output to file
     logging.info('Writing output file to %s'%(args.out))
-    df.to_csv(args.out, sep='\t', index=False, float_format='%0.4e')
+    if args.out.endswith('.parquet'):
+        df.to_parquet(args.out, index=False)
+    else:
+        df.to_csv(args.out, sep='\t', index=False, float_format='%0.4e')
     
         
     
