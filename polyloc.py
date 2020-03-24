@@ -8,6 +8,7 @@ import scipy.stats as stats
 from polyfun import PolyFun
 from polyfun_utils import configure_logger, set_snpid_index, get_file_name
 from polyfun_utils import SNP_COLUMNS
+from pyarrow import ArrowIOError
 
 
 def splash_screen():
@@ -109,9 +110,9 @@ class PolyLoc(PolyFun):
         pass
         
     def load_posterior_betas(self, args):
-        if args.posterior.endswith('.parquet'):
+        try:
             df_posterior = pd.read_parquet(args.posterior)
-        else:
+        except ArrowIOError:
             df_posterior = pd.read_table(args.posterior, delim_whitespace=True)
             
         #preprocess columns

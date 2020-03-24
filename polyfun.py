@@ -8,6 +8,7 @@ from copy import deepcopy
 from tqdm import tqdm
 from polyfun_utils import Logger, check_package_versions, set_snpid_index, configure_logger, get_file_name
 from polyfun_utils import SNP_COLUMNS
+from pyarrow import ArrowIOError
 
 
 MAX_CHI2=80
@@ -169,8 +170,10 @@ class PolyFun:
             M_annot = self.M
             w_ld_cname = 'w_ld'
             ref_ld_cnames = self.df_bins.columns
-            if args.sumstats.endswith('.parquet'): df_sumstats = pd.read_parquet(args.sumstats)            
-            else: df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
+            try:
+                df_sumstats = pd.read_parquet(args.sumstats)            
+            except ArrowIOError:
+                df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
             ###merge everything together...
             
         #prepare LD-scores for S-LDSC run
@@ -234,9 +237,9 @@ class PolyFun:
         #load annotation file(s)
         df_annot_chr_list = []
         for annot_filename in annot_filenames:
-            if annot_filename.endswith('.parquet'):
+            try:
                 df_annot_chr = pd.read_parquet(annot_filename)
-            else:
+            except ArrowIOError:
                 df_annot_chr = pd.read_table(annot_filename)
             df_annot_chr_list.append(df_annot_chr)
         if len(df_annot_chr_list)==1:
@@ -288,6 +291,11 @@ class PolyFun:
         if use_ridge:
             hsqhat = self.hsqhat_ridge
             jknife = hsqhat.jknife_ridge
+            
+            #make sure that the chromosome exists in one set
+            found_chrom = np.any([chr_num in chr_set for chr_set in jknife.chromosome_sets])
+            if not found_chrom:
+                raise ValueError('not all chromosomes have a taus estimate - please make sure that the sumstats span all 22 human chromosomes')
 
             #find the relevant set number
             set_num=None
@@ -304,6 +312,8 @@ class PolyFun:
         else:
             hsqhat = self.hsqhat
             jknife = hsqhat.jknife
+            if len(jknife.est_loco) != 22:
+                raise ValueError('not all chromosomes have a taus estimate - please make sure that the sumstats span all 22 human chromosomes')
             taus = jknife.est_loco[chr_num-1][:hsqhat.n_annot] / hsqhat.Nbar
             
         #compute and return the snp variances
@@ -523,8 +533,10 @@ class PolyFun:
             assert np.isclose(df_snpvar['SNPVAR'].sum(), h2_total)
             
         #merge snpvar with sumstats
-        if args.sumstats.endswith('.parquet'): df_sumstats = pd.read_parquet(args.sumstats)            
-        else: df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
+        try:
+            df_sumstats = pd.read_parquet(args.sumstats)
+        except ArrowIOError:
+            df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
         df_sumstats.drop(columns=['SNP'], errors='ignore', inplace=True)
         for col in ['CHR', 'BP', 'A1', 'A2']:
             if col not in df_sumstats.columns:

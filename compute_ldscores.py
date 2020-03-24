@@ -7,6 +7,7 @@ from ldsc_polyfun import ldscore, parse
 import logging
 from pandas.api.types import is_numeric_dtype
 from polyfun_utils import configure_logger
+from pyarrow import ArrowIOError
 
 
 
@@ -38,9 +39,9 @@ def compute_ldscores(args):
     
     #read annotations 
     if args.annot is not None:
-        if args.annot.endswith('.parquet'):
+        try:
             df_annot = pd.read_parquet(args.annot)
-        else:
+        except ArrowIOError:
             df_annot = pd.read_table(args.annot, delim_whitespace=True)
     
         #heuristically reduce df_annot to a small superset of the relevant SNPs        

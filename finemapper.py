@@ -11,6 +11,8 @@ import glob
 import subprocess
 from importlib import reload
 from polyfun_utils import set_snpid_index
+from pyarrow import ArrowIOError
+
 
 
 
@@ -78,10 +80,10 @@ class Fine_Mapping(object):
     
         #read sumstats and filter to target chromosome only
         logging.info('Loading sumstats file...')        
-        if sumstats_file.endswith('.parquet'):
+        try:
             df_sumstats = pd.read_parquet(sumstats_file)
-        else: 
-            df_sumstats = pd.read_csv(sumstats_file, delim_whitespace=True)
+        except ArrowIOError:
+            df_sumstats = pd.read_table(sumstats_file, delim_whitespace=True)
         if not np.any(df_sumstats['CHR'] == chr_num):
             raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))
         if np.any(df_sumstats['CHR'] != chr_num):
