@@ -79,7 +79,8 @@ class Fine_Mapping(object):
     
     
         #read sumstats and filter to target chromosome only
-        logging.info('Loading sumstats file...')        
+        logging.info('Loading sumstats file...')
+        t0 = time.time()
         try:
             df_sumstats = pd.read_parquet(sumstats_file)
         except ArrowIOError:
@@ -91,7 +92,7 @@ class Fine_Mapping(object):
         df_sumstats = set_snpid_index(df_sumstats)
         if 'P' not in df_sumstats.columns:
             df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
-        logging.info('Loaded sumstats for %d SNPs'%(df_sumstats.shape[0]))
+        logging.info('Loaded sumstats for %d SNPs in %0.2f seconds'%(df_sumstats.shape[0], time.time()-t0))
 
         
         #save class members
