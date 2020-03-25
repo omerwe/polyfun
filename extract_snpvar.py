@@ -2,8 +2,10 @@ import pandas as pd
 import numpy as np
 import os
 import logging
+import time
 from pyarrow import ArrowIOError
-from polyfun_utils import check_package_versions, configure_logger
+from polyfun_utils import check_package_versions, configure_logger, set_snpid_index, SNP_COLUMNS
+
 
 
 if __name__ == '__main__':
@@ -23,6 +25,8 @@ if __name__ == '__main__':
     configure_logger(args.out)
     
     #read snps file
+    logging.info('Loading sumstats files...')
+    t0 = time.time()
     try:
         df_snps = pd.read_parquet(args.snps)
     except ArrowIOError:
@@ -31,19 +35,31 @@ if __name__ == '__main__':
         raise ValueError('missing column A1')
     if 'A2' not in df_snps.columns:
         raise ValueError('missing column A2')
-    if 'SNP' not in df_snps.columns:
-        if 'CHR' not in df_snps.columns:
-            raise ValueError('You must provide either a SNP or a CHR column')
-        if 'BP' not in df_snps.columns:
-            raise ValueError('You must provide either a SNP or a BP column')
+    if 'CHR' not in df_snps.columns:
+        raise ValueError('You must provide either a SNP or a CHR column')
+    if 'BP' not in df_snps.columns:
+        raise ValueError('You must provide either a SNP or a BP column')
             
-    #read df_meta        
+    #set index
+    df_snps = set_snpid_index(df_snps)
+    logging.info('Done in %0.2f seconds'%(time.time() - t0))
+    
+    #make sure there aren't any duplicated SNPs
+    if np.any(df_snps.index.duplicated()):
+        raise ValueError('duplicate SNPs found in output - please make sure there aren\'t any duplicate SNPs in your sumstats file')
+    
+            
+    #read df_meta
+    logging.info('Loading meta-analyzed per-SNP-h2 files...')
+    t0 = time.time()
     script_dir = os.path.dirname(os.path.realpath(__file__))
     df_meta1 = pd.read_parquet(os.path.join(script_dir, 'snpvar_meta.chr1_7.parquet'))
     df_meta2 = pd.read_parquet(os.path.join(script_dir, 'snpvar_meta.chr8_22.parquet'))
     df_meta = pd.concat([df_meta1, df_meta2], axis=0)
     del df_meta1
     del df_meta2
+    df_meta = set_snpid_index(df_meta)
+    logging.info('Done in %0.2f seconds'%(time.time() - t0))
     
     #truncate the ratio between the largest and smallest per-SNP h^2    
     min_snpvar = df_meta['snpvar_bin'].max() / args.q
@@ -54,42 +70,20 @@ if __name__ == '__main__':
     snpvar_sum3 = df_meta['snpvar_bin'].sum()
     assert np.isclose(snpvar_sum3, snpvar_sum)    
     
-    #subset df_meta to include a small superset of df_snps
-    if 'BP' in df_snps.columns:
-        df_meta = df_meta.loc[df_meta['BP'].isin(df_snps['BP'])]
-    else:
-        df_meta = df_meta.loc[df_meta['SNP'].isin(df_snps['SNP'])]
-    
-    #duplicate df_meta to include every SNP twice, with alternating A1/A2 alleles (to handle allele flips)
-    df_meta2 = df_meta.copy()
-    df_meta2['A1'] = df_meta['A2']
-    df_meta2['A2'] = df_meta['A1']
-    df_meta = pd.concat([df_meta, df_meta2], axis=0)    
+    #Make sure there aren't any shared columns (except for SNP columns)
+    for c in df_snps.columns:
+        if c not in SNP_COLUMNS and c in df_meta.columns:
+            raise ValueError('Column %s appears in both the sumstats files and in the meta-analysis files'%(c))
     
     #merge the dfs
-    if np.all(np.isin(['CHR', 'BP'], df_snps.columns)):
-        df = df_meta.merge(df_snps.drop(columns=['SNP'], errors='ignore'), on=['CHR', 'BP', 'A1', 'A2'], how='inner')
-    else:
-        df = df_meta.merge(df_snps.drop(columns=['CHR', 'BP'], errors='ignore'), on=['SNP', 'A1', 'A2'], how='inner')
+    logging.info('Merging sumstats with per-SNP h2 data...')
+    t0 = time.time()
+    df_meta = df_meta.loc[df_meta.index.isin(df_snps.index)]
+    df = df_meta.merge(df_snps.drop(columns=SNP_COLUMNS, errors='ignore'), left_index=True, right_index=True)
+    logging.info('Done in %0.2f seconds'%(time.time() - t0))
         
     #If we didn't find everything, write a list of missing SNPs to an output file
     if df.shape[0] < df_snps.shape[0]:
-        if np.all(np.isin(['CHR', 'BP'], df_snps.columns)):
-            df_snps.index = df_snps['CHR'].astype(str) + '.' \
-                          + df_snps['BP'].astype(str) + '.' \
-                          + df_snps['A1'] + '.' \
-                          + df_snps['A2']
-            df_meta.index = df_meta['CHR'].astype(str) + '.' \
-                          + df_meta['BP'].astype(str) + '.' \
-                          + df_meta['A1'] + '.' \
-                          + df_meta['A2']
-        else:
-            df_snps.index = df_snps['SNP'] + '.' \
-                          + df_snps['A1'] + '.' \
-                          + df_snps['A2']
-            df_meta.index = df_meta['SNP'] + '.' \
-                          + df_meta['A1'] + '.' \
-                          + df_meta['A2']
         df_miss = df_snps.loc[~df_snps.index.isin(df_meta.index)]
         df_miss.to_csv(args.out+'.miss.gz', sep='\t', index=False, compression='gzip')
         error_message = 'Not all SNPs in the SNPs file were found in the meta file. Wrote a list of missing SNPs to %s'%(args.out+'.miss.gz')
@@ -102,6 +96,10 @@ if __name__ == '__main__':
     df['SNPVAR'] = df['snpvar_bin'] #/ df['snpvar_bin'].sum()
     #assert df['SNPVAR'].sum() == 1
     del df['snpvar_bin']
+    
+    #make sure there aren't any duplicated SNPs
+    if np.any(df.index.duplicated()):
+        raise ValueError('duplicate SNPs found in output - please make sure there aren\'t any duplicate SNPs in your sumstats file')
         
     #write output to file
     logging.info('Writing output file to %s'%(args.out))
