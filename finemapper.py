@@ -127,7 +127,6 @@ class Fine_Mapping(object):
                 raise ValueError(error_msg)
         
         #filter LD to only SNPs found in the sumstats file
-        import ipdb; ipdb.set_trace()
         assert not np.any(self.df_sumstats_locus.index.duplicated())
         if df_ld.shape[0] != self.df_sumstats_locus.shape[0] or np.any(df_ld.index != self.df_sumstats_locus.index):
             df_ld = df_ld.loc[self.df_sumstats_locus.index, self.df_sumstats_locus.index]
