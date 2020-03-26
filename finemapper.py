@@ -209,8 +209,6 @@ class Fine_Mapping(object):
             ldstore_cmd = [self.ldstore_exe]
             ldstore_cmd += ['--bcor', bcor_file]            
             ldstore_cmd += ['--incl-range', '%d-%d'%(locus_start, locus_end)]
-            if self.n_threads is not None:
-                ldstore_cmd += ['--n-threads', str(self.n_threads)]
             if os.path.exists(self.genotypes_file + '.bed'):
                 ldstore_cmd += ['--bplink', self.genotypes_file]
             elif self.genotypes_file.endswith('.bgen'):
@@ -221,6 +219,8 @@ class Fine_Mapping(object):
                 ldstore_cmd += ['--incl-samples', self.incl_samples]
             if self.sample_file is not None:
                 ldstore_cmd += ['--samples', self.sample_file]
+            if self.n_threads is not None:
+                ldstore_cmd += ['--n-threads', str(self.n_threads)]
             run_executable(ldstore_cmd, 'LDStore', measure_time=True, show_output=verbose, show_command=verbose)
                 
             #run LDStore merge if needed
@@ -234,12 +234,16 @@ class Fine_Mapping(object):
                 ldstore_merge_cmd = [self.ldstore_exe]
                 ldstore_merge_cmd += ['--bcor', bcor_file]
                 ldstore_merge_cmd += ['--merge', str(num_bcor_files)]
+                if self.n_threads is not None:
+                    ldstore_merge_cmd += ['--n-threads', str(self.n_threads)]
                 run_executable(ldstore_merge_cmd, 'LDStore merge', measure_time=False, show_output=verbose, show_command=verbose)                                
             
             #run LDStore meta        
             ldstore_meta_cmd = [self.ldstore_exe]
             ldstore_meta_cmd += ['--bcor', bcor_file]
             ldstore_meta_cmd += ['--meta', meta_file]
+            if self.n_threads is not None:
+                ldstore_meta_cmd += ['--n-threads', str(self.n_threads)]
             run_executable(ldstore_meta_cmd, 'LDStore meta', measure_time=False, show_output=verbose, show_command=verbose)
         
             #open meta_file
@@ -276,6 +280,8 @@ class Fine_Mapping(object):
             ldstore_ld_cmd += ['--matrix', self.ld_matrix_file]
             if use_incl_file:
                 ldstore_ld_cmd += ['--incl-variants', incl_variants_file]
+            if self.n_threads is not None:
+                ldstore_ld_cmd += ['--n-threads', str(self.n_threads)]
             run_executable(ldstore_ld_cmd, 'LDStore LD extraction', measure_time=True, show_output=verbose, show_command=verbose)        
             
             
