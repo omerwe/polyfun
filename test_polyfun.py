@@ -222,6 +222,7 @@ def test_finemapper(tmpdir, ldstore_exe, python3_exe):
        --out %s \
        --ldstore %s \
        --threads 1 \
+       --verbose \
        ' \
        %(python3_exe, script_exe, plink_file, sumstats_file, output_file, ldstore_exe)
     
