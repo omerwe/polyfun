@@ -82,7 +82,10 @@ def test_munge_sumstats(tmpdir, python3_exe):
     output_file = os.path.join(tmpdir, outfile)
     gold_file = os.path.join(gold_dir, outfile)
     
-    os.system('%s %s --sumstats %s --out %s --n 327209 --min-info 0.6 --min-maf 0.001'%(python3_exe, script_exe, input_file, output_file))
+    retval = os.system('%s %s --sumstats %s --out %s --n 327209 --min-info 0.6 --min-maf 0.001'%(python3_exe, script_exe, input_file, output_file))
+    if retval != 0:
+        raise ValueError('munge_sumstats command failed')
+    
     compare_dfs(tmpdir, gold_dir, outfile)
     
     
@@ -104,19 +107,26 @@ def test_polyfun(tmpdir, python3_exe):
     plink_prefix =  os.path.join(example_dir, 'reference.')
     
     #polyfun stage 2
-    os.system('%s %s --compute-h2-L2 --output-prefix %s --sumstats %s --ref-ld-chr %s --w-ld-chr %s'%
-             (python3_exe, script_exe, output_prefix, sumstats_file, ref_ld_prefix, w_ld_prefix))    
+    retval = os.system('%s %s --compute-h2-L2 --output-prefix %s --sumstats %s --ref-ld-chr %s --w-ld-chr %s --nnls-exact'%
+             (python3_exe, script_exe, output_prefix, sumstats_file, ref_ld_prefix, w_ld_prefix))
+    if retval != 0:
+        raise ValueError('PolyFun command failed')
     for outfile in ['testrun.22.bins.parquet', 'testrun.22.snpvar_ridge_constrained.gz', 'testrun.22.snpvar_ridge.gz', 'testrun.22.l2.M']:
         compare_dfs(tmpdir, gold_dir, outfile)
         
     #polyfun stage 3
-    os.system('%s %s --compute-ldscores --output-prefix %s --bfile-chr %s'%
+    retval = os.system('%s %s --compute-ldscores --output-prefix %s --bfile-chr %s --nnls-exact'%
              (python3_exe, script_exe, output_prefix, plink_prefix))    
+    if retval != 0:
+        raise ValueError('PolyFun command failed')
+             
     compare_dfs(tmpdir, gold_dir, 'testrun.22.l2.ldscore.parquet')
         
     #polyfun stage 4
-    os.system('%s %s --compute-h2-bins --output-prefix %s --sumstats %s --w-ld-chr %s'%
-             (python3_exe, script_exe, output_prefix, sumstats_file, w_ld_prefix))    
+    retval = os.system('%s %s --compute-h2-bins --output-prefix %s --sumstats %s --w-ld-chr %s --nnls-exact'%
+             (python3_exe, script_exe, output_prefix, sumstats_file, w_ld_prefix))
+    if retval != 0:
+        raise ValueError('PolyFun command failed')
     compare_dfs(tmpdir, gold_dir, 'testrun.22.snpvar_constrained.gz')
     
     
@@ -137,21 +147,30 @@ def test_polyloc(tmpdir, python3_exe):
     plink_prefix =  os.path.join(example_dir, 'reference.')
     posterior_file = os.path.join(example_dir, 'posterior_betas.gz')
     
-    #polyloc stage 1        
-    os.system('%s %s --compute-partitions --output-prefix %s --posterior %s --bfile-chr %s'%
-             (python3_exe, script_exe, output_prefix, posterior_file, plink_prefix))
+    #polyloc stage 1
+    polyloc_cmd = ('%s %s --compute-partitions --output-prefix %s --posterior %s --bfile-chr %s --nnls-exact'%
+                    (python3_exe, script_exe, output_prefix, posterior_file, plink_prefix))
+    retval = os.system(polyloc_cmd)
+    if retval != 0:
+        raise ValueError('PolyLoc command failed')
     for outfile in ['polyloc_test.22.bins.parquet', 'polyloc_test.22.l2.M']:
         compare_dfs(tmpdir, gold_dir, outfile)
         
     
     #polyloc stage 2
-    os.system('%s %s --compute-ldscores --output-prefix %s --bfile-chr %s'%
-             (python3_exe, script_exe, output_prefix, plink_prefix))        
+    polyloc_cmd = ('%s %s --compute-ldscores --output-prefix %s --bfile-chr %s --nnls-exact'%
+                    (python3_exe, script_exe, output_prefix, plink_prefix))
+    retval = os.system(polyloc_cmd)
+    if retval != 0:
+        raise ValueError('PolyLoc command failed')
     compare_dfs(tmpdir, gold_dir, 'polyloc_test.22.l2.ldscore.parquet')
     
     #polyloc stage 3
-    os.system('%s %s --compute-polyloc --output-prefix %s --w-ld-chr %s --sumstats %s'%
-             (python3_exe, script_exe, output_prefix, w_ld_prefix, sumstats_file))
+    polyloc_cmd = ('%s %s --compute-polyloc --output-prefix %s --w-ld-chr %s --sumstats %s --nnls-exact'%
+                    (python3_exe, script_exe, output_prefix, w_ld_prefix, sumstats_file))
+    retval = os.system(polyloc_cmd)
+    if retval != 0:
+        raise ValueError('PolyLoc command failed')
     for outfile in ['polyloc_test.bin_h2', 'polyloc_test.Mp']:
         compare_dfs(tmpdir, gold_dir, outfile)
         
@@ -170,7 +189,9 @@ def test_extract_snpvar(tmpdir, python3_exe):
     output_file = os.path.join(tmpdir, outfile)
     gold_file = os.path.join(gold_dir, outfile)    
     
-    os.system('%s %s --snps %s --out %s'%(python3_exe, script_exe, input_file, output_file))
+    retval = os.system('%s %s --snps %s --out %s'%(python3_exe, script_exe, input_file, output_file))
+    if retval != 0:
+        raise ValueError('extract_snpvar command failed')
     compare_dfs(tmpdir, gold_dir, outfile)
 
 
@@ -205,7 +226,9 @@ def test_finemapper(tmpdir, ldstore_exe, python3_exe):
        %(python3_exe, script_exe, plink_file, sumstats_file, output_file, ldstore_exe)
     
     #print(finemapper_cmd)
-    os.system(finemapper_cmd)
+    retval = os.system(finemapper_cmd)
+    if retval != 0:
+        raise ValueError('finemapper command failed')
     compare_dfs(tmpdir, gold_dir, outfile)    
    
    

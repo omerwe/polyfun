@@ -316,6 +316,9 @@ if __name__ == '__main__':
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyLoc out file names')    
     
+    #LDSC parameters
+    parser.add_argument('--nnls-exact', default=False, action='store_true', help='If specified, S-LDSC will estimate non-negative taus using an exact instead of an approximate solver (this will be slower but slightly more accurate)')
+    
     #show splash screen
     splash_screen()
 

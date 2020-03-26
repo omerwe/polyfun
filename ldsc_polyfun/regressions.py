@@ -152,6 +152,7 @@ class LD_Score_Regression(object):
         skip_ridge_jackknife=True,
         num_chr_sets=2,
         evenodd_split=False,
+        nnls_exact=False
         ):
         
         for i in [y, x, w, M, N]:
@@ -239,7 +240,7 @@ class LD_Score_Regression(object):
             
             if nn:
                 assert not loco
-                jknife = jk.LstsqJackknifeSlow(x, y, is_large_chi2, n_blocks, evenodd_split=evenodd_split, nn=True, chr_num=chr_num)
+                jknife = jk.LstsqJackknifeSlow(x, y, is_large_chi2, n_blocks, evenodd_split=evenodd_split, nn=True, chr_num=chr_num, nnls_exact=nnls_exact)
             else:
                 jknife = jk.LstsqJackknifeFast(x, y, is_large_chi2, n_blocks, evenodd_split=evenodd_split, chr_num=chr_num)
                     
@@ -392,7 +393,7 @@ class Hsq(LD_Score_Regression):
             twostep=None, old_weights=False, 
             chr_num=None, verbose=True,            
             approx_ridge=False, loco=False, ridge_lambda=None, standardize_ridge=True, skip_ridge_jackknife=True, keep_large=False,
-            num_chr_sets=22, evenodd_split=False, nn=False):
+            num_chr_sets=22, evenodd_split=False, nn=False, nnls_exact=False):
         step1_ii = None
         if twostep is not None:
             step1_ii = y < twostep
@@ -409,7 +410,8 @@ class Hsq(LD_Score_Regression):
                                      num_chr_sets=num_chr_sets,
                                      evenodd_split=evenodd_split,
                                      nn=nn,
-                                     keep_large=keep_large
+                                     keep_large=keep_large,
+                                     nnls_exact=nnls_exact
                                      )
         self.mean_chisq, self.lambda_gc = self._summarize_chisq(y)
         if not self.constrain_intercept:

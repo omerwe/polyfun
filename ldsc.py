@@ -593,6 +593,8 @@ parser.add_argument('--evenodd-split', default=False, action='store_true',
 parser.add_argument('--nn', default=False, action='store_true',
     help='If this is invoked, S-LDSC will only estimate non-negative taus (this only makes sense for non-overlapping annotations)')
 
+parser.add_argument('--nnls-exact', default=False, action='store_true',
+    help='If this is invoked, S-LDSC will estimate non-negative taus using an exact instead of an approximate solver (this will be slower but slightly more accurate)')
 
 #LOCO estimates
 parser.add_argument('--loco', default=False, action='store_true', 

@@ -254,20 +254,20 @@ class LstsqJackknifeSlow(Jackknife):
         return np.concatenate(d, axis=0)
         
     
-    def __init__(self, x, y, is_large_chi2, n_blocks=None, nn=False, separators=None, chr_num=None, evenodd_split=False):
+    def __init__(self, x, y, is_large_chi2, n_blocks=None, nn=False, separators=None, chr_num=None, evenodd_split=False, nnls_exact=False):
     
         Jackknife.__init__(self, x, y, n_blocks, separators)
     
         #estimate taus
         if nn:  # non-negative least squares
-            #func = lambda x, y: np.atleast_2d(nnls(x, np.array(y).T[0])[0])
-            xtx = x.T.dot(x)
-            lasso = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx, positive=True, max_iter=10000, random_state=0)
-            self.est = lasso.fit(x,y[:,0]).coef_.reshape((1, x.shape[1]))
+            if nnls_exact:
+                self.est = np.atleast_2d(nnls(x, np.array(y).T[0])[0])
+            else:
+                xtx = x.T.dot(x)
+                lasso = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx, positive=True, max_iter=10000, random_state=0)
+                self.est = lasso.fit(x,y[:,0]).coef_.reshape((1, x.shape[1]))
         else:
-            func = lambda x, y: np.atleast_2d(
-                np.linalg.lstsq(x, np.array(y).T[0])[0])
-            self.est = func(x, y)        
+            self.est = np.atleast_2d(np.linalg.lstsq(x, np.array(y).T[0])[0])
         
         #move large_chi2 SNPs to the end of x and y (don't include them in the separator definition, so that they'll never get removed during jackknife)
         if np.any(is_large_chi2):
@@ -286,12 +286,16 @@ class LstsqJackknifeSlow(Jackknife):
             for i in tqdm(range(len(s) - 1), disable=False):
                 x_noblock = np.delete(x, slice(s[i], s[i+1]), axis=0)
                 y_noblock = np.delete(y, slice(s[i], s[i+1]), axis=0)
-                x_block = x[s[i] : s[i+1]]
-                xtx_noblock = xtx - x_block.T.dot(x_block)
-                lasso_noblock = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx_noblock, positive=True, max_iter=10000, random_state=0)
-                jk_est = lasso_noblock.fit(x_noblock, y_noblock[:,0]).coef_.reshape((1, x.shape[1]))
-                ###z = nnls(x_noblock, y_noblock[:,0])[0]
-                ###assert np.allclose(z, jk_est[0])
+                
+                if nnls_exact:
+                    jk_est = np.atleast_2d(nnls(x_noblock, y_noblock[:,0])[0])
+                else:                
+                    x_block = x[s[i] : s[i+1]]
+                    xtx_noblock = xtx - x_block.T.dot(x_block)
+                    lasso_noblock = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx_noblock, positive=True, max_iter=10000, random_state=0)
+                    jk_est = lasso_noblock.fit(x_noblock, y_noblock[:,0]).coef_.reshape((1, x.shape[1]))
+                    ###z = nnls(x_noblock, y_noblock[:,0])[0]
+                    ###assert np.allclose(z, jk_est[0])
                 d.append(jk_est)    
             self.delete_values = np.concatenate(d, axis=0)
         else:

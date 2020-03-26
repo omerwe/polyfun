@@ -215,7 +215,8 @@ class PolyFun:
             num_chr_sets=2,
             evenodd_split=evenodd_split,
             nn=nn,
-            keep_large=keep_large
+            keep_large=keep_large,
+            nnls_exact=args.nnls_exact
             )
             
         #save the results object
@@ -793,6 +794,9 @@ if __name__ == '__main__':
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun output file names')    
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, PolyFun will not terminate if some SNPs with sumstats are not found in the annotations files')
+    
+    #LDSC parameters
+    parser.add_argument('--nnls-exact', default=False, action='store_true', help='If specified, S-LDSC will estimate non-negative taus using an exact instead of an approximate solver (this will be slower but slightly more accurate)')
     
     
     #check package versions

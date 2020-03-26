@@ -328,7 +328,8 @@ def estimate_h2(args, log):
                     num_chr_sets = args.num_chr_sets,
                     evenodd_split=args.evenodd_split,
                     nn=args.nn,
-                    keep_large=args.keep_large
+                    keep_large=args.keep_large,
+                    nnls_exact=args.nnls_exact
                     )
 
     if args.print_cov:
