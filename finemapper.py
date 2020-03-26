@@ -220,7 +220,7 @@ class Fine_Mapping(object):
             if self.incl_samples is not None:
                 ldstore_cmd += ['--incl-samples', self.incl_samples]
             if self.sample_file is not None:
-                ldstore_cmd += ['--samples', self.sample_file]        
+                ldstore_cmd += ['--samples', self.sample_file]
             run_executable(ldstore_cmd, 'LDStore', measure_time=True, show_output=verbose, show_command=verbose)
                 
             #run LDStore merge if needed

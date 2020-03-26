@@ -198,8 +198,9 @@ def test_finemapper(tmpdir, ldstore_exe, python3_exe):
        --end 49000001 \
        --method susie \
        --max-num-causal 5 \
-        --out %s \
-        --ldstore %s \
+       --out %s \
+       --ldstore %s \
+       --threads 1 \
        ' \
        %(python3_exe, script_exe, plink_file, sumstats_file, output_file, ldstore_exe)
     
