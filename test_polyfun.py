@@ -9,7 +9,7 @@ from pandas.api.types import is_string_dtype
 from pandas.api.types import is_numeric_dtype
 
         
-def compare_dfs(dir1, dir2, filename):
+def compare_dfs(dir1, dir2, filename, sort_column=None):
     file1 = os.path.join(dir1, filename)
     file2 = os.path.join(dir2, filename)
     if not os.path.exists(file1):
@@ -22,6 +22,9 @@ def compare_dfs(dir1, dir2, filename):
     else: df2 = pd.read_table(file2, delim_whitespace=True)
     assert np.all(df1.shape == df2.shape), 'found dimension mismatch between %s and %s'%(file1, file2)
     assert np.all(df1.columns == df2.columns), 'found mismatch between %s and %s'%(file1, file2)
+    if sort_column is not None:
+        df1.sort_values(sort_column, inplace=True)
+        df2.sort_values(sort_column, inplace=True)
     for c in df1.columns:
         if c=='CREDIBLE_SET':
             continue
@@ -230,7 +233,7 @@ def test_finemapper(tmpdir, ldstore_exe, python3_exe):
     retval = os.system(finemapper_cmd)
     if retval != 0:
         raise ValueError('finemapper command failed')
-    compare_dfs(tmpdir, gold_dir, outfile)    
+    compare_dfs(tmpdir, gold_dir, outfile, sort_column='SNP')
    
    
     
