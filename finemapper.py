@@ -607,6 +607,8 @@ class SUSIE_Wrapper(Fine_Mapping):
         bhat = self.df_sumstats_locus['Z'].values.copy()
         if np.any(is_flipped):
             bhat[is_flipped.values] *= -1
+            logging.info('Flipping the effect-sign of %d SNPs that are flipped compared to the LD panel'%(is_flipped.sum()))
+            
             
         #Use HESS to estimate causal effect sizes
         if hess:
@@ -831,6 +833,8 @@ class FINEMAP_Wrapper(Fine_Mapping):
         is_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A2']
         is_not_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A1']
         assert np.all(is_flipped | is_not_flipped)
+        if np.any(is_flipped):
+            logging.info('Flipping the effect-sign of %d SNPs that are flipped compared to the LD panel'%(is_flipped.sum()))
             
         #create df_z and save it to disk
         df_z = self.df_sumstats_locus[['SNP', 'CHR', 'BP', 'A1', 'A2', 'Z']].copy()
