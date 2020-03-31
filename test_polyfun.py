@@ -195,7 +195,7 @@ def test_extract_snpvar(tmpdir, python3_exe):
     compare_dfs(tmpdir, gold_dir, outfile)
 
 
-def test_finemapper(tmpdir, ldstore_exe, python3_exe):
+def test_finemapper(tmpdir, python3_exe):
 
     if not is_susie_installed():
         print('Skipping fine-mapping test because either rpy2 or SuSiE are not properly installed. Please try reinstalling rpy2 and/or SuSiE')
@@ -220,10 +220,9 @@ def test_finemapper(tmpdir, ldstore_exe, python3_exe):
        --method susie \
        --max-num-causal 5 \
        --out %s \
-       --ldstore %s \
        --threads 1 \
        ' \
-       %(python3_exe, script_exe, plink_file, sumstats_file, output_file, ldstore_exe)
+       %(python3_exe, script_exe, plink_file, sumstats_file, output_file)
     
     #print(finemapper_cmd)
     retval = os.system(finemapper_cmd)
@@ -239,15 +238,16 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--ldstore', default=None, help='Path to ldstore executable')
+    #parser.add_argument('--ldstore', default=None, help='Path to ldstore executable')
     parser.add_argument('--python3', default='python', help='python 3 executable')
     args = parser.parse_args()
     temp_dir = tempfile.mkdtemp()
     
-    if args.ldstore is None:
-        print('Skipping finemapper tests because --ldstore was not specified')
-    else:
-        test_finemapper(temp_dir, args.ldstore, args.python3)
+    # if args.ldstore is None:
+        # print('Skipping finemapper tests because --ldstore was not specified')
+    # else:
+        # test_finemapper(temp_dir, args.ldstore, args.python3)
+    test_finemapper(temp_dir, args.python3)
         
     test_polyloc(temp_dir, args.python3)
     test_polyfun(temp_dir, args.python3)

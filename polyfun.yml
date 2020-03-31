@@ -22,4 +22,5 @@ dependencies:
   - numpy
   - pandas
   - r-expm
+  - pandas-plink
 
