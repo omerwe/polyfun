@@ -37,7 +37,7 @@ def splash_screen():
     print('*********************************************************************')
     print('* PolyFun (POLYgenic FUNctionally-informed fine-mapping)')
     print('* Version 1.0.0')
-    print('* (C) 2019 Omer Weissbrod')
+    print('* (C) 2019-2020 Omer Weissbrod')
     print('*********************************************************************')
     print()
     
