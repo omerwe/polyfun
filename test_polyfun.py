@@ -23,8 +23,8 @@ def compare_dfs(dir1, dir2, filename, sort_column=None):
     assert np.all(df1.shape == df2.shape), 'found dimension mismatch between %s and %s'%(file1, file2)
     assert np.all(df1.columns == df2.columns), 'found mismatch between %s and %s'%(file1, file2)
     if sort_column is not None:
-        df1.sort_values(sort_column, inplace=True)
-        df2.sort_values(sort_column, inplace=True)
+        df1 = df1.sort_values(sort_column).reset_index(drop=True)
+        df2 = df2.sort_values(sort_column).reset_index(drop=True)
     for c in df1.columns:
         if c=='CREDIBLE_SET':
             continue
