@@ -23,17 +23,24 @@ def compare_dfs(dir1, dir2, filename, sort_column=None):
     assert np.all(df1.shape == df2.shape), 'found dimension mismatch between %s and %s'%(file1, file2)
     assert np.all(df1.columns == df2.columns), 'found mismatch between %s and %s'%(file1, file2)
     if sort_column is not None:
-        df1.sort_values(sort_column, inplace=True)
-        df2.sort_values(sort_column, inplace=True)
+        df1 = df1.sort_values(sort_column).reset_index(drop=True)
+        df2 = df2.sort_values(sort_column).reset_index(drop=True)
     for c in df1.columns:
         if c=='CREDIBLE_SET':
             continue
         if is_numeric_dtype(df1[c]):
             if c=='Mp_STDERR': atol=1e-1
             elif c=='BETA_MEAN': atol=1e-3
+            elif c=='BETA_SD': atol=1e-3
             elif c=='PIP': atol=1e-2
             else: atol=1e-4
-            assert np.allclose(df1[c], df2[c], atol=atol), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
+            if c=='PIP':
+                assert np.corrcoef(df1[c], df2[c])[0,1]>0.97, 'found major mismatch between %s and %s in column %s'%(file1, file2, c)
+                pip_cutoff = 0.8
+                is_large_pip = df2[c] > pip_cutoff
+                assert np.allclose(df1.loc[is_large_pip,c], df2.loc[is_large_pip,c], atol=atol), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
+            else:
+                assert np.allclose(df1[c], df2[c], atol=atol), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
         else:
             assert np.all(df1[c] == df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
             
