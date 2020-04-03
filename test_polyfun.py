@@ -31,6 +31,7 @@ def compare_dfs(dir1, dir2, filename, sort_column=None):
         if is_numeric_dtype(df1[c]):
             if c=='Mp_STDERR': atol=1e-1
             elif c=='BETA_MEAN': atol=1e-3
+            elif c=='BETA_SD': atol=1e-3
             elif c=='PIP': atol=1e-2
             else: atol=1e-4
             if c=='PIP':
