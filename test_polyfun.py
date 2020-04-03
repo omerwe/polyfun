@@ -33,7 +33,13 @@ def compare_dfs(dir1, dir2, filename, sort_column=None):
             elif c=='BETA_MEAN': atol=1e-3
             elif c=='PIP': atol=1e-2
             else: atol=1e-4
-            assert np.allclose(df1[c], df2[c], atol=atol), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
+            if c=='PIP':
+                assert np.corrcoef(df1[c], df2[c])[0,1]>0.97, 'found major mismatch between %s and %s in column %s'%(file1, file2, c)
+                pip_cutoff = 0.8
+                is_large_pip = df2[c] > pip_cutoff
+                assert np.allclose(df1.loc[is_large_pip,c], df2.loc[is_large_pip,c], atol=atol), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
+            else:
+                assert np.allclose(df1[c], df2[c], atol=atol), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
         else:
             assert np.all(df1[c] == df2[c]), 'found mismatch between %s and %s in column %s'%(file1, file2, c)
             
