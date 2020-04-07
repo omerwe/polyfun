@@ -249,21 +249,24 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
 
-    #parser.add_argument('--ldstore', default=None, help='Path to ldstore executable')
     parser.add_argument('--python3', default='python', help='python 3 executable')
     args = parser.parse_args()
     temp_dir = tempfile.mkdtemp()
     
-    # if args.ldstore is None:
-        # print('Skipping finemapper tests because --ldstore was not specified')
-    # else:
-        # test_finemapper(temp_dir, args.ldstore, args.python3)
     test_finemapper(temp_dir, args.python3)
         
     test_polyloc(temp_dir, args.python3)
     test_polyfun(temp_dir, args.python3)
     test_extract_snpvar(temp_dir, args.python3)
     test_munge_sumstats(temp_dir, args.python3)
+    
+    print()
+    print()
+    print()
+    print('---------------------------------------')
+    print('All tests completed successfully, hooray!!!')
+    print('---------------------------------------')
+    print()
     
     
     
