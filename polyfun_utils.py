@@ -32,6 +32,11 @@ def check_package_versions():
     from pkg_resources import parse_version
     if parse_version(pd.__version__) < parse_version('0.25.0'):
         raise ValueError('your pandas version is too old --- please update pandas')
+        
+    try:
+        import pandas_plink
+    except (ImportError, ModuleNotFoundError):
+        raise ValueError('\n\nPlease install the python package pandas_plink (using either "pip install pandas-plink" or "conda install -c conda-forge pandas-plink")\n\n')
     
     
 def set_snpid_index(df, copy=False):
