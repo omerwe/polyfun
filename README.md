@@ -11,7 +11,7 @@ This page contains the code of the methods **PolyFun** for functionally-informed
 
 We also provide a script called **finemapper** that facilitates fine-mapping with methods like SuSiE, saving many of the preprocessing steps often required to perform fine-mapping (e.g. handling allelic flips between the summary statistics and reference genotypes).
 
-The files in the `ldstore` dir are an adaptation of the [ldstore package](https://pypi.org/project/ldstore/) (written by [Christian Benner](http://www.christianbenner.com) to Python 3.
+The files in the `ldstore` directory are an adaptation of the [ldstore package](https://pypi.org/project/ldstore/) (written by [Christian Benner](http://www.christianbenner.com) to Python 3.
 
 <br>
 <br>
