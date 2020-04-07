@@ -32,9 +32,8 @@ cd polyfun
 conda env create -f polyfun.yml
 conda activate polyfun
 ```
-This will install all the dependencies except for [SuSiE](https://github.com/stephenslab/susieR) 
-and [LDstore](http://www.christianbenner.com).
-You can use PolyFun without these packages to compute prior causal probabilities, but you won't be able to apply the actual fine-mapping. Please see installation instructions for these two packages below.
+This will install all the dependencies except for [SuSiE](https://github.com/stephenslab/susieR), [FINEMAP](http://www.christianbenner.com), and [LDstore](http://www.christianbenner.com)
+You can use PolyFun without these packages to compute prior causal probabilities, but you won't be able to apply the actual fine-mapping. Please see installation instructions for these three packages below.
 
 After the installation, you can always invoke the PolyFun environment with the command `conda activate polyfun`.
 We recommend that you frequently make sure you have the latest version of polyfun installed by going to the polyfun directory and typing `git pull`.
@@ -49,6 +48,7 @@ PolyFun and PolyLoc are designed for Python >=3.6 and require the following free
 * [pyarrow](https://arrow.apache.org/docs/python/install.html)
 * [bitarray](https://github.com/ilanschnell/bitarray)
 * [networkx](https://github.com/networkx/networkx) (only required for HESS-based estimation of effect size variance)
+* [pandas-plink](https://github.com/limix/pandas-plink)
 
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
@@ -57,7 +57,9 @@ It is recommended (but not required) to also install the following:
 
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
 
-The `finemapper` script also requires the R package [susieR](https://github.com/stephenslab/susieR) and the program [LDstore](http://www.christianbenner.com/), which should be installed on your system. Please see installation instructions for these packages below.
+The `finemapper` script also requires the following:
+1. A fine-mapping package you'd like to use. At the moment we support [susieR](https://github.com/stephenslab/susieR) and [FINEMAP v1.4](http://www.christianbenner.com). Please see installation instructions for these packages below.
+2. (optional) The program [LDstore 2.0](http://www.christianbenner.com) for computing LD directly from .bgen files (imputed genotypes)
 
 We recommend running PolyFun/PolyLoc via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the Python packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
 
@@ -76,18 +78,32 @@ devtools::install_github("stephenslab/susieR@0.8.0",build_vignettes=FALSE)
 ```
 If this doesn't work, please refer to the [SuSiE website](https://github.com/stephenslab/susieR) for more information.
 
-## Installing LDstore
+## Installing FINEMAP v1.4
+To install FINEMAP v1.4, please type one of the following two commands:
+<br>
+If you use Linux:
+```
+wget http://www.christianbenner.com/finemap_v1.4_x86_64.tgz
+tar xvf finemap_v1.4_x86_64.tgz
+```
+If you use Mac OS X :
+```
+wget http://www.christianbenner.com/finemap_v1.4_MacOSX.tgz
+tar xvf finemap_v1.4_MacOSX.tgz
+```
+
+## Installing LDstore 2.0
 To install LDstore, please type one of the following two commands:
 <br>
 If you use Linux:
 ```
-wget http://www.christianbenner.com/ldstore_v1.1_x86_64.tgz
-tar xzvf ldstore_v1.1_x86_64.tgz
+wget http://www.christianbenner.com/ldstore_v2.0_x86_64.tgz
+tar xzvf ldstore_v2.0_x86_64.tgz
 ```
 If you use Mac OS X :
 ```
-wget http://www.christianbenner.com/ldstore_v1.1_MacOSX.tgz
-tar xzvf ldstore_v1.1_MacOSX.tgz
+wget http://www.christianbenner.com/ldstore_v2.0_MacOSX.tgz
+tar xzvf ldstore_v2.0_MacOSX.tgz
 ```
 
 
@@ -96,9 +112,9 @@ tar xzvf ldstore_v1.1_MacOSX.tgz
 ## Testing the installation
 We recommend testing PolyFun by invoking the script:
 ```
-python test_polyfun.py --python3 <python3_exe> --ldstore <ldstore_executable>
+python test_polyfun.py --python3 <python3_exe>
 ```
-where `python3_exe` (optional) is the command you type to start a python3 session (default is `python`) and `ldstore_executable` is the path to the [LDstore](http://www.christianbenner.com/) executable on your system. If the script completes without an error, everything is fine. If you omit the `--ldstore` flag, the `finemapper` functionality will not be tested. If you see any errors, please consult the [FAQ](https://github.com/omerwe/polyfun/wiki/5.-FAQ).
+where `python3_exe` (optional) is the command you type to start a python3 session (default is `python`). If the script completes without an error, everything is fine. If you see any errors, please consult the [FAQ](https://github.com/omerwe/polyfun/wiki/5.-FAQ).
 
 
 
