@@ -67,19 +67,27 @@ def load_ld_matrix(ld_dir, ld_prefix):
     #load the SNPs metadata
     gz_file = os.path.join(ld_dir, '%s.gz'%(ld_prefix))
     try:
-        df_ld_snps = pd.read_table(gz_file)
+        df_ld_snps = pd.read_table(gz_file, delim_whitespace=True)
     except ArrowIOError:
         raise IOError('Corrupt file downloaded')
-    df_ld_snps.rename(columns={'rsid':'SNP', 'chromosome':'CHR', 'position':'BP', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
+    df_ld_snps.rename(columns={'rsid':'SNP', 'chromosome':'CHR', 'position':'BP', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='ignore')
+    assert 'SNP' in df_ld_snps.columns
+    assert 'CHR' in df_ld_snps.columns
+    assert 'BP' in df_ld_snps.columns
+    assert 'A1' in df_ld_snps.columns
+    assert 'A2' in df_ld_snps.columns
     df_ld_snps = set_snpid_index(df_ld_snps)
         
     #load the LD matrix
     npz_file = os.path.join(ld_dir, '%s.npz'%(ld_prefix))
+    logging.info('Loading LD from file %s'%(npz_file))
+    t0 = time.time()
     try: 
         R = sparse.load_npz(npz_file).toarray()
         R += R.T
     except ValueError:
         raise IOError('Corrupt file downloaded')
+    logging.info('Done in %0.2f seconds'%(time.time() - t0))
         
     #create df_R and return it
     df_R = pd.DataFrame(R, index=df_ld_snps.index, columns=df_ld_snps.index)    
@@ -89,7 +97,7 @@ def load_ld_matrix(ld_dir, ld_prefix):
                 
     
     
-def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None):
+def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None, no_cache=False):
     region_end = region_start + REGION_LENGTH
     ld_prefix = 'chr%d_%d_%d'%(chr_num, region_start, region_end)
     
@@ -106,6 +114,10 @@ def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None):
             return df_R
         except IOError:
             pass
+            
+    
+    
+    ### if we got here, we need to download the LD files ###
         
     #download the region files
     for suffix in ['npz', 'gz']:
@@ -115,13 +127,20 @@ def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None):
             urllib.request.urlretrieve(url, filename=suffix_file, reporthook=t.update_to)
             
     #load the LD matrix to memory
-    df_R = load_ld_matrix(ld_dir, ld_prefix)    
+    df_R = load_ld_matrix(ld_dir, ld_prefix)
+    
+    #delete the downloaded files if requested
+    if no_cache:
+        for suffix in ['npz', 'gz']:
+            suffix_file = os.path.join(ld_dir, '%s.%s'%(ld_prefix, suffix))
+            os.remove(suffix_file)
+    
     return df_R
     
     
 
 
-def compute_ldscores_chr(df_annot_chr, ld_dir):
+def compute_ldscores_chr(df_annot_chr, ld_dir, no_cache=False):
     assert len(df_annot_chr['CHR'].unique()) == 1
     chr_num = df_annot_chr['CHR'].unique()[0]
     
@@ -149,7 +168,7 @@ def compute_ldscores_chr(df_annot_chr, ld_dir):
         if df_annot_region.shape[0]==0: continue
         
         #download the LD data
-        df_R_region = download_ukb_ld_file(chr_num, region_start, ld_dir=ld_dir)
+        df_R_region = download_ukb_ld_file(chr_num, region_start, ld_dir=ld_dir, no_cache=no_cache)
         
         #sync df_R_region and df_annot_region
         index_intersect = df_R_region.index.intersection(df_annot_region.index)
@@ -190,12 +209,12 @@ def compute_ldscores_chr(df_annot_chr, ld_dir):
     
     
     
-def compute_ldscores_main(df_annot, ld_dir=None):
+def compute_ldscores_main(df_annot, ld_dir=None, no_cache=False):
     
     #iterate over chromosomes
     df_ldscores_chr_list = []
     for chr_num, df_annot_chr in df_annot.groupby('CHR'):
-        df_ldscores_chr = compute_ldscores_chr(df_annot_chr, ld_dir=ld_dir)
+        df_ldscores_chr = compute_ldscores_chr(df_annot_chr, ld_dir=ld_dir, no_cache=no_cache)
         df_ldscores_chr_list.append(df_ldscores_chr)
         
     df_ldscores = pd.concat((df_ldscores_chr_list), axis=0)
@@ -210,14 +229,15 @@ if __name__ == '__main__':
     parser.add_argument('--annot', required=True, help='annotations file')
     parser.add_argument('--out', required=True, help='output file')
     parser.add_argument('--gz-out', default=False, action='store_true', help='if specified, the output file will be a gzipped text file instead of a parquet file')
-    parser.add_argument('--cache', default=None, help='the path of an LD cache directory. If not provided, LD files will be downloaded to a temporary directory')
+    parser.add_argument('--ld-dir', default=None, help='the path of an LD files directory. If not provided, LD files will be downloaded to a temporary directory')
+    parser.add_argument('--no-cache', default=False, action='store_true', help='If this flag is specified, the LD files will be removed from the ld-dir after downloading them to save disk space')
     args = parser.parse_args()
     
     configure_logger(args.out)
     
     #check input arguments
-    if args.cache is not None and not os.path.exists(args.cache):
-        raise ValueError('cache directory %s doesn\'t exist'%(args.cache))
+    if args.ld_dir is not None and not os.path.exists(args.ld_dir):
+        raise ValueError('Specified LD directory %s doesn\'t exist'%(args.ld_dir))
     if len(os.path.dirname(args.out))>0 and not os.path.exists(os.path.dirname(args.out)):
         raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.out)))
     
@@ -225,7 +245,7 @@ if __name__ == '__main__':
     df_annot = read_annot(args.annot)
     
     #comptue LD-scores
-    df_ldscores = compute_ldscores_main(df_annot, ld_dir=args.cache)
+    df_ldscores = compute_ldscores_main(df_annot, ld_dir=args.ld_dir, no_cache=args.no_cache)
     
     #save LD-scores to output file
     if args.gz_out:
