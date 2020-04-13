@@ -146,6 +146,10 @@ def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None, no
 
 
 def compute_ldscores_chr(df_annot_chr, ld_dir, no_cache=False):
+
+    if not os.path.exists(ld_dir):
+        raise IOError('LD directory %s doesn\'t exist'%(ld_dir))
+
     assert len(df_annot_chr['CHR'].unique()) == 1
     chr_num = df_annot_chr['CHR'].unique()[0]
     

@@ -34,6 +34,9 @@ def check_args(args):
     if args.bfile_chr is not None:
         if not args.compute_ldscores and not args.compute_partitions:
             raise ValueError('--bfile-chr can only be specified when using --compute-partitions or --compute-ldscores')
+    if args.ld_ukb:
+        if not args.compute_ldscores and not args.compute_partitions:
+            raise ValueError('--ld-ukb can only be specified when using --compute-partitions or --compute-ldscores')
     if args.compute_ldscores and args.compute_polyloc and not args.compute_partitions:
         raise ValueError('cannot use both --compute-ldscores and --compute_polyloc without also specifying --compute-partitions')    
         
@@ -41,6 +44,9 @@ def check_args(args):
         raise ValueError('--posterior can only be specified together with --compute-partitions')        
     if args.sumstats is not None and not args.compute_polyloc:
         raise ValueError('--sumstats can only be specified together with --compute-polyloc')
+    if args.ld_dir is not None and not args.ld_ukb:
+        raise ValueError('You cannot specify --ld-dir without also specifying --ld-ukb')
+        
     
     #verify partitioning parameters
     if args.skip_Ckmedian and (args.num_bins is None or args.num_bins<=0):
@@ -57,7 +63,7 @@ def check_args(args):
     if args.compute_ldscores:
         if args.bfile_chr is None:
             raise ValueError('You must specify --bfile-chr when you specify --compute-ldscores')    
-        if args.ld_wind_cm is None and args.ld_wind_kb is None and args.ld_wind_snps is None:
+        if not args.ld_ukb and (args.ld_wind_cm is None and args.ld_wind_kb is None and args.ld_wind_snps is None):
             args.ld_wind_cm = 1.0
             logging.warning('no ld-wind argument specified.  PolyLoc will use --ld-cm 1.0')
 
@@ -90,8 +96,9 @@ def check_files(args):
         
         for chr_num in chr_range:
             get_file_name(args, 'bim', chr_num, verify_exists=True)
-            get_file_name(args, 'fam', chr_num, verify_exists=True)
-            get_file_name(args, 'bed', chr_num, verify_exists=True)
+            if not args.ld_ukb:
+                get_file_name(args, 'fam', chr_num, verify_exists=True)
+                get_file_name(args, 'bed', chr_num, verify_exists=True)
             if not args.compute_partitions:
                 get_file_name(args, 'bins', chr_num, verify_exists=True)
                 
@@ -142,8 +149,6 @@ class PolyLoc(PolyFun):
             df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), delim_whitespace=True, names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'])            
             df_bim_list.append(df_bim_chr)
         df_bim = pd.concat(df_bim_list, axis=0)
-        #df_bim.index = df_bim['CHR'].astype(str) + '.' + df_bim['BP'].astype(str) + '.' + df_bim['A1'] + '.' + df_bim['A2']
-        #self.df_bins.index = self.df_bins['CHR'].astype(str) + '.' + self.df_bins['BP'].astype(str) + '.' + self.df_bins['A1'] + '.' + self.df_bins['A2']
         df_bim = set_snpid_index(df_bim)
         self.df_bins = set_snpid_index(self.df_bins)
         
@@ -315,6 +320,10 @@ if __name__ == '__main__':
     parser.add_argument('--w-ld-chr', help='Suffix of LD-score weights files (as in ldsc)')
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyLoc out file names')    
+    parser.add_argument('--ld-ukb', default=False, action='store_true', help='If specified, PolyLoc will use UKB LD matrices to compute LD-scores')
+    parser.add_argument('--ld-dir', default=None, help='The path of a directory with UKB LD files (if not specified PolyLoc will create a temporary directory)')
+    
+    
     
     #LDSC parameters
     parser.add_argument('--nnls-exact', default=False, action='store_true', help='If specified, S-LDSC will estimate non-negative taus using an exact instead of an approximate solver (this will be slower but slightly more accurate)')

@@ -9,6 +9,8 @@ from tqdm import tqdm
 from polyfun_utils import Logger, check_package_versions, set_snpid_index, configure_logger, get_file_name
 from polyfun_utils import SNP_COLUMNS
 from pyarrow import ArrowIOError
+from compute_ldscores_ukb import compute_ldscores_chr
+import tempfile
 
 
 MAX_CHI2=80
@@ -56,6 +58,9 @@ def check_args(args):
     if args.bfile_chr is not None:
         if not args.compute_ldscores:
             raise ValueError('--bfile-chr can only be specified when using --compute-ldscores')
+    if args.ld_ukb:
+        if not args.compute_ldscores:
+            raise ValueError('--ld-ukb can only be specified when using --compute-ldscores')
     if args.no_partitions:
         if not args.compute_h2_L2:
             raise ValueError('cannot specify --no-partitions without specifying --compute-h2-L2')
@@ -71,10 +76,15 @@ def check_args(args):
         raise ValueError('You must specify --num-bins when using --skip-Ckmedian')        
     
     #verify LD-score related parameters
+    if args.ld_dir is not None and not args.ld_ukb:
+        raise ValueError('You cannot specify --ld-dir without also specifying --ld-ukb')
+    if args.bfile_chr is not None and args.ld_ukb:
+        raise ValueError('You can specify only one of --bfile-chr and --ld-ukb')
+
     if args.compute_ldscores:
-        if args.bfile_chr is None:
-            raise ValueError('You must specify --bfile-chr when you specify --compute-ldscores')    
-        if args.ld_wind_cm is None and args.ld_wind_kb is None and args.ld_wind_snps is None:
+        if args.bfile_chr is None and not args.ld_ukb:
+            raise ValueError('You must specify either --bfile-chr or --ld-ukb when you specify --compute-ldscores')    
+        if not args.ld_ukb and (args.ld_wind_cm is None and args.ld_wind_kb is None and args.ld_wind_snps is None):
             args.ld_wind_cm = 1.0
             logging.warning('no ld-wind argument specified.  PolyFun will use --ld-cm 1.0')
             
@@ -123,9 +133,10 @@ def check_files(args):
         else: chr_range = range(args.chr, args.chr+1)
         
         for chr_num in chr_range:
-            get_file_name(args, 'bim', chr_num, verify_exists=True)
-            get_file_name(args, 'fam', chr_num, verify_exists=True)
-            get_file_name(args, 'bed', chr_num, verify_exists=True)
+            if args.bfile_chr is not None:
+                get_file_name(args, 'bim', chr_num, verify_exists=True)
+                get_file_name(args, 'fam', chr_num, verify_exists=True)
+                get_file_name(args, 'bed', chr_num, verify_exists=True)
             if not args.compute_h2_L2:
                 get_file_name(args, 'snpvar_ridge', chr_num, verify_exists=True)
                 get_file_name(args, 'bins', chr_num, verify_exists=True)
@@ -611,10 +622,13 @@ class PolyFun:
                 df_bins_chr = self.load_bins_chr(args, chr_num)
                 
             #compute LD-scores for this chromosome
-            if args.bfile_chr is not None:
+            if args.ld_ukb:
+                if args.ld_dir is None: ld_dir = tempfile.mkdtemp()
+                else: ld_dir = args.ld_dir
+                df_bins_chr = set_snpid_index(df_bins_chr)
+                df_ldscores_chr = compute_ldscores_chr(df_bins_chr, ld_dir)
+            elif args.bfile_chr is not None:
                 df_ldscores_chr = self.compute_ldscores_plink_chr(args, chr_num, df_bins_chr)
-            # elif args.npz_prefix is not None:
-                # raise NotImplementedError('--npz-prefix is not yet supported')
             else:
                 raise ValueError('no LDscore computation method specified')
                 
@@ -777,7 +791,6 @@ if __name__ == '__main__':
     
     #ld-score related parameters
     parser.add_argument('--chr', type=int, default=None, help='Chromosome number (only applicable when only specifying --ldscores). If not set, PolyFun will compute LD-scores for all chromosomes')
-    #parser.add_argument('--npz-prefix', default=None, help='Prefix of npz files that encode LD matrices (used to compute LD-scores)')
     parser.add_argument('--ld-wind-cm', type=float, default=None, help='window size to be used for estimating LD-scores in units of centiMorgans (cM).')
     parser.add_argument('--ld-wind-kb', type=int, default=None, help='window size to be used for estimating LD-scores in units of Kb.')
     parser.add_argument('--ld-wind-snps', type=int, default=None, help='window size to be used for estimating LD-scores in units of SNPs.')
@@ -792,6 +805,8 @@ if __name__ == '__main__':
     parser.add_argument('--ref-ld-chr', help='Suffix of LD-score files (as in ldsc)')
     parser.add_argument('--w-ld-chr', help='Suffix of LD-score weights files (as in ldsc)')
     parser.add_argument('--bfile-chr', default=None, help='Prefix of plink files (used to compute LD-scores)')
+    parser.add_argument('--ld-ukb', default=False, action='store_true', help='If specified, PolyFun will use UKB LD matrices to compute LD-scores')
+    parser.add_argument('--ld-dir', default=None, help='The path of a directory with UKB LD files (if not specified PolyFun will create a temporary directory)')
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun output file names')    
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, PolyFun will not terminate if some SNPs with sumstats are not found in the annotations files')
     
