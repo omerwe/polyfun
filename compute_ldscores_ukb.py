@@ -20,6 +20,11 @@ META_COLUMNS = ['SNP', 'CHR', 'BP', 'A1', 'A2']
 
 
 
+LONG_RANGE_LD_REGIONS = []
+LONG_RANGE_LD_REGIONS.append({'chr':6, 'start':25500000, 'end':33500000})
+LONG_RANGE_LD_REGIONS.append({'chr':8, 'start':8000000, 'end':12000000})
+LONG_RANGE_LD_REGIONS.append({'chr':11, 'start':46000000, 'end':57000000})
+
         
 class TqdmUpTo(tqdm):
     """
@@ -143,6 +148,16 @@ def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None, no
 def compute_ldscores_chr(df_annot_chr, ld_dir, no_cache=False):
     assert len(df_annot_chr['CHR'].unique()) == 1
     chr_num = df_annot_chr['CHR'].unique()[0]
+    
+    #remove long-range LD regions
+    for r in LONG_RANGE_LD_REGIONS:
+        if r['chr'] != chr_num: continue
+        is_in_r = df_annot['BP'].between(r['start'], r['end'])
+        if not np.any(is_in_r): continue
+        logging.warning('Removing %d SNPs from long-range LD region on chromosome %d BP %d-%d'%(is_in_r.sum(), r['chr'], r['start'], r['end']))
+        df_annot_chr = df_annot_chr.loc[~is_in_r]
+    if df_annot_chr.shape[0]==0:
+        raise ValueError('No SNPs found in chromosome %d (ater removing long-range LD regions)'%(chr_num))
     
     #sort the SNPs by BP if needed
     if not np.all(np.diff(df_annot_chr['BP'])>=0):
