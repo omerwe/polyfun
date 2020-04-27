@@ -497,13 +497,13 @@ class Fine_Mapping(object):
             pvalue_bound: An upper bound on the p-value cutoff (i.e., SNPs with P greater than this cutoff will never be used in the estimation)
         '''
         
-        #keep only potential causal SNPs        
-        pvalue_cutoff = self.df_sumstats['P'].quantile(prop_keep)
+        #keep only potential causal SNPs
+        pvalue_cutoff = self.df_sumstats_locus['P'].quantile(prop_keep)
         if pvalue_cutoff==0:
-            pvalue_cutoff = np.min(self.df_sumstats['P'].loc[lambda p:p>0])
+            pvalue_cutoff = np.min(self.df_sumstats_locus['P'].loc[lambda p:p>0])
         if pvalue_bound is not None and pvalue_cutoff>pvalue_bound:
             pvalue_cutoff = pvalue_bound
-        is_potential_csnp = self.df_sumstats['P']<pvalue_cutoff
+        is_potential_csnp = self.df_sumstats_locus['P'].values<pvalue_cutoff
         if np.any(is_potential_csnp):
             R_pot_csnp = self.df_ld.loc[is_potential_csnp, is_potential_csnp].values
         else:
@@ -518,7 +518,7 @@ class Fine_Mapping(object):
         
         #estimate h2 using HESS
         R_subset = R_pot_csnp[np.ix_(inds, inds)]
-        alpha_subset = self.df_sumstats.loc[is_potential_csnp, 'Z'].iloc[inds].values / np.sqrt(self.n)
+        alpha_subset = self.df_sumstats_locus.loc[is_potential_csnp, 'Z'].iloc[inds].values / np.sqrt(self.n)
         h2_hess = alpha_subset.dot(np.linalg.solve(R_subset, alpha_subset)) - R_subset.shape[0]/self.n
         
         return h2_hess
