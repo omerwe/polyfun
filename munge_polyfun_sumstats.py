@@ -35,7 +35,7 @@ def find_df_column(df, strings_to_find, allow_missing=False):
         return df.columns[is_relevant_col][0]
         
         
-def rename_df_columns(df_sumstats, min_info_score, min_maf):
+def rename_df_columns(df_sumstats):
     chr_column = find_df_column(df_sumstats, ['CHR', 'CHROMOSOME', 'CHROM'])
     bp_column = find_df_column(df_sumstats, ['BP', 'POS', 'POSITION', 'COORDINATE', 'BASEPAIR'])
     snp_column = find_df_column(df_sumstats, ['SNP', 'RSID', 'RS', 'NAME'])
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     df_sumstats = convert_odds_ratio_to_log(df_sumstats)
     
     #rename df_sumstats columns
-    df_sumstats = rename_df_columns(df_sumstats, min_info_score=args.min_info, min_maf=args.min_maf)
+    df_sumstats = rename_df_columns(df_sumstats)
 
     #filter sumstats
     df_sumstats = filter_sumstats(df_sumstats, min_info_score=args.min_info, min_maf=args.min_maf, remove_strand_ambig=args.remove_strand_ambig, keep_hla=args.keep_hla)
