@@ -639,13 +639,14 @@ class SUSIE_Wrapper(Fine_Mapping):
         if debug_dir is not None:
             os.makedirs(debug_dir, exist_ok=True)
             logging.info('Saving debug info to: %s'%(debug_dir))
+            self.df_sumstats_locus.to_csv(os.path.join(debug_dir, 'df_sumstats_locus.txt'), index=False, sep='\t')
             np.savetxt(os.path.join(debug_dir, 'bhat.txt'), bhat)
-            np.savetxt(os.path.join(debug_dir, 'R.txt'), self.df_ld.values)
+            #np.savez_compressed(os.path.join(debug_dir, 'R.npz'), R=self.df_ld.values)
             np.savetxt(os.path.join(debug_dir, 'n.txt'), [self.n])
             np.savetxt(os.path.join(debug_dir, 'L.txt'), [num_causal_snps])
             np.savetxt(os.path.join(debug_dir, 'residual_var.txt'), [np.nan] if (residual_var is None) else [residual_var])
             np.savetxt(os.path.join(debug_dir, 'prior_var.txt'), [np.nan] if (prior_var is None) else [prior_var])
-            np.savetxt(os.path.join(debug_dir, 'prior_weights.txt'), [np.nan] if use_prior_causal_prob else prior_weights)
+            np.savetxt(os.path.join(debug_dir, 'prior_weights.txt'), prior_weights if use_prior_causal_prob else [np.nan])
             
             #create a zipped debug file
             import zipfile
