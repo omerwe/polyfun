@@ -328,6 +328,13 @@ class PolyFun:
                 raise ValueError('not all chromosomes have a taus estimate - please make sure that the intersection of SNPs with sumstats and with annotations data spans all 22 human chromosomes')
             taus = jknife.est_loco[chr_num-1][:hsqhat.n_annot] / hsqhat.Nbar
             
+        #save the taus to disk
+        taus_output_file = get_file_name(args, ('taus_ridge' if use_ridge else 'taus_nn'), chr_num, verify_exists=False)
+        df_taus = pd.Series(taus, index=df_annot_chr.drop(columns=SNP_COLUMNS, errors='raise').columns)
+        df_taus.index.name = 'ANNOTATION'
+        df_taus.name = 'ANNOTATION_COEFFICIENT'
+        df_taus.to_csv(taus_output_file, header=True, index=True, sep='\t')
+            
         #compute and return the snp variances
         df_snpvar_chr = df_annot_chr.drop(columns=SNP_COLUMNS, errors='raise').dot(taus)
         df_snpvar_chr = df_snpvar_chr.to_frame(name='SNPVAR')

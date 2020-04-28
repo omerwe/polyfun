@@ -75,6 +75,10 @@ def get_file_name(args, file_type, chr_num, verify_exists=True, allow_multiple=F
         file_name = args.output_prefix + '.%d.l2.ldscore.parquet'%(chr_num)
     elif file_type == 'snpvar_ridge':
         file_name = args.output_prefix + '.%d.snpvar_ridge.gz'%(chr_num)
+    elif file_type == 'taus_ridge':
+        file_name = args.output_prefix + '.annot_coeff_ridge.%d.txt'%(chr_num)
+    elif file_type == 'taus_nn':
+        file_name = args.output_prefix + '.annot_coeff_nn.%d.txt'%(chr_num)
     elif file_type == 'snpvar_ridge_constrained':
         file_name = args.output_prefix + '.%d.snpvar_ridge_constrained.gz'%(chr_num)        
     elif file_type == 'snpvar_constrained':
