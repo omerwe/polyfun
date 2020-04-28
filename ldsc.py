@@ -615,6 +615,8 @@ parser.add_argument('--ridge_lambda', default=None, help='Lambda value for ridge
 
 parser.add_argument('--reestimate-lambdas', default=False, action='store_true', 
     help='If turned on, will reevaluate Ridge regression regularization parameter for each jackknife sample')
+parser.add_argument('--ridge-jackknife', default=False, action='store_true', 
+    help='If turned on, will perform jackknife when ridge is turned on (i.e., when using --loco)')
 
 
 

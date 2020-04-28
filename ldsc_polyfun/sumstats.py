@@ -325,6 +325,7 @@ def estimate_h2(args, log):
                     loco=args.loco, ridge_lambda=args.ridge_lambda,
                     standardize_ridge=not args.no_standardize_ridge,
                     approx_ridge=not args.reestimate_lambdas,
+                    skip_ridge_jackknife=not args.ridge_jackknife,
                     num_chr_sets = args.num_chr_sets,
                     evenodd_split=args.evenodd_split,
                     nn=args.nn,
@@ -337,6 +338,13 @@ def estimate_h2(args, log):
     if args.print_delete_vals:
         _print_delete_values(hsqhat, args.out + '.delete', log)
         _print_part_delete_values(hsqhat, args.out + '.part_delete', log)
+        
+        
+    #save ridge-regression lambdas if possible
+    if args.loco and args.ridge_jackknife and args.reestimate_lambdas:
+        np.savetxt(args.out+'.out_of_chrom_r2.txt', [hsqhat.jknife_ridge.r2_best_lambda])
+        df = pd.Series(hsqhat.jknife_ridge.best_r2_jk_noblock)
+        df.to_csv(args.out+'.out_of_chrom_r2_jk.txt', index=False, header=False)
 
     log.log(hsqhat.summary(ref_ld_cnames, P=args.samp_prev, K=args.pop_prev, overlap = args.overlap_annot))
     if args.overlap_annot:

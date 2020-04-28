@@ -577,6 +577,8 @@ class Jackknife_Ridge(Jackknife):
         
         #sanity checks
         assert chr_num is not None
+        # # # chr_num[:100000]=1
+        # # # chr_num[100000:]=2
         assert len(np.unique(chr_num)) > 1
         
         #init stuff
@@ -636,8 +638,9 @@ class Jackknife_Ridge(Jackknife):
             assert self.approx_ridge            
             best_lambda = ridge_lambda
         else:
-            best_lambda = self._find_best_lambda(x, y, XTX_all, XTy_all, chr_num)
+            best_lambda, r2_best_lambda = self._find_best_lambda(x, y, XTX_all, XTy_all, chr_num)
         self.est = np.atleast_2d(self._est_ridge(XTX_all, XTy_all, best_lambda))
+        self.r2_best_lambda = r2_best_lambda
         if standardize:
             self.est /= x_l2
         
@@ -655,6 +658,7 @@ class Jackknife_Ridge(Jackknife):
             self.est_loco_ridge_jk_list = []
             
             logging.info('Running ridge jackknife...')
+            self.best_r2_jk_noblock = np.zeros(len(self.separators) - 1)
             for block_i in tqdm(range(len(self.separators) - 1)):
                         
                 #prepare data structures
@@ -671,7 +675,8 @@ class Jackknife_Ridge(Jackknife):
                 if approx_ridge:
                     best_lambda_noblock = best_lambda
                 else:
-                    best_lambda_noblock = self._find_best_lambda(x_noblock, y_noblock, XTX_noblock, XTy_noblock, chr_noblock)
+                    best_lambda_noblock, r2_noblock = self._find_best_lambda(x_noblock, y_noblock, XTX_noblock, XTy_noblock, chr_noblock)
+                self.best_r2_jk_noblock[block_i] = r2_noblock
                 
                 #main jackknife estimation
                 est_block = self._est_ridge(XTX_noblock, XTy_noblock, best_lambda_noblock)            
@@ -686,6 +691,9 @@ class Jackknife_Ridge(Jackknife):
                 self.est_loco_lstsq_jk_list.append(est_loco_lstsq)
                 self.est_loco_ridge_jk_list.append(est_loco_ridge)
             if standardize: self.delete_values /= x_l2
+                
+                
+                
 
             #compute jackknife pseudo-values
             self.pseudovalues = self.delete_values_to_pseudovalues(self.delete_values, self.est)
@@ -718,7 +726,7 @@ class Jackknife_Ridge(Jackknife):
         est_noset_ridge = np.empty((len(self.chromosome_sets), x.shape[1]), dtype=np.float32)
         tqdm_chr_sets = tqdm(self.chromosome_sets)
         logging.info('Estimating annotation coefficients for each chromosomes set')
-        for set_i, chromosome_set in enumerate(tqdm_chr_sets):            
+        for set_i, chromosome_set in enumerate(tqdm_chr_sets):
             is_in_set = np.isin(chr_num, chromosome_set)
             if not np.any(is_in_set): continue
             x_set = x[is_in_set]
@@ -735,15 +743,16 @@ class Jackknife_Ridge(Jackknife):
                 x_loco = x[~is_in_set]
                 y_loco = y[~is_in_set]
                 chr_loco = chr_num[~is_in_set]                
-                best_lambda_noset = self._find_best_lambda(x_loco, y_loco, XTX_noset, XTy_noset, chr_loco)
+                best_lambda_noset, r2_noset = self._find_best_lambda(x_loco, y_loco, XTX_noset, XTy_noset, chr_loco)
                 if len(chromosome_set) == 1:
                     best_lambda_set = ridge_lambda
                 else:
-                    best_lambda_set = self._find_best_lambda(x_set, y_set, XTX_set, XTy_set, chr_num[is_in_set])
+                    best_lambda_set, r2_set = self._find_best_lambda(x_set, y_set, XTX_set, XTy_set, chr_num[is_in_set])
             est_set_lstsq[set_i, :]   = self._est_ridge(XTX_set, XTy_set, ridge_lambda=0)
             est_set_ridge[set_i, :]   = self._est_ridge(XTX_set, XTy_set, best_lambda_set)
             est_noset_lstsq[set_i, :] = self._est_ridge(XTX_noset, XTy_noset, ridge_lambda=0)
             est_noset_ridge[set_i, :] = self._est_ridge(XTX_noset, XTy_noset, best_lambda_noset)
+            ###import ipdb; ipdb.set_trace()
             
         if standardize:
             est_set_lstsq /= x_l2
@@ -802,7 +811,7 @@ class Jackknife_Ridge(Jackknife):
             logging.info('Selected ridge lambda: %0.4e (%d/%d)  score: %0.4e  score lstsq: %0.4e'%(best_lambda, 
                 best_lambda_index+1, num_lambdas, score_lambdas[best_lambda_index], score_lstsq))
             
-        return best_lambda
+        return best_lambda, score_lambdas[best_lambda_index]
         
         
     def _predict_lambdas(self, XTX_train, XTy_train, X_validation):
