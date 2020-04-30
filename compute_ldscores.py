@@ -6,7 +6,7 @@ import time
 from ldsc_polyfun import ldscore, parse
 import logging
 from pandas.api.types import is_numeric_dtype
-from polyfun_utils import configure_logger
+from polyfun_utils import configure_logger, set_snpid_index, SNP_COLUMNS
 from pyarrow import ArrowIOError
 
 
@@ -33,52 +33,44 @@ def __filter__(fname, noun, verb, merge_obj):
         
 def compute_ldscores(args):
 
-    # read bim/snp
+    #read bim/snp
     array_snps = parse.PlinkBIMFile(args.bfile+'.bim')
     df_bim = array_snps.df
+    if len(df_bim['CHR'].unique()) > 1:
+        raise ValueError('plink file includes multiple chromosomes. Please specify a plink file with a single chromosome')
+    df_bim = set_snpid_index(df_bim)
     
-    #read annotations 
+    #read annotations
+    keep_snps = None
     if args.annot is not None:
+    
         try:
             df_annot = pd.read_parquet(args.annot)
         except ArrowIOError:
             df_annot = pd.read_table(args.annot, delim_whitespace=True)
-    
-        #heuristically reduce df_annot to a small superset of the relevant SNPs        
-        df_annot = df_annot.loc[df_annot['SNP'].isin(df_bim['SNP'])]
         
-        #duplicate df_annot to make sure we have no flipped alleles that will cause a mess
-        bins_index1 =     df_annot['CHR'].astype(str) + '.' \
-                        + df_annot['BP'].astype(str) + '.' \
-                        + df_annot['A1'] + '.' \
-                        + df_annot['A2']
-        df_annot2 = df_annot.copy()
-        df_annot2['A2'] = df_annot['A1'].copy()
-        df_annot2['A1'] = df_annot['A2'].copy()
-        df_annot.index  = df_annot['CHR'].astype(str) + '.' + df_annot['BP'].astype(str) + '.' + df_annot['A1'] + '.' + df_annot['A2']
-        df_annot2.index = df_annot2['CHR'].astype(str) + '.' + df_annot2['BP'].astype(str) + '.' + df_annot2['A1'] + '.' + df_annot2['A2']        
-        df_annot = pd.concat([df_annot, df_annot2], axis=0)
-        del df_annot2
-        
-        #make sure that all SNPs have a bin
-        df_bim.index = df_bim['CHR'].astype(str) + '.' + df_bim['BP'].astype(str) + '.' + df_bim['A1'] + '.' + df_bim['A2']
+        #Remove annotations of SNPs that are not in the .bim file
+        df_annot = set_snpid_index(df_annot)
+        df_annot = df_annot.loc[df_annot.index.isin(df_bim.index)]
+
+        #make sure that all SNPs have annotations
         if np.any(~df_bim.index.isin(df_annot.index)):
-            raise ValueError('Not all SNPs have annotation values')
-            
-        #rearrange df_annot to match the order of SNPs in the plink file
-        if (df_annot.shape[0] > df_bim.shape[0]) or np.any(df_annot.index != df_bim.index):
-            assert np.all(df_bim.index.isin(df_annot.index))
-            df_annot = df_annot.loc[df_bim.index]
-        assert np.all(df_annot['BP'] == df_bim['BP'].values)
-        assert np.all(df_annot['A1'] == df_bim['A1'].values)
-        assert np.all(df_annot['A2'] == df_bim['A2'].values)
-        df_annot.set_index(['CHR', 'BP', 'SNP', 'A1', 'A2'], drop=True, inplace=True)
-        
-        #make sure that the remaining annotations are numeric
+            error_msg = 'Not all SNPs have annotation values'
+            if args.allow_missing:
+                is_good_snp = df_bim.index.isin(df_annot.index)
+                if not np.any(is_good_snp):
+                    raise ValueError('No SNPs have annotations')
+                keep_snps = np.where(is_good_snp)[0]
+                logging.warning(error_msg)
+                logging.warning('Keeping only %d/%d SNPs that have annotations'%(is_good_snp.sum(), len(is_good_snp)))
+            else:
+                raise ValueError(error_msg + '. If you wish to omit the missing SNPs, please use the flag --allow-missing')
+
+        #make sure that all of the annotations are numeric
         for c in df_annot.columns:
+            if c in SNP_COLUMNS: continue
             if not is_numeric_dtype(df_annot[c]):
                 raise ValueError('Annotation %s does not have numeric values'%(c))
-        
 
     #find #individuals in bfile
     fam_file = args.bfile+'.fam'
@@ -95,15 +87,22 @@ def compute_ldscores(args):
     
     #read plink file    
     bed_file = args.bfile+'.bed'
-    geno_array = ldscore.PlinkBEDFile(bed_file, n, array_snps, keep_snps=None,
+    geno_array = ldscore.PlinkBEDFile(bed_file, n, array_snps, keep_snps=keep_snps,
         keep_indivs=keep_indivs, mafMin=None)
     
-    #if we have missing SNPs, take only relevant rows from df_annotation
-    if args.annot is not None and len(geno_array.kept_snps) < df_annot.shape[0]:
+    #remove omitted SNPs from df_bim
+    if len(geno_array.kept_snps) < df_bim.shape[0]:
         assert np.all(np.array(geno_array.kept_snps) == np.sort(np.array(geno_array.kept_snps)))
-        df_annot = df_annot.iloc[geno_array.kept_snps]
+        assert geno_array.kept_snps[-1] < df_bim.shape[0]
         df_bim = df_bim.iloc[geno_array.kept_snps]
         
+    #rearrange annotations to match the order of SNPs in the plink file
+    if args.annot is not None:
+        assert df_annot.shape[0] >= df_bim.shape[0]
+        if (df_annot.shape[0] > df_bim.shape[0]) or np.any(df_annot.index != df_bim.index):
+            assert np.all(df_bim.index.isin(df_annot.index))
+            df_annot = df_annot.loc[df_bim.index]
+                    
     # determine block widths
     num_wind_args = np.array((args.ld_wind_snps, args.ld_wind_kb, args.ld_wind_cm), dtype=bool)
     if np.sum(num_wind_args) != 1:
@@ -113,12 +112,12 @@ def compute_ldscores(args):
         coords = np.array(list(range(geno_array.m)))
     elif args.ld_wind_kb:
         max_dist = args.ld_wind_kb*1000
-        coords = np.array(df_bim['BP'])[geno_array.kept_snps]
+        coords = np.array(df_bim['BP'])
         if len(np.unique(coords)) == 1:
             raise ValueError('bim file has no basepair data --- please use a different ld-wind option')
     elif args.ld_wind_cm:
         max_dist = args.ld_wind_cm
-        coords = np.array(df_bim['CM'])[geno_array.kept_snps]
+        coords = np.array(df_bim['CM'])
         if len(np.unique(coords)) == 1:
             raise ValueError('bim file has no CM data --- please use a different ld-wind option')
         
@@ -129,22 +128,19 @@ def compute_ldscores(args):
         raise ValueError(error_msg)
     t0 = time.time()
     geno_array._currentSNP = 0
-    annot_values = (None if args.annot is None else df_annot.values)
+    annot_values = (None if args.annot is None else df_annot.drop(columns=SNP_COLUMNS).values)
     ldscores = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=annot_values)
     
     #create an ldscores df
     if args.annot is None:
         df_ldscores = pd.DataFrame(ldscores, columns=['base'])
     else:
-        df_ldscores = pd.DataFrame(ldscores, columns=df_annot.columns)
+        df_ldscores = pd.DataFrame(ldscores, columns=df_annot.drop(columns=SNP_COLUMNS).columns)
         
     #add SNP identifier columns
-    df_ldscores['SNP'] = df_bim['SNP'].values
-    df_ldscores['CHR'] = df_bim['CHR'].values
-    df_ldscores['BP'] = df_bim['BP'].values
-    df_ldscores['A1'] = df_bim['A1'].values
-    df_ldscores['A2'] = df_bim['A2'].values
-    df_ldscores = df_ldscores[['CHR', 'SNP', 'BP', 'A1', 'A2'] + [c for c in df_ldscores.columns if c not in ['CHR', 'SNP', 'BP', 'A1', 'A2']]]
+    for c in SNP_COLUMNS:
+        df_ldscores[c] = df_bim[c].values
+    df_ldscores = df_ldscores[SNP_COLUMNS + list(df_ldscores.drop(columns=SNP_COLUMNS).columns)]
     
     return df_ldscores
         
@@ -163,6 +159,7 @@ if __name__ == '__main__':
     parser.add_argument('--chunk-size',  type=int, default=50, help='chunk size for LD-scores calculation')
     #parser.add_argument('--extract',  default=None, help='File with rsids of SNP to use')
     parser.add_argument('--keep',  default=None, help='File with ids of individuals to use')
+    parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, The script will not terminate if some SNPs with sumstats are not found in the annotations files')
     args = parser.parse_args()
     
     configure_logger(args.out)

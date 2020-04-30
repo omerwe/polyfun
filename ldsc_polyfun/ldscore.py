@@ -343,7 +343,7 @@ class PlinkBEDFile(__GenotypeArrayInMemory__):
         kept_snps = []
         freq = []
         logging.info('Applying SNPs filter...')
-        for e, j in enumerate(tqdm(keep_snps)):
+        for j in tqdm(keep_snps):
             z = geno[2*nru*j:2*nru*(j+1)]
             A = z[0::2]
             a = A.count()

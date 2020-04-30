@@ -664,13 +664,14 @@ class PolyFun:
         bim_file = get_file_name(args, 'bim', chr_num)
         array_snps = parse.PlinkBIMFile(bim_file)
         df_bim = array_snps.df
+        df_bim = set_snpid_index(df_bim)
         
-        #heuristically reduce df_bins_chr to a small superset of the relevant SNPs        
-        df_bins_chr = df_bins_chr.loc[df_bins_chr['BP'].isin(df_bim['BP'])].copy()
+        #Remove annotations of SNPs that are not in the .bim file
         df_bins_chr = set_snpid_index(df_bins_chr)
+        df_bins_chr = df_bins_chr.loc[df_bins_chr.index.isin(df_bim.index)]
 
         #make sure that all SNPs have a bin
-        df_bim = set_snpid_index(df_bim)
+        keep_snps = None
         if np.any(~df_bim.index.isin(df_bins_chr.index)):
             error_msg = 'Not all SNPs were assigned a bin (meaning some SNPS are not in the annotation files)'
             if args.allow_missing:
@@ -678,29 +679,17 @@ class PolyFun:
                 if not np.any(is_good_snp):
                     raise ValueError('No SNPs in chromosome %d have annotations'%(chr_num))
                 keep_snps = np.where(is_good_snp)[0]
-                df_bim = df_bim.loc[is_good_snp]
                 logging.warning(error_msg)
                 logging.warning('Keeping only %d/%d SNPs in chromosome %d that have annotations'%(df_bim.shape[0], len(is_good_snp), chr_num))
             else:
                 raise ValueError(error_msg + '. If you wish to omit the missing SNPs, please use the flag --allow-missing')
-        else:
-            keep_snps = None
-            
-        #rearrange df_bins_chr to match the order of SNPs in the plink file
-        if (df_bins_chr.shape[0] > df_bim.shape[0]) or np.any(df_bins_chr.index != df_bim.index):
-            assert np.all(df_bim.index.isin(df_bins_chr.index))
-            df_bins_chr = df_bins_chr.loc[df_bim.index]
-        assert np.all(df_bins_chr['BP'] == df_bim['BP'].values)
-        assert np.all(df_bins_chr['A1'] == df_bim['A1'].values)
-        assert np.all(df_bins_chr['A2'] == df_bim['A2'].values)
 
         #find #individuals in bfile
         fam_file = get_file_name(args, 'fam', chr_num)
         df_fam = pd.read_table(fam_file, header=None, usecols=[5], delim_whitespace=True)
         n = df_fam.shape[0]
         
-        
-        #find keep_indivs    
+        #find keep_indivs
         if args.keep is None:
             keep_indivs= None
         else:
@@ -708,12 +697,23 @@ class PolyFun:
             keep_indivs = __filter__(args.keep, 'individuals', 'include', array_indivs)
             logging.info('after applying --keep, %d individuals remain'%(len(keep_indivs)))
 
-        #read plink file    
+        #read plink file
         logging.info('Loading SNP file...')
         bed_file = get_file_name(args, 'bed', chr_num)
         geno_array = ldscore.PlinkBEDFile(bed_file, n, array_snps, keep_snps=keep_snps,
             keep_indivs=keep_indivs, mafMin=None)
-
+        
+        #remove omitted SNPs from df_bim
+        if len(geno_array.kept_snps) != df_bim.shape[0]:
+            assert np.all(np.array(geno_array.kept_snps) == np.sort(np.array(geno_array.kept_snps)))
+            assert geno_array.kept_snps[-1] < df_bim.shape[0]
+            df_bim = df_bim.iloc[geno_array.kept_snps]
+            
+        #rearrange annotations to match the order of SNPs in the plink file
+        assert df_bins_chr.shape[0] >= df_bim.shape[0]
+        if (df_bins_chr.shape[0] > df_bim.shape[0]) or np.any(df_bins_chr.index != df_bim.index):
+            assert np.all(df_bim.index.isin(df_bins_chr.index))
+            df_bins_chr = df_bins_chr.loc[df_bim.index]
             
         # determine block widths
         num_wind_args = np.array((args.ld_wind_snps, args.ld_wind_kb, args.ld_wind_cm), dtype=bool)
@@ -724,15 +724,15 @@ class PolyFun:
             coords = np.array(list(range(geno_array.m)))
         elif args.ld_wind_kb:
             max_dist = args.ld_wind_kb*1000
-            coords = np.array(df_bim['BP'])[geno_array.kept_snps]
+            coords = np.array(df_bim['BP'])
             if len(np.unique(coords)) == 1:
                 raise ValueError('bim file has no basepair data --- please use a different ld-wind option')
         elif args.ld_wind_cm:
             max_dist = args.ld_wind_cm
-            coords = np.array(df_bim['CM'])[geno_array.kept_snps]
+            coords = np.array(df_bim['CM'])
             if len(np.unique(coords)) == 1:
                 raise ValueError('bim file has no CM data --- please use a different ld-wind option')
-            
+
         #compute LD-scores
         block_left = ldscore.getBlockLefts(coords, max_dist)
         if block_left[len(block_left)-1] == 0:
@@ -740,7 +740,7 @@ class PolyFun:
             raise ValueError(error_msg)
         t0 = time.time()
         geno_array._currentSNP = 0
-        logging.info('Computing LD scores for chromosome %d'%(chr_num))        
+        logging.info('Computing LD scores for chromosome %d'%(chr_num))
         ldscores = geno_array.ldScoreVarBlocks(block_left, args.chunk_size, annot=df_bins_chr.drop(columns=SNP_COLUMNS).values)
         
         #create an ldscores df
