@@ -106,10 +106,6 @@ def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None, no
     region_end = region_start + REGION_LENGTH
     ld_prefix = 'chr%d_%d_%d'%(chr_num, region_start, region_end)
     
-    #create a temp output dir if required
-    if ld_dir is None:
-        ld_dir = tempfile.mkdtemp()
-    
     #if the files already exist, simply return them
     gz_file = os.path.join(ld_dir, '%s.gz'%(ld_prefix))
     npz_file = os.path.join(ld_dir, '%s.npz'%(ld_prefix))    
@@ -147,6 +143,10 @@ def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None, no
 
 def compute_ldscores_chr(df_annot_chr, ld_dir, no_cache=False):
 
+    #create a temp output dir if required
+    if ld_dir is None:
+        ld_dir = tempfile.mkdtemp()
+
     if not os.path.exists(ld_dir):
         raise IOError('LD directory %s doesn\'t exist'%(ld_dir))
 
@@ -156,7 +156,7 @@ def compute_ldscores_chr(df_annot_chr, ld_dir, no_cache=False):
     #remove long-range LD regions
     for r in LONG_RANGE_LD_REGIONS:
         if r['chr'] != chr_num: continue
-        is_in_r = df_annot['BP'].between(r['start'], r['end'])
+        is_in_r = df_annot_chr['BP'].between(r['start'], r['end'])
         if not np.any(is_in_r): continue
         logging.warning('Removing %d SNPs from long-range LD region on chromosome %d BP %d-%d'%(is_in_r.sum(), r['chr'], r['start'], r['end']))
         df_annot_chr = df_annot_chr.loc[~is_in_r]
@@ -240,6 +240,20 @@ def compute_ldscores_main(df_annot, ld_dir=None, no_cache=False):
     return df_ldscores
     
     
+def main(args):
+
+    #read annotations
+    df_annot = read_annot(args.annot)
+    
+    #comptue LD-scores
+    df_ldscores = compute_ldscores_main(df_annot, ld_dir=args.ld_dir, no_cache=args.no_cache)
+    
+    #save LD-scores to output file
+    if args.gz_out:
+        df_ldscores.to_csv(args.out, sep='\t', compression='gzip', index=False, float_format='%0.3f')
+    else:
+        df_ldscores.to_parquet(args.out, index=False)
+
 
 if __name__ == '__main__':
 
@@ -260,18 +274,7 @@ if __name__ == '__main__':
     if len(os.path.dirname(args.out))>0 and not os.path.exists(os.path.dirname(args.out)):
         raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.out)))
     
-    #read annotations
-    df_annot = read_annot(args.annot)
-    
-    #comptue LD-scores
-    df_ldscores = compute_ldscores_main(df_annot, ld_dir=args.ld_dir, no_cache=args.no_cache)
-    
-    #save LD-scores to output file
-    if args.gz_out:
-        df_ldscores.to_csv(args.out, sep='\t', compression='gzip', index=False, float_format='%0.3f')
-    else:
-        df_ldscores.to_parquet(args.out, index=False)
-    
+    main(args)
     
     
     
