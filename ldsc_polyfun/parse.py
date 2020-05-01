@@ -210,7 +210,12 @@ def ldscore(fh, num=None):
     x.drop(columns=['BP'], inplace=True)
     
     if x.index.name == 'snpid':
-        assert not np.any(x.index.duplicated())
+        is_duplicate_snp = x.index.duplicated()
+        if np.any(is_duplicate_snp):
+            index_dup_snps = x.index[is_duplicate_snp]
+            index_dup_snps = index_dup_snps[~index_dup_snps.duplicated()]
+            error_msg = 'Duplicate SNPs were found in the input data:\n%s'%(index_dup_snps)
+            raise ValueError(error_msg)
     else:
         if np.any(x['SNP'].duplicated()):
             x.drop_duplicates(subset='SNP', inplace=True)    
