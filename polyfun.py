@@ -9,6 +9,7 @@ from tqdm import tqdm
 from polyfun_utils import Logger, check_package_versions, set_snpid_index, configure_logger, get_file_name
 from polyfun_utils import SNP_COLUMNS
 from pyarrow import ArrowIOError
+from pyarrow.lib import ArrowInvalid
 from compute_ldscores_ukb import compute_ldscores_chr
 import tempfile
 
@@ -183,7 +184,7 @@ class PolyFun:
             ref_ld_cnames = self.df_bins.columns
             try:
                 df_sumstats = pd.read_parquet(args.sumstats)            
-            except ArrowIOError:
+            except (ArrowIOError, ArrowInvalid):
                 df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
             ###merge everything together...
             
@@ -251,7 +252,7 @@ class PolyFun:
         for annot_filename in annot_filenames:
             try:
                 df_annot_chr = pd.read_parquet(annot_filename)
-            except ArrowIOError:
+            except (ArrowIOError, ArrowInvalid):
                 df_annot_chr = pd.read_table(annot_filename)
             df_annot_chr_list.append(df_annot_chr)
         if len(df_annot_chr_list)==1:
@@ -554,7 +555,7 @@ class PolyFun:
         #merge snpvar with sumstats
         try:
             df_sumstats = pd.read_parquet(args.sumstats)
-        except ArrowIOError:
+        except (ArrowIOError, ArrowInvalid):
             df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
         df_sumstats.drop(columns=['SNP'], errors='ignore', inplace=True)
         for col in ['CHR', 'BP', 'A1', 'A2']:

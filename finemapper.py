@@ -12,6 +12,7 @@ import subprocess
 from importlib import reload
 from polyfun_utils import set_snpid_index
 from pyarrow import ArrowIOError
+from pyarrow.lib import ArrowInvalid
 from ldstore.bcor import bcor
 import scipy.sparse as sparse
 from pandas_plink import read_plink
@@ -184,7 +185,7 @@ class Fine_Mapping(object):
         t0 = time.time()
         try:
             df_sumstats = pd.read_parquet(sumstats_file)
-        except ArrowIOError:
+        except (ArrowIOError, ArrowInvalid):
             df_sumstats = pd.read_table(sumstats_file, delim_whitespace=True)
         if not np.any(df_sumstats['CHR'] == chr_num):
             raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))

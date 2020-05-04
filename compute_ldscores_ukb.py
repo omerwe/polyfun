@@ -7,6 +7,7 @@ import logging
 from tqdm import tqdm
 import urllib.request
 from pyarrow import ArrowIOError
+from pyarrow.lib import ArrowInvalid
 import tempfile
 import scipy.sparse as sparse
 from pandas.api.types import is_numeric_dtype
@@ -39,7 +40,7 @@ class TqdmUpTo(tqdm):
 def read_annot(annot_file):
     try:
         df_annot = pd.read_parquet(annot_file)
-    except ArrowIOError:
+    except (ArrowIOError, ArrowInvalid):
         df_annot = pd.read_table(annot_file, delim_whitespace=True)
     
     assert 'CHR' in df_annot.columns
@@ -73,7 +74,7 @@ def load_ld_matrix(ld_dir, ld_prefix):
     gz_file = os.path.join(ld_dir, '%s.gz'%(ld_prefix))
     try:
         df_ld_snps = pd.read_table(gz_file, delim_whitespace=True)
-    except ArrowIOError:
+    except (ArrowIOError, ArrowInvalid):
         raise IOError('Corrupt file downloaded')
     df_ld_snps.rename(columns={'rsid':'SNP', 'chromosome':'CHR', 'position':'BP', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='ignore')
     assert 'SNP' in df_ld_snps.columns

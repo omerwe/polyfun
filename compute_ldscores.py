@@ -8,6 +8,7 @@ import logging
 from pandas.api.types import is_numeric_dtype
 from polyfun_utils import configure_logger, set_snpid_index, SNP_COLUMNS
 from pyarrow import ArrowIOError
+from pyarrow.lib import ArrowInvalid
 
 
 
@@ -46,7 +47,7 @@ def compute_ldscores(args):
     
         try:
             df_annot = pd.read_parquet(args.annot)
-        except ArrowIOError:
+        except (ArrowIOError, ArrowInvalid):
             df_annot = pd.read_table(args.annot, delim_whitespace=True)
         
         #Remove annotations of SNPs that are not in the .bim file

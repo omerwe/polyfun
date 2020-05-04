@@ -4,6 +4,7 @@ import os
 import logging
 import time
 from pyarrow import ArrowIOError
+from pyarrow.lib import ArrowInvalid
 from polyfun_utils import check_package_versions, configure_logger, set_snpid_index, SNP_COLUMNS
 
 
@@ -29,7 +30,7 @@ if __name__ == '__main__':
     t0 = time.time()
     try:
         df_snps = pd.read_parquet(args.snps)
-    except ArrowIOError:
+    except (ArrowIOError, ArrowInvalid):
         df_snps = pd.read_table(args.snps, delim_whitespace=True)
     if 'A1' not in df_snps.columns:
         raise ValueError('missing column A1')

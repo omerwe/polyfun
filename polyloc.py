@@ -9,6 +9,7 @@ from polyfun import PolyFun
 from polyfun_utils import configure_logger, set_snpid_index, get_file_name
 from polyfun_utils import SNP_COLUMNS
 from pyarrow import ArrowIOError
+from pyarrow.lib import ArrowInvalid
 
 
 def splash_screen():
@@ -119,7 +120,7 @@ class PolyLoc(PolyFun):
     def load_posterior_betas(self, args):
         try:
             df_posterior = pd.read_parquet(args.posterior)
-        except ArrowIOError:
+        except (ArrowIOError, ArrowInvalid):
             df_posterior = pd.read_table(args.posterior, delim_whitespace=True)
             
         #preprocess columns
