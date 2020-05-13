@@ -147,7 +147,7 @@ class PolyLoc(PolyFun):
         #add another partition for all SNPs not in the posterior file
         df_bim_list = []
         for chr_num in range(1,23):
-            df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), delim_whitespace=True, names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'])            
+            df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), delim_whitespace=True, names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'], header=None)
             df_bim_list.append(df_bim_chr)
         df_bim = pd.concat(df_bim_list, axis=0)
         df_bim = set_snpid_index(df_bim)
@@ -161,7 +161,7 @@ class PolyLoc(PolyFun):
         if df_bim.shape[0] > self.df_bins.shape[0]:
             new_snps = df_bim.index[~df_bim.index.isin(self.df_bins.index)]
             df_bins_new = df_bim.loc[new_snps, SNP_COLUMNS].copy()
-            for colname in self.df_bins.columns:
+            for colname in self.df_bins.drop(columns=SNP_COLUMNS).columns:
                 df_bins_new[colname] = False
             new_colname = 'snpvar_bin%d'%(df_bins_new.shape[1] - len(SNP_COLUMNS)+1)
             self.df_bins[new_colname] = False
@@ -174,7 +174,7 @@ class PolyLoc(PolyFun):
         #save the bin sizes to disk
         df_binsize = pd.DataFrame(index=np.arange(1,self.df_bins.shape[1] - len(SNP_COLUMNS)+1))
         df_binsize.index.name='BIN'
-        df_binsize['BIN_SIZE'] = self.df_bins.drop(columns=SNP_COLUMNS).sum(axis=0).values
+        df_binsize['BIN_SIZE'] = [self.df_bins[c].sum() for c in self.df_bins.drop(columns=SNP_COLUMNS).columns]   #saves memory
         df_binsize.to_csv(args.output_prefix+'.binsize', sep='\t', index=True)
         
         
