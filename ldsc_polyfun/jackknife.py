@@ -703,7 +703,6 @@ class Jackknife_Ridge(Jackknife):
         if standardize: x *= x_l2
         
         
-        
     def _divide_chromosomes_to_sets(self, chr_sizes, num_sets):
         chr_order = np.argsort(chr_sizes)[::-1]     #np.arange(len(chr_sizes))
         chr_assignments = np.zeros(22, dtype=np.int) - 1
