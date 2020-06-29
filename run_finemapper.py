@@ -24,7 +24,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     #general parameters
-    parser.add_argument('--method', required=True, help='Fine-mapping method (currently only susie is supported)')
+    parser.add_argument('--method', required=True, help='Fine-mapping method (currently susie and finemap are supported)')
     parser.add_argument('--sumstats', required=True, help='Name of sumstats file')
     parser.add_argument('--chr', required=True, type=int, help='Target chromosome')
     parser.add_argument('--start', required=True, type=int, help='First base-pair in the region to finemap')
