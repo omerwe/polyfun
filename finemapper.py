@@ -272,6 +272,9 @@ class Fine_Mapping(object):
             ld_files = npz_files + bcor_files
             
         for ld_file in ld_files:
+            if os.stat(ld_file).st_size==0:
+                os.remove(ld_file)
+                continue
             ld_basename = os.path.basename(ld_file)
             bp1 = int(ld_basename.split('.')[-3])
             bp2 = int(ld_basename.split('.')[-2])
