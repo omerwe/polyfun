@@ -199,7 +199,7 @@ def test_extract_snpvar(tmpdir, python3_exe):
     output_file = os.path.join(tmpdir, outfile)
     gold_file = os.path.join(gold_dir, outfile)    
     
-    retval = os.system('%s %s --snps %s --out %s'%(python3_exe, script_exe, input_file, output_file))
+    retval = os.system('%s %s --sumstats %s --out %s'%(python3_exe, script_exe, input_file, output_file))
     if retval != 0:
         raise ValueError('extract_snpvar command failed')
     compare_dfs(tmpdir, gold_dir, outfile)

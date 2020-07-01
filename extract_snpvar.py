@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--snps', required=True, help='Whitespace-delimited file with SNPs to extract. Must include columns A1,A2 and either (1) SNP or (2) both CHR and BP')
+    parser.add_argument('--sumstats', required=True, help='Whitespace-delimited file with SNPs to extract. Must include columns CHR,BP,A1,A2')
     parser.add_argument('--out', required=True, help='Prefix of the name of the output file')
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, the script will not terminate if some SNPs are not found in the meta file')
     parser.add_argument('--q', type=int, default=100, help='The maximum ratio between the largest and smallest prior causal probabilities')
@@ -25,13 +25,13 @@ if __name__ == '__main__':
     #configure logger
     configure_logger(args.out)
     
-    #read snps file
+    #read sumtats file
     logging.info('Loading sumstats files...')
     t0 = time.time()
     try:
-        df_snps = pd.read_parquet(args.snps)
+        df_snps = pd.read_parquet(args.sumstats)
     except (ArrowIOError, ArrowInvalid):
-        df_snps = pd.read_table(args.snps, delim_whitespace=True)
+        df_snps = pd.read_table(args.sumstats, delim_whitespace=True)
     if 'A1' not in df_snps.columns:
         raise ValueError('missing column A1')
     if 'A2' not in df_snps.columns:
