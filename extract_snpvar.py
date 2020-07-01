@@ -37,9 +37,9 @@ if __name__ == '__main__':
     if 'A2' not in df_snps.columns:
         raise ValueError('missing column A2')
     if 'CHR' not in df_snps.columns:
-        raise ValueError('You must provide either a SNP or a CHR column')
+        raise ValueError('missing column CHR')
     if 'BP' not in df_snps.columns:
-        raise ValueError('You must provide either a SNP or a BP column')
+        raise ValueError('missing column BP')
             
     #set index
     df_snps = set_snpid_index(df_snps)
