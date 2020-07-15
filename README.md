@@ -78,7 +78,7 @@ To install SuSiE, please start an R shell (usually by typing `R`) and then type:
 ```
 devtools::install_github("stephenslab/susieR@0.8.0",build_vignettes=FALSE)
 ```
-If this doesn't work, please refer to the [SuSiE website](https://github.com/stephenslab/susieR) for more information.
+If this doesn't work, please refer to the [SuSiE website](https://github.com/stephenslab/susieR) for more information, or contact the SuSiE authors through the [SuSiE Github page](https://github.com/stephenslab/susieR).
 
 ## Installing FINEMAP v1.4
 To install FINEMAP v1.4, please type one of the following two commands:
