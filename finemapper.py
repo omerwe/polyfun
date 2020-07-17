@@ -17,6 +17,7 @@ from ldstore.bcor import bcor
 import scipy.sparse as sparse
 from pandas_plink import read_plink
 from sklearn.impute import SimpleImputer
+from polyfun import configure_logger, check_package_versions
 
 
 
@@ -951,6 +952,113 @@ class FINEMAP_Wrapper(Fine_Mapping):
     
     
     
+def splash_screen():
+    print('*********************************************************************')
+    print('* Fine-mapping Wrapper')
+    print('* Version 1.0.0')
+    print('* (C) 2019-2020 Omer Weissbrod')
+    print('*********************************************************************')
+    print()
+    
+    
+
+
+if __name__ == '__main__':
+
+    import argparse
+    parser = argparse.ArgumentParser()
+
+    #general parameters
+    parser.add_argument('--method', required=True, help='Fine-mapping method (currently susie and finemap are supported)')
+    parser.add_argument('--sumstats', required=True, help='Name of sumstats file')
+    parser.add_argument('--chr', required=True, type=int, help='Target chromosome')
+    parser.add_argument('--start', required=True, type=int, help='First base-pair in the region to finemap')
+    parser.add_argument('--end', required=True, type=int, help='Last base-pair in the region to finemap')
+    parser.add_argument('--n', required=True, type=int, help='Sample size')
+    parser.add_argument('--geno', default=None, help='Genotypes file (plink or bgen format)')
+    parser.add_argument('--ld', default=None, help='prefix or fill name of an LD matrix file')
+    
+    #LDstore related parameters
+    parser.add_argument('--ldstore2', default=None, help='Path to an LDstore 2.0 executable file')
+    parser.add_argument('--finemap-exe', default=None, help='Path to FINEMAP v1.4 executable file')
+    parser.add_argument('--memory', type=int, default=1, help='Maximum amount of memory in GB to allocate to LDStore')
+    parser.add_argument('--threads', type=int, default=None, help='The number of CPU cores LDstore will use (if not specified, LDstore will use the max number of CPU cores available')
+    parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
+    parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')
+    
+    parser.add_argument('--max-num-causal', required=True, type=int, help='Number of causal SNPs')
+    parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
+    parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
+    parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
+    parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, SNPs with sumstats that are not \
+                            found in the LD panel will be omitted. This is not recommended, because the omitted SNPs may be causal,\
+                            which could lead to false positive results')
+    
+    parser.add_argument('--sample-file', default=None, help='BGEN files must be used together with a sample file')
+    parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to include in fine-mapping')
+    parser.add_argument('--out', required=True, help='name of the output file')
+    
+    #check package versions
+    check_package_versions()
+    
+    #show splash screen
+    splash_screen()
+    
+    #extract args
+    args = parser.parse_args()
+    
+    #check that the output directory exists
+    if len(os.path.dirname(args.out))>0 and not os.path.exists(os.path.dirname(args.out)):
+        raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.out)))    
+
+    #configure logger
+    configure_logger(args.out)
+    
+    #check params
+    if args.max_num_causal==1:
+        if args.geno is not None or args.ld is not None:
+            raise ValueError('When max_num_causal=1 fine-mapping please omit the flags --geno and --ld (we cannot use LD information in that setting)')
+    else:
+        if args.geno is None:
+            if args.ld is None:
+                raise ValueError('must specify either --geno or --ld')
+            if args.ldstore2 is not None:
+                raise ValueError('cannot specify both --ld and --ldstore2')
+        if args.geno is not None:
+            if args.ld is not None:
+                raise ValueError('cannot specify both --geno and --ld')
+            if args.geno.endswith('.bgen') and args.ldstore2 is None:
+                raise ValueError('You must specify --ldstore2 when --geno that points to a bgen file')
+    
+    #Create a fine-mapping class member
+    if args.method == 'susie':
+        finemap_obj = SUSIE_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr, 
+                                    sample_file=args.sample_file, incl_samples=args.incl_samples,
+                                    ldstore_exe=args.ldstore2, n_threads=args.threads,
+                                    cache_dir=args.cache_dir, memory=args.memory)
+    elif args.method == 'finemap':
+        if args.finemap_exe is None:
+            raise ValueError('need to specify --finemap-exe')
+        if args.hess:
+            raise ValueError('FINEMAP cannot be used with --hess')
+        finemap_obj = FINEMAP_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr, 
+                                    sample_file=args.sample_file, incl_samples=args.incl_samples,
+                                    ldstore_exe=args.ldstore2, finemap_exe=args.finemap_exe, n_threads=args.threads,
+                                    cache_dir=args.cache_dir, memory=args.memory)
+    else:
+        raise ValueError('unknown method specified in --method')
+        
+    #run fine-mapping
+    df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
+                 use_prior_causal_prob=not args.non_funct, prior_var=None, residual_var=None, hess=args.hess,
+                 verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing)
+    logging.info('Writing fine-mapping results to %s'%(args.out))
+    df_finemap.sort_values('PIP', ascending=False, inplace=True)
+    if args.out.endswith('.parquet'):
+        df_finemap.to_parquet(args.out, index=False)
+    else:
+        df_finemap.to_csv(args.out, sep='\t', index=False, float_format='%0.5e')
+
 
 
 

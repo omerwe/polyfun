@@ -214,7 +214,7 @@ def test_finemapper(tmpdir, python3_exe):
     script_path = os.path.dirname(os.path.realpath(__file__))
     example_dir = os.path.join(script_path, 'example_data')
     gold_dir = os.path.join(script_path, 'gold')
-    script_exe = os.path.join(script_path, 'run_finemapper.py')
+    script_exe = os.path.join(script_path, 'finemapper.py')
     sumstats_file = os.path.join(example_dir, 'chr1.finemap_sumstats.txt.gz')
     plink_file = os.path.join(example_dir, 'chr1')
     outfile = 'finemap.1.46000001.49000001.gz'
