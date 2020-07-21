@@ -2,6 +2,7 @@ import numpy as np; np.set_printoptions(precision=4, linewidth=200)
 import pandas as pd; pd.set_option('display.width', 200)
 import os
 import logging
+import scipy.stats as stats
 from tqdm import tqdm
 from polyfun import configure_logger, check_package_versions
 from polyfun_utils import set_snpid_index
@@ -18,6 +19,11 @@ def main(args):
     except (ArrowIOError, ArrowInvalid):
         df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
         
+    #compute p-values if needed
+    if args.pvalue_cutoff is not None:
+        df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
+        
+        
     #read regions file
     df_regions = pd.read_table(args.regions_file)
     if args.chr is not None:
@@ -30,6 +36,12 @@ def main(args):
     logging.info('Aggregating results...')
     for _, r in tqdm(df_regions.iterrows()):
         chr_num, start, end, url_prefix = r['CHR'], r['START'], r['END'], r['URL_PREFIX']
+        
+        #apply p-value filter if needed
+        if args.pvalue_cutoff is not None:
+            df_sumstats_r = df_sumstats.query('CHR==%d & %d <= BP <= %d'%(chr_num, start, end))
+            if np.all(df_sumstats_r['P'] > args.pvalue_cutoff): continue        
+        
         output_file_r = '%s.chr%s.%s_%s.gz'%(args.out_prefix, chr_num, start, end)
         if not os.path.exists(output_file_r):
             err_msg = 'output file for chromosome %d bp %d-%d doesn\'t exist'%(chr_num, start, end)
@@ -44,6 +56,9 @@ def main(args):
         middle = (start+end)//2
         df_sumstats_r['DISTANCE_FROM_CENTER'] = np.abs(df_sumstats_r['BP'] - middle)
         df_sumstats_list.append(df_sumstats_r)
+    if len(df_sumstats_list)==0:
+        raise ValueError('no output files found')
+    
     
     #keep only the most central result for each SNP
     df_sumstats = pd.concat(df_sumstats_list, axis=0)
@@ -70,6 +85,7 @@ if __name__ == '__main__':
     parser.add_argument('--allow-missing-jobs', default=False, action='store_true', help='whether to allow missing jobs')
     parser.add_argument('--regions-file', default=DEFAULT_REGIONS_FILE, help='name of file of regions and their URLs')
     parser.add_argument('--chr', default=None, type=int, help='Target chromosome (if not provided, all chromosomes will be considered)')
+    parser.add_argument('--pvalue-cutoff', type=float, default=None, help='only consider regions that have at least one SNP with a p-value greater than this cutoff')
     
     #check package versions
     check_package_versions()

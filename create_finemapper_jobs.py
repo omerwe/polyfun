@@ -2,6 +2,7 @@ import numpy as np; np.set_printoptions(precision=4, linewidth=200)
 import pandas as pd; pd.set_option('display.width', 200)
 import os
 import logging
+import scipy.stats as stats
 from polyfun import configure_logger, check_package_versions
 from pyarrow import ArrowIOError
 from pyarrow.lib import ArrowInvalid
@@ -20,7 +21,7 @@ def create_finemapper_cmd(args, chr_num, start, end, url_prefix):
     
     #add command line arguments
     for key, value in vars(args).items():
-        if key in ['python', 'regions_file', 'out_prefix', 'jobs_file', 'chr']: continue
+        if key in ['python', 'regions_file', 'out_prefix', 'jobs_file', 'chr', 'pvalue_cutoff']: continue
         key = key.replace('_', '-')
         if type(value)==bool:
             if value:
@@ -39,6 +40,10 @@ def main(args):
     except (ArrowIOError, ArrowInvalid):
         df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
         
+    #compute p-values if needed
+    if args.pvalue_cutoff is not None:
+        df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
+
     #read regions file
     df_regions = pd.read_table(args.regions_file)
     if args.chr is not None:
@@ -46,10 +51,19 @@ def main(args):
         if df_regions.shape[0]==0: raise ValueError('no SNPs found in chromosome %d'%(args.chr))
     df_regions = df_regions.loc[df_regions.apply(lambda r: np.any((df_sumstats['CHR']==r['CHR']) & (df_sumstats['BP'].between(r['START'], r['END']))), axis=1)]
     
+    
+    
     #create jobs
     with open(args.jobs_file, 'w') as f:
         for _, r in df_regions.iterrows():
             chr_num, start, end, url_prefix = r['CHR'], r['START'], r['END'], r['URL_PREFIX']
+            
+            #apply p-value filter if needed
+            if args.pvalue_cutoff is not None:
+                df_sumstats_r = df_sumstats.query('CHR==%d & %d <= BP <= %d'%(chr_num, start, end))
+                if np.all(df_sumstats_r['P'] > args.pvalue_cutoff): continue
+            
+            #create and write the fine-mapping command for this region
             cmd = create_finemapper_cmd(args, chr_num, start, end, url_prefix)
             f.write(cmd + '\n')
     
@@ -85,6 +99,7 @@ if __name__ == '__main__':
     parser.add_argument('--python', default='python3', help='python3 executable')
     parser.add_argument('--out-prefix', required=True, help='prefix of the output files')
     parser.add_argument('--jobs-file', required=True, help='name of file with fine-mapping commands')
+    parser.add_argument('--pvalue-cutoff', type=float, default=None, help='only consider regions that have at least one SNP with a p-value greater than this cutoff')
     
     #check package versions
     check_package_versions()
