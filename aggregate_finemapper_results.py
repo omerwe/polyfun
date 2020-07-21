@@ -49,7 +49,7 @@ def main(args):
                 logging.warning(err_msg)
                 continue
             else:
-                raise IOError(err_msg)
+                raise IOError(err_msg + '.\nTo override this error, please provide the flag --allow-missing-jobs')
         df_sumstats_r = pd.read_table(output_file_r)
         
         #mark distance from center
