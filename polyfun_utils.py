@@ -7,7 +7,22 @@ from tqdm import tqdm
 
 
 SNP_COLUMNS = ['CHR', 'SNP', 'BP', 'A1', 'A2']
+LONG_RANGE_LD_REGIONS = []
+LONG_RANGE_LD_REGIONS.append({'chr':6, 'start':25500000, 'end':33500000})
+LONG_RANGE_LD_REGIONS.append({'chr':8, 'start':8000000, 'end':12000000})
+LONG_RANGE_LD_REGIONS.append({'chr':11, 'start':46000000, 'end':57000000})
+DEFAULT_REGIONS_FILE = 'ukb_regions.tsv.gz'
 
+
+
+class TqdmUpTo(tqdm):
+    """
+        taken from: https://github.com/tqdm/tqdm/blob/master/examples/tqdm_wget.py
+    """
+
+    def update_to(self, b=1, bsize=1, tsize=None):
+        if tsize is not None: self.total = tsize            
+        self.update(b * bsize - self.n)
 
 
 
@@ -39,7 +54,7 @@ def check_package_versions():
         raise ValueError('\n\nPlease install the python package pandas_plink (using either "pip install pandas-plink" or "conda install -c conda-forge pandas-plink")\n\n')
     
     
-def set_snpid_index(df, copy=False):
+def set_snpid_index(df, copy=False, allow_duplicates=False):
     if copy:
         df = df.copy()
     is_indel = (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
@@ -53,12 +68,13 @@ def set_snpid_index(df, copy=False):
     df.drop(columns=['A1_first', 'A1s', 'A2s'], inplace=True)
     
     #check for duplicate SNPs
-    is_duplicate_snp = df.index.duplicated()
-    if np.any(is_duplicate_snp):
-        df_dup_snps = df.loc[is_duplicate_snp]
-        df_dup_snps = df_dup_snps.loc[~df_dup_snps.index.duplicated(), ['SNP', 'CHR', 'BP', 'A1', 'A2']]
-        error_msg = 'Duplicate SNPs were found in the input data:\n%s'%(df_dup_snps)
-        raise ValueError(error_msg)
+    if not allow_duplicates:
+        is_duplicate_snp = df.index.duplicated()
+        if np.any(is_duplicate_snp):
+            df_dup_snps = df.loc[is_duplicate_snp]
+            df_dup_snps = df_dup_snps.loc[~df_dup_snps.index.duplicated(), ['SNP', 'CHR', 'BP', 'A1', 'A2']]
+            error_msg = 'Duplicate SNPs were found in the input data:\n%s'%(df_dup_snps)
+            raise ValueError(error_msg)
     return df
 
 
