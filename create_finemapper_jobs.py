@@ -15,13 +15,13 @@ FINEMAPPER_SCRIPT = 'finemapper.py'
 def create_finemapper_cmd(args, chr_num, start, end, url_prefix):
 
     output_file = '%s.chr%s.%s_%s.gz'%(args.out_prefix, chr_num, start, end)
-    cmd = '%s %s --chr %s --start %s --end %s --out %s'%(args.python, FINEMAPPER_SCRIPT, chr_num, start, end, output_file)
+    cmd = '%s %s --chr %s --start %s --end %s --out %s'%(args.python3, FINEMAPPER_SCRIPT, chr_num, start, end, output_file)
     if args.max_num_causal>1 and args.geno is None:
         cmd += ' --ld %s'%(url_prefix)
     
     #add command line arguments
     for key, value in vars(args).items():
-        if key in ['python', 'regions_file', 'out_prefix', 'jobs_file', 'chr', 'pvalue_cutoff']: continue
+        if key in ['python3', 'regions_file', 'out_prefix', 'jobs_file', 'chr', 'pvalue_cutoff']: continue
         key = key.replace('_', '-')
         if type(value)==bool:
             if value:
@@ -96,7 +96,7 @@ if __name__ == '__main__':
                             which could lead to false positive results')
     
     parser.add_argument('--regions-file', default=DEFAULT_REGIONS_FILE, help='name of file of regions and their URLs')
-    parser.add_argument('--python', default='python3', help='python3 executable')
+    parser.add_argument('--python3', default='python3', help='python3 executable')
     parser.add_argument('--out-prefix', required=True, help='prefix of the output files')
     parser.add_argument('--jobs-file', required=True, help='name of file with fine-mapping commands')
     parser.add_argument('--pvalue-cutoff', type=float, default=None, help='only consider regions that have at least one SNP with a p-value greater than this cutoff')
