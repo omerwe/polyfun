@@ -15,12 +15,12 @@ def create_finemapper_cmd(args, chr_num, start, end, url_prefix):
 
     output_file = '%s.chr%s.%s_%s.gz'%(args.out_prefix, chr_num, start, end)
     cmd = '%s %s --chr %s --start %s --end %s --out %s'%(args.python, FINEMAPPER_SCRIPT, chr_num, start, end, output_file)
-    if args.max_num_causal>1:
+    if args.max_num_causal>1 and args.geno is None:
         cmd += ' --ld %s'%(url_prefix)
     
     #add command line arguments
     for key, value in vars(args).items():
-        if key in ['python', 'regions_file', 'out_prefix', 'jobs_file']: continue
+        if key in ['python', 'regions_file', 'out_prefix', 'jobs_file', 'chr']: continue
         key = key.replace('_', '-')
         if type(value)==bool:
             if value:
@@ -41,6 +41,9 @@ def main(args):
         
     #read regions file
     df_regions = pd.read_table(args.regions_file)
+    if args.chr is not None:
+        df_regions = df_regions.query('CHR==%d'%(args.chr))
+        if df_regions.shape[0]==0: raise ValueError('no SNPs found in chromosome %d'%(args.chr))
     df_regions = df_regions.loc[df_regions.apply(lambda r: np.any((df_sumstats['CHR']==r['CHR']) & (df_sumstats['BP'].between(r['START'], r['END']))), axis=1)]
     
     #create jobs
@@ -62,6 +65,8 @@ if __name__ == '__main__':
     parser.add_argument('--method', required=True, help='Fine-mapping method (currently susie and finemap are supported)')
     parser.add_argument('--sumstats', required=True, help='Name of sumstats file')
     parser.add_argument('--n', required=True, type=int, help='Sample size')
+    parser.add_argument('--geno', default=None, help='Genotypes file (plink or bgen format)')
+    parser.add_argument('--chr', default=None, type=int, help='Target chromosome (if not provided, all chromosomes will be considered)')
     
     #LDstore related parameters
     parser.add_argument('--finemap-exe', default=None, help='Path to FINEMAP v1.4 executable file')

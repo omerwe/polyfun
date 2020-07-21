@@ -20,6 +20,9 @@ def main(args):
         
     #read regions file
     df_regions = pd.read_table(args.regions_file)
+    if args.chr is not None:
+        df_regions = df_regions.query('CHR==%d'%(args.chr))
+        if df_regions.shape[0]==0: raise ValueError('no SNPs found in chromosome %d'%(args.chr))
     df_regions = df_regions.loc[df_regions.apply(lambda r: np.any((df_sumstats['CHR']==r['CHR']) & (df_sumstats['BP'].between(r['START'], r['END']))), axis=1)]
     
     #aggregate outputs
@@ -66,6 +69,7 @@ if __name__ == '__main__':
     parser.add_argument('--out', required=True, help='name of the aggregated output files')
     parser.add_argument('--allow-missing-jobs', default=False, action='store_true', help='whether to allow missing jobs')
     parser.add_argument('--regions-file', default=DEFAULT_REGIONS_FILE, help='name of file of regions and their URLs')
+    parser.add_argument('--chr', default=None, type=int, help='Target chromosome (if not provided, all chromosomes will be considered)')
     
     #check package versions
     check_package_versions()
