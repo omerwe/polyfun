@@ -10,7 +10,7 @@ import tempfile
 import glob
 import subprocess
 from importlib import reload
-from polyfun_utils import set_snpid_index
+from polyfun_utils import set_snpid_index, TqdmUpTo
 from pyarrow import ArrowIOError
 from pyarrow.lib import ArrowInvalid
 from ldstore.bcor import bcor
@@ -18,9 +18,32 @@ import scipy.sparse as sparse
 from pandas_plink import read_plink
 from sklearn.impute import SimpleImputer
 from polyfun import configure_logger, check_package_versions
+import urllib.request
+from urllib.parse import urlparse
 
 
+def splash_screen():
+    print('*********************************************************************')
+    print('* Fine-mapping Wrapper')
+    print('* Version 1.0.0')
+    print('* (C) 2019-2020 Omer Weissbrod')
+    print('*********************************************************************')
+    print()
+    
+    
 
+
+def uri_validator(x):
+    '''
+    code taken from: https://stackoverflow.com/questions/7160737/python-how-to-validate-a-url-in-python-malformed-or-not
+    '''
+    try:
+        result = urlparse(x)
+        return all([result.scheme, result.netloc, result.path])
+    except:
+        return False
+    
+    
     
 def load_ld_npz(ld_prefix):
 
@@ -99,6 +122,23 @@ def read_ld_from_file(ld_file):
     return ld_arr, df_ld_snps
     
     
+    
+def download_ld_file(url_prefix):
+    temp_dir = tempfile.mkdtemp()
+    filename_prefix = os.path.join(temp_dir, 'ld')
+    for suffix in ['npz', 'gz']:
+        url = url_prefix + '.' + suffix
+        suffix_file = filename_prefix + '.' + suffix
+        with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc='downloading %s'%(url)) as t:                  
+            try:
+                urllib.request.urlretrieve(url, filename=suffix_file, reporthook=t.update_to)
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    raise ValueError('URL %s wasn\'t found'%(url))
+                else:
+                    raise
+                
+    return filename_prefix
     
 
 def run_executable(cmd, description, good_returncode=0, measure_time=True, check_errors=True, show_output=False, show_command=False):
@@ -250,6 +290,7 @@ class Fine_Mapping(object):
         #update self.df_ld
         self.df_ld = df_ld
         self.df_ld_snps = df_ld_snps
+        assert np.all(self.df_ld_snps['SNP'] == self.df_sumstats_locus['SNP'])
         
 
 
@@ -379,6 +420,7 @@ class Fine_Mapping(object):
             imp.fit(X)
             X = imp.transform(X)
         X -= X.mean(axis=0)
+        assert not np.any(np.isnan(X))
         X /= X.std(axis=0)
         return X
     
@@ -427,8 +469,11 @@ class Fine_Mapping(object):
                 ld_arr[chunk_i_start:chunk_i_end, chunk_j_start:chunk_j_end] = X_i.T.dot(X_j) / X_i.shape[0]
                 ld_arr[chunk_j_start:chunk_j_end, chunk_i_start:chunk_i_end] = ld_arr[chunk_i_start:chunk_i_end, chunk_j_start:chunk_j_end].T
         ld_arr = np.nan_to_num(ld_arr, copy=False)
-        #np.fill_diagonal(ld_arr, 1)
-                
+        ld_diag = np.diag(ld_arr).copy()
+        if np.any(np.isnan(np.diag(ld_arr))):
+            ld_diag = np.nan_to_num(ld_diag, copy=False)
+            np.fill_diagonal(ld_arr, ld_diag)
+                            
         logging.info('Done in %0.2f seconds'%(time.time() - t0))
         return ld_arr, df_ld_snps
         
@@ -581,6 +626,10 @@ class SUSIE_Wrapper(Fine_Mapping):
             
         #set locus
         self.set_locus(locus_start, locus_end)
+        
+        #download LD file if it's a url
+        if uri_validator(ld_file):
+            ld_file = download_ld_file(ld_file)
     
         #Load LD data into memory if num_causal_snps>1
         if num_causal_snps==1:
@@ -726,6 +775,12 @@ class SUSIE_Wrapper(Fine_Mapping):
         df_susie['BETA_MEAN'] = beta_mean
         df_susie['BETA_SD'] = np.sqrt(beta_var)
         
+        #add distance from center
+        start = df_susie['BP'].min()
+        end = df_susie['BP'].max()
+        middle = (start+end)//2
+        df_susie['DISTANCE_FROM_CENTER'] = np.abs(df_susie['BP'] - middle)        
+        
         #mark causal sets
         self.susie_dict = {key:np.array(susie_obj.rx2(key)) for key in list(susie_obj.names)}
         df_susie['CREDIBLE_SET'] = 0
@@ -771,6 +826,10 @@ class FINEMAP_Wrapper(Fine_Mapping):
             raise NotImplementedError('FINEMAP object does not support --debug-dir')
         if allow_missing:
             raise ValueError('FINEMAP object does not support --allow-missing')
+            
+        #download LD file if it's a url
+        if uri_validator(ld_file):
+            ld_file = download_ld_file(ld_file)            
             
         #create prefix of output files
         finemap_dir = tempfile.mkdtemp()
@@ -913,8 +972,8 @@ class FINEMAP_Wrapper(Fine_Mapping):
             raise IOError('corrupt log file found: %s'%(log_filename+'_sss'))
                 
         #load results
-        df_finemap = pd.read_table(snp_filename, sep=' ', usecols=['rsid', 'allele1', 'allele2', 'prob', 'mean', 'sd'])
-        df_finemap.rename(columns={'rsid':'SNP', 'prob':'PIP', 'mean':'BETA_MEAN', 'sd':'BETA_SD', 'allele1':'A1', 'allele2':'A2'}, inplace=True)
+        df_finemap = pd.read_table(snp_filename, sep=' ', usecols=['rsid', 'chromosome', 'position', 'allele1', 'allele2', 'prob', 'mean', 'sd'])
+        df_finemap.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'prob':'PIP', 'mean':'BETA_MEAN', 'sd':'BETA_SD', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
         df_finemap.sort_values('PIP', inplace=True, ascending=False)
         
         #read log10bf
@@ -926,6 +985,12 @@ class FINEMAP_Wrapper(Fine_Mapping):
                     break
         if log10bf is None:
             raise ValueError('FINEMP did not report Log10-BF')
+            
+        #add distance from center
+        start = df_finemap['BP'].min()
+        end = df_finemap['BP'].max()
+        middle = (start+end)//2
+        df_finemap['DISTANCE_FROM_CENTER'] = np.abs(df_finemap['BP'] - middle)
         
         #add causal set info
         df_finemap['CREDIBLE_SET'] = 0
@@ -950,15 +1015,6 @@ class FINEMAP_Wrapper(Fine_Mapping):
         
     
     
-    
-    
-def splash_screen():
-    print('*********************************************************************')
-    print('* Fine-mapping Wrapper')
-    print('* Version 1.0.0')
-    print('* (C) 2019-2020 Omer Weissbrod')
-    print('*********************************************************************')
-    print()
     
     
 
