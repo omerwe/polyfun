@@ -11,30 +11,13 @@ from pyarrow.lib import ArrowInvalid
 import tempfile
 import scipy.sparse as sparse
 from pandas.api.types import is_numeric_dtype
-from polyfun_utils import configure_logger, set_snpid_index
+from polyfun_utils import configure_logger, set_snpid_index, TqdmUpTo, LONG_RANGE_LD_REGIONS
 
 
 UKBB_LD_URL = 'https://data.broadinstitute.org/alkesgroup/UKBB_LD'
 REGION_LENGTH = 3000000
 UKB_N=337545
 META_COLUMNS = ['SNP', 'CHR', 'BP', 'A1', 'A2']
-
-
-
-LONG_RANGE_LD_REGIONS = []
-LONG_RANGE_LD_REGIONS.append({'chr':6, 'start':25500000, 'end':33500000})
-LONG_RANGE_LD_REGIONS.append({'chr':8, 'start':8000000, 'end':12000000})
-LONG_RANGE_LD_REGIONS.append({'chr':11, 'start':46000000, 'end':57000000})
-
-        
-class TqdmUpTo(tqdm):
-    """
-        taken from: https://github.com/tqdm/tqdm/blob/master/examples/tqdm_wget.py
-    """
-
-    def update_to(self, b=1, bsize=1, tsize=None):
-        if tsize is not None: self.total = tsize            
-        self.update(b * bsize - self.n)
 
     
 def read_annot(annot_file):
