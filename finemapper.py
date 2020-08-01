@@ -290,7 +290,6 @@ class Fine_Mapping(object):
         #update self.df_ld
         self.df_ld = df_ld
         self.df_ld_snps = df_ld_snps
-        assert np.all(self.df_ld_snps['SNP'] == self.df_sumstats_locus['SNP'])
         
 
 
@@ -421,7 +420,8 @@ class Fine_Mapping(object):
             X = imp.transform(X)
         X -= X.mean(axis=0)
         assert not np.any(np.isnan(X))
-        X /= X.std(axis=0)
+        is_polymorphic = X.std(axis=0)>0
+        X[:, is_polymorphic] /= X[:, is_polymorphic].std(axis=0)
         return X
     
     
@@ -470,8 +470,8 @@ class Fine_Mapping(object):
                 ld_arr[chunk_j_start:chunk_j_end, chunk_i_start:chunk_i_end] = ld_arr[chunk_i_start:chunk_i_end, chunk_j_start:chunk_j_end].T
         ld_arr = np.nan_to_num(ld_arr, copy=False)
         ld_diag = np.diag(ld_arr).copy()
-        if np.any(np.isnan(np.diag(ld_arr))):
-            ld_diag = np.nan_to_num(ld_diag, copy=False)
+        if np.any(np.isclose(ld_diag, 0.0)):
+            ld_diag[np.isclose(ld_diag, 0.0)] = 1.0
             np.fill_diagonal(ld_arr, ld_diag)
                             
         logging.info('Done in %0.2f seconds'%(time.time() - t0))
@@ -653,7 +653,6 @@ class SUSIE_Wrapper(Fine_Mapping):
             assert np.isclose(prior_weights.sum(), 1)
             
         #flip effect sizes if needed
-        assert np.all(self.df_ld_snps['SNP'] == self.df_sumstats_locus['SNP'])
         assert np.all(self.df_ld_snps['BP'] == self.df_sumstats_locus['BP'])
         is_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A2']
         is_not_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A1']
@@ -893,7 +892,6 @@ class FINEMAP_Wrapper(Fine_Mapping):
             df_ld_snps = get_bcor_meta(bcor_obj)
             self.sync_ld_sumstats(None, df_ld_snps, allow_missing=allow_missing)
             del df_ld_snps
-        assert np.all(self.df_ld_snps['SNP'] == self.df_sumstats_locus['SNP'])
         assert np.all(self.df_ld_snps['BP'] == self.df_sumstats_locus['BP'])
         is_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A2']
         is_not_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A1']
