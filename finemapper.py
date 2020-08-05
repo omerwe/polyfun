@@ -453,11 +453,16 @@ class Fine_Mapping(object):
         chunk_size = np.int((np.float(mem_limit) * 0.8) / bed.shape[0] / 4 * (2**30))
         if chunk_size==0: chunk_size=1
         if chunk_size > bed.shape[1]: chunk_size = bed.shape[1]
-        num_chunks = np.int(np.floor(np.int(bed.shape[1]) / chunk_size))
+        num_chunks = np.int(np.ceil(bed.shape[1] / chunk_size))
+        if num_chunks>1:
+            assert chunk_size * (num_chunks-2) < bed.shape[1]-1
+        if chunk_size * (num_chunks-1) >= bed.shape[1]:
+            num_chunks-=1
         
         #compute LD in chunks
+        logging.info('Found %d SNPs in target region. Computing LD in %d chunks...'%(bed.shape[1], num_chunks))
         ld_arr = np.empty((bed.shape[1], bed.shape[1]), dtype=np.float32)
-        for chunk_i in range(num_chunks):
+        for chunk_i in tqdm(range(num_chunks)):
             chunk_i_start = chunk_i*chunk_size
             chunk_i_end = np.minimum(chunk_i_start+chunk_size, bed.shape[1])
             X_i = self.read_plink_genotypes(bed[:, chunk_i_start:chunk_i_end])
