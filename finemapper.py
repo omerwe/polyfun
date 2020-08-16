@@ -623,7 +623,7 @@ class SUSIE_Wrapper(Fine_Mapping):
         
     
         
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None):
     
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -798,6 +798,15 @@ class SUSIE_Wrapper(Fine_Mapping):
                 df_susie.loc[is_in_set, 'CREDIBLE_SET'] = set_i+1
         except TypeError:
             pass
+            
+            
+        #save SuSiE object if requested
+        if susie_outfile is not None:
+            from rpy2.robjects.packages import importr
+            R_base = importr('base', robject_translations = {'print.me': 'print_dot_me', 'print_me': 'print_uscore_me'})
+            R_base.saveRDS(susie_obj, file=susie_outfile)
+            logging.info('Saved SuSiE object to RDS file: %s'%(susie_outfile))
+
         
         return df_susie
         
@@ -817,7 +826,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
 
     
         
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None):
     
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -1043,7 +1052,10 @@ if __name__ == '__main__':
     parser.add_argument('--memory', type=int, default=1, help='Maximum amount of memory in GB to allocate to LDStore')
     parser.add_argument('--threads', type=int, default=None, help='The number of CPU cores LDstore will use (if not specified, LDstore will use the max number of CPU cores available')
     parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
-    parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')
+    parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')    
+    parser.add_argument('--susie-outfile', default=None, help='If specified, the SuSiE object will be saved to an output file')
+    
+    
     
     parser.add_argument('--max-num-causal', required=True, type=int, help='Number of causal SNPs')
     parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
@@ -1069,6 +1081,8 @@ if __name__ == '__main__':
     #check that the output directory exists
     if len(os.path.dirname(args.out))>0 and not os.path.exists(os.path.dirname(args.out)):
         raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.out)))    
+    if args.susie_outfile is not None and len(os.path.dirname(args.susie_outfile))>0 and not os.path.exists(os.path.dirname(args.susie_outfile)):
+        raise ValueError('output directory %s doesn\'t exist'%(os.path.dirname(args.susie_outfile)))    
 
     #configure logger
     configure_logger(args.out)
@@ -1096,6 +1110,8 @@ if __name__ == '__main__':
                                     ldstore_exe=args.ldstore2, n_threads=args.threads,
                                     cache_dir=args.cache_dir, memory=args.memory)
     elif args.method == 'finemap':
+        if args.susie_outfile is not None:
+            raise ValueError('--susie-outfile cannot be specified with finemap method')
         if args.finemap_exe is None:
             raise ValueError('need to specify --finemap-exe')
         if args.hess:
@@ -1110,7 +1126,7 @@ if __name__ == '__main__':
     #run fine-mapping
     df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
                  use_prior_causal_prob=not args.non_funct, prior_var=None, residual_var=None, hess=args.hess,
-                 verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing)
+                 verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing, susie_outfile=args.susie_outfile)
     logging.info('Writing fine-mapping results to %s'%(args.out))
     df_finemap.sort_values('PIP', ascending=False, inplace=True)
     if args.out.endswith('.parquet'):
