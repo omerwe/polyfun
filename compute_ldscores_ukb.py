@@ -24,7 +24,7 @@ def read_annot(annot_file):
     try:
         df_annot = pd.read_parquet(annot_file)
     except (ArrowIOError, ArrowInvalid):
-        df_annot = pd.read_table(annot_file, delim_whitespace=True)
+        df_annot = pd.read_table(annot_file, sep='\s+')
     
     assert 'CHR' in df_annot.columns
     assert 'SNP' in df_annot.columns
@@ -56,7 +56,7 @@ def load_ld_matrix(ld_dir, ld_prefix):
     #load the SNPs metadata
     gz_file = os.path.join(ld_dir, '%s.gz'%(ld_prefix))
     try:
-        df_ld_snps = pd.read_table(gz_file, delim_whitespace=True)
+        df_ld_snps = pd.read_table(gz_file, sep='\s+')
     except (ArrowIOError, ArrowInvalid):
         raise IOError('Corrupt file downloaded')
     df_ld_snps.rename(columns={'rsid':'SNP', 'chromosome':'CHR', 'position':'BP', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='ignore')

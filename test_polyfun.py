@@ -17,9 +17,9 @@ def compare_dfs(dir1, dir2, filename, sort_column=None):
     if not os.path.exists(file2):
         raise IOError('%s not found'%(file2))
     if file1.endswith('.parquet'): df1 = pd.read_parquet(file1)
-    else: df1 = pd.read_table(file1, delim_whitespace=True)
+    else: df1 = pd.read_table(file1, sep='\s+')
     if file2.endswith('.parquet'): df2 = pd.read_parquet(file2)
-    else: df2 = pd.read_table(file2, delim_whitespace=True)
+    else: df2 = pd.read_table(file2, sep='\s+')
     assert np.all(df1.shape == df2.shape), 'found dimension mismatch between %s and %s'%(file1, file2)
     assert np.all(df1.columns == df2.columns), 'found mismatch between %s and %s'%(file1, file2)
     if sort_column is not None:

@@ -33,7 +33,7 @@ if __name__ == '__main__':
     try:
         df_snps = pd.read_parquet(args.pips)
     except (ArrowIOError, ArrowInvalid):
-        df_snps = pd.read_table(args.pips, delim_whitespace=True)
+        df_snps = pd.read_table(args.pips, sep='\s+')
     if 'A1' not in df_snps.columns:
         raise ValueError('missing column A1')
     if 'A2' not in df_snps.columns:
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     try:
         df_annot = pd.read_parquet(args.annot)
     except (ArrowIOError, ArrowInvalid):
-        df_annot = pd.read_table(args.annot, delim_whitespace=True)
+        df_annot = pd.read_table(args.annot, sep='\s+')
     df_annot = set_snpid_index(df_annot)
     logging.info('Done in %0.2f seconds'%(time.time() - t0))
     

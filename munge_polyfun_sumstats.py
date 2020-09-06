@@ -222,7 +222,7 @@ if __name__ == '__main__':
     #read sumstats file
     logging.info('Reading sumstats file...')
     t0 = time.time()
-    df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
+    df_sumstats = pd.read_table(args.sumstats, sep='\s+')
     logging.info('Done in %0.2f seconds'%(time.time()-t0))
     
     #convert odds-ratio to log-odds ratio if needed

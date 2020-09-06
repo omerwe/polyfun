@@ -31,7 +31,7 @@ if __name__ == '__main__':
     try:
         df_snps = pd.read_parquet(args.sumstats)
     except (ArrowIOError, ArrowInvalid):
-        df_snps = pd.read_table(args.sumstats, delim_whitespace=True)
+        df_snps = pd.read_table(args.sumstats, sep='\s+')
     if 'A1' not in df_snps.columns:
         raise ValueError('missing column A1')
     if 'A2' not in df_snps.columns:

@@ -48,7 +48,7 @@ def compute_ldscores(args):
         try:
             df_annot = pd.read_parquet(args.annot)
         except (ArrowIOError, ArrowInvalid):
-            df_annot = pd.read_table(args.annot, delim_whitespace=True)
+            df_annot = pd.read_table(args.annot, sep='\s+')
         
         #Remove annotations of SNPs that are not in the .bim file
         df_annot = set_snpid_index(df_annot)
@@ -75,7 +75,7 @@ def compute_ldscores(args):
 
     #find #individuals in bfile
     fam_file = args.bfile+'.fam'
-    df_fam = pd.read_table(fam_file, header=None, usecols=[5], delim_whitespace=True)
+    df_fam = pd.read_table(fam_file, header=None, usecols=[5], sep='\s+')
     n = df_fam.shape[0]
 
     #find keep_indivs    

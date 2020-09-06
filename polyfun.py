@@ -185,7 +185,7 @@ class PolyFun:
             try:
                 df_sumstats = pd.read_parquet(args.sumstats)            
             except (ArrowIOError, ArrowInvalid):
-                df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)            
+                df_sumstats = pd.read_table(args.sumstats, sep='\s+')            
             ###merge everything together...
             
         #prepare LD-scores for S-LDSC run
@@ -556,7 +556,7 @@ class PolyFun:
         try:
             df_sumstats = pd.read_parquet(args.sumstats)
         except (ArrowIOError, ArrowInvalid):
-            df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
+            df_sumstats = pd.read_table(args.sumstats, sep='\s+')
         df_sumstats.drop(columns=['SNP'], errors='ignore', inplace=True)
         for col in ['CHR', 'BP', 'A1', 'A2']:
             if col not in df_sumstats.columns:
@@ -687,7 +687,7 @@ class PolyFun:
 
         #find #individuals in bfile
         fam_file = get_file_name(args, 'fam', chr_num)
-        df_fam = pd.read_table(fam_file, header=None, usecols=[5], delim_whitespace=True)
+        df_fam = pd.read_table(fam_file, header=None, usecols=[5], sep='\s+')
         n = df_fam.shape[0]
         
         #find keep_indivs

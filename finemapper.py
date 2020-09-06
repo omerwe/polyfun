@@ -56,7 +56,7 @@ def load_ld_npz(ld_prefix):
     if os.path.exists(snps_filename_parquet):
         df_ld_snps = pd.read_parquet(snps_filename_parquet)
     elif os.path.exists(snps_filename_gz):
-        df_ld_snps = pd.read_table(snps_filename_gz, delim_whitespace=True)
+        df_ld_snps = pd.read_table(snps_filename_gz, sep='\s+')
         df_ld_snps.rename(columns={'allele1':'A1', 'allele2':'A2', 'position':'BP', 'chromosome':'CHR', 'rsid':'SNP'}, inplace=True, errors='ignore')
     else:
         raise ValueError('couldn\'t find SNPs file %s or %s'%(snps_filename_parquet, snps_filename_gz))
@@ -227,7 +227,7 @@ class Fine_Mapping(object):
         try:
             df_sumstats = pd.read_parquet(sumstats_file)
         except (ArrowIOError, ArrowInvalid):
-            df_sumstats = pd.read_table(sumstats_file, delim_whitespace=True)
+            df_sumstats = pd.read_table(sumstats_file, sep='\s+')
         if not np.any(df_sumstats['CHR'] == chr_num):
             raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))
         if np.any(df_sumstats['CHR'] != chr_num):

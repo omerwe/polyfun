@@ -38,7 +38,7 @@ def main(args):
     try:
         df_sumstats = pd.read_parquet(args.sumstats)
     except (ArrowIOError, ArrowInvalid):
-        df_sumstats = pd.read_table(args.sumstats, delim_whitespace=True)
+        df_sumstats = pd.read_table(args.sumstats, sep='\s+')
         
     #compute p-values if needed
     if args.pvalue_cutoff is not None:

@@ -121,7 +121,7 @@ class PolyLoc(PolyFun):
         try:
             df_posterior = pd.read_parquet(args.posterior)
         except (ArrowIOError, ArrowInvalid):
-            df_posterior = pd.read_table(args.posterior, delim_whitespace=True)
+            df_posterior = pd.read_table(args.posterior, sep='\s+')
             
         #preprocess columns
         df_posterior.columns = df_posterior.columns.str.upper()
@@ -147,7 +147,7 @@ class PolyLoc(PolyFun):
         #add another partition for all SNPs not in the posterior file
         df_bim_list = []
         for chr_num in range(1,23):
-            df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), delim_whitespace=True, names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'], header=None)
+            df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), sep='\s+', names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'], header=None)
             df_bim_list.append(df_bim_chr)
         df_bim = pd.concat(df_bim_list, axis=0)
         df_bim = set_snpid_index(df_bim)
