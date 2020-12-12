@@ -11,7 +11,7 @@ LONG_RANGE_LD_REGIONS = []
 LONG_RANGE_LD_REGIONS.append({'chr':6, 'start':25500000, 'end':33500000})
 LONG_RANGE_LD_REGIONS.append({'chr':8, 'start':8000000, 'end':12000000})
 LONG_RANGE_LD_REGIONS.append({'chr':11, 'start':46000000, 'end':57000000})
-DEFAULT_REGIONS_FILE = 'ukb_regions.tsv.gz'
+DEFAULT_REGIONS_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'ukb_regions.tsv.gz')
 
 
 
