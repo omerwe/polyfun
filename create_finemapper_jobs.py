@@ -8,8 +8,7 @@ from pyarrow import ArrowIOError
 from pyarrow.lib import ArrowInvalid
 from polyfun_utils import DEFAULT_REGIONS_FILE
 
-
-FINEMAPPER_SCRIPT = 'finemapper.py'
+FINEMAPPER_SCRIPT = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'finemapper.py')
 
 
 def create_finemapper_cmd(args, chr_num, start, end, url_prefix):
