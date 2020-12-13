@@ -69,6 +69,9 @@ def main(args):
     df_sumstats.sort_values(['CHR', 'BP'], inplace=True, ascending=True)
     
     #write output file
+    if args.adjust_beta_freq:
+        df_sumstats['BETA_MEAN'] /= np.sqrt(2*df_sumstats['MAF']*(1-df_sumstats['MAF']))
+        df_sumstats['BETA_SD']   /= np.sqrt(2*df_sumstats['MAF']*(1-df_sumstats['MAF']))
     df_sumstats.to_csv(args.out, sep='\t', index=False)
     logging.info('Wrote aggregated results to %s'%(args.out))
         
@@ -86,6 +89,8 @@ if __name__ == '__main__':
     parser.add_argument('--regions-file', default=DEFAULT_REGIONS_FILE, help='name of file of regions and their URLs')
     parser.add_argument('--chr', default=None, type=int, help='Target chromosome (if not provided, all chromosomes will be considered)')
     parser.add_argument('--pvalue-cutoff', type=float, default=None, help='only consider regions that have at least one SNP with a p-value greater than this cutoff')
+    parser.add_argument('--adjust-beta-freq', default=False, action='store_true', help='If specified, the posterior estimates of the SNP effect sizes will be on per-allele scale rather than a per-standardized genotype scale')
+    
     
     #check package versions
     check_package_versions()
