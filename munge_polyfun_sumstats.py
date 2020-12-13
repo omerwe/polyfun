@@ -282,7 +282,6 @@ if __name__ == '__main__':
     
     #write output
     logging.info('Saving munged sumstats of %d SNPs to %s'%(df_sumstats.shape[0], args.out))
-    import ipdb; ipdb.set_trace()
     if 'MAF' in df_sumstats.columns:
         df_sumstats.loc[df_sumstats['MAF']>0.5, 'MAF'] = 1 - df_sumstats.loc[df_sumstats['MAF']>0.5, 'MAF']
     columns_to_keep = [c for c in df_sumstats.columns if c in ['SNP', 'CHR', 'BP', 'A1', 'A2', 'Z', 'N', 'MAF']]
