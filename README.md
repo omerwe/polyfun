@@ -17,7 +17,7 @@ The files in the `ldstore` directory are an adaptation of the [ldstore package](
 <br>
 
 # Manual
-We provide a detailed manual of PolyFun, PolyLoc and finemapper in the [Wiki page](https://github.com/omerwe/polyfun/wiki). If you run into any issues, please check [the FAQ](https://github.com/omerwe/polyfun/wiki/5.-FAQ) first.
+We provide a detailed manual of PolyFun, PolyLoc and finemapper in the [Wiki page](https://github.com/omerwe/polyfun/wiki). If you run into any issues, please check [the FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ) first.
 
 
 
@@ -116,7 +116,7 @@ We recommend testing PolyFun by invoking the script:
 ```
 python test_polyfun.py --python3 <python3_exe>
 ```
-where `python3_exe` (optional) is the command you type to start a python3 session (default is `python`). If the script completes without an error, everything is fine. If you see any errors, please consult the [FAQ](https://github.com/omerwe/polyfun/wiki/5.-FAQ).
+where `python3_exe` (optional) is the command you type to start a python3 session (default is `python`). If the script completes without an error, everything is fine. If you see any errors, please consult the [FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ).
 
 
 
