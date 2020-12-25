@@ -38,7 +38,7 @@ def find_df_column(df, strings_to_find, allow_missing=False):
 def rename_df_columns(df_sumstats):
     chr_column = find_df_column(df_sumstats, ['CHR', 'CHROMOSOME', 'CHROM'])
     bp_column = find_df_column(df_sumstats, ['BP', 'POS', 'POSITION', 'COORDINATE', 'BASEPAIR'])
-    snp_column = find_df_column(df_sumstats, ['SNP', 'RSID', 'RS', 'NAME'])
+    snp_column = find_df_column(df_sumstats, ['SNP', 'RSID', 'RS', 'NAME', 'MarkerName'])
     a1freq_col = find_df_column(df_sumstats, ['A1FREQ', 'freq', 'MAF', 'FRQ'], allow_missing=True)
     info_col = find_df_column(df_sumstats, 'INFO', allow_missing=True)
     beta_col = find_df_column(df_sumstats, ['BETA', 'EFF', 'EFFECT', 'EFFECT_SIZE', 'OR'], allow_missing=True)
@@ -46,20 +46,26 @@ def rename_df_columns(df_sumstats):
     pvalue_col = find_df_column(df_sumstats, ['P_BOLT_LMM', 'P', 'PVALUE', 'P-VALUE', 'P_value', 'PVAL'], allow_missing=True)
     z_col = find_df_column(df_sumstats, ['Z', 'ZSCORE', 'Z_SCORE'], allow_missing=True)    
     n_col = find_df_column(df_sumstats, ['N', 'sample_size'], allow_missing=True)    
-    ncase_col = find_df_column(df_sumstats, ['N_cases', 'Ncase'], allow_missing=True)    
-    ncontrol_col = find_df_column(df_sumstats, ['N_controls', 'Ncontrol'], allow_missing=True)    
+    ncase_col = find_df_column(df_sumstats, ['N_cases', 'Ncase', 'Nca','Total_NCase'], allow_missing=True)    
+    ncontrol_col = find_df_column(df_sumstats, ['N_controls', 'Ncontrol','Nco','Total_NControl'], allow_missing=True)    
     try:
-        allele1_col = find_df_column(df_sumstats, ['ALLELE1', 'A1'])
-        allele0_col = find_df_column(df_sumstats, ['ALLELE0', 'A0'])
+        allele1_col = find_df_column(df_sumstats, ['ALLELE1', 'A1', 'a1', 'a_1'])
+        allele0_col = find_df_column(df_sumstats, ['ALLELE0', 'A0', 'a0', 'a_0'])
     except ValueError:
-        allele1_col = find_df_column(df_sumstats, ['ALLELE1', 'A1'])
-        allele0_col = find_df_column(df_sumstats, ['ALLELE2', 'A2'])
+        allele1_col = find_df_column(df_sumstats, ['ALLELE1', 'A1', 'a1', 'a_1'])
+        allele0_col = find_df_column(df_sumstats, ['ALLELE2', 'A2', 'a2', 'a_2'])
     
+    # make alleles uppercase
+    df_sumstats[allele1_col] = df_sumstats[allele1_col].str.upper()
+    df_sumstats[allele0_col] = df_sumstats[allele0_col].str.upper()
+    
+    # rename columns
     return df_sumstats.rename(columns={snp_column:'SNP', allele1_col:'A1', 
-              allele0_col:'A2', a1freq_col:'MAF', bp_column:'BP', 
-             chr_column:'CHR', info_col:'INFO', beta_col:'BETA', 
-             se_col:'SE', pvalue_col:'P', z_col:'Z', n_col:'N',
-             ncase_col:'N_CASES', ncontrol_col:'N_CONTROLS'}, errors='ignore')
+            allele0_col:'A2', a1freq_col:'MAF', bp_column:'BP', 
+            chr_column:'CHR', info_col:'INFO', beta_col:'BETA', 
+            se_col:'SE', pvalue_col:'P', z_col:'Z', n_col:'N',
+            ncase_col:'N_CASES', ncontrol_col:'N_CONTROLS'}, errors='ignore')
+            
 
 
 
