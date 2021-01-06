@@ -1,13 +1,17 @@
-# PolyFun  and  PolyLoc
+# PolyFun, PolyLoc and PolyPred
 **PolyFun** (POLYgenic FUNctionally-informed fine-mapping)
 <br>
 **PolyLoc** (POLYgenic LOCalization of complex trait heritability)
+<br>
+**PolyPred** (POLYgenic Prediction of complex traits)
 
-This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping and **PolyLoc** for polygenic localization of complex trait heritability, described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2).
+This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2019 bioRxiv](https://www.biorxiv.org/content/10.1101/807792v2).
 <br><br>
 **PolyFun** estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, **PolyFun** can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
 <br><br>
 **PolyLoc** generalizes fine-mapping by constructing minimal sets of SNPs that causally explain a given proportion (e.g. 50%) of SNP heritability.
+<br><br>
+**PolyPred** exploits fine-mapping to improve trans-ethnic polygenic risk scores, by predicting using causal effect estimates intead of tagging effect estimates.
 
 We also provide a script called **finemapper** that facilitates fine-mapping with methods like SuSiE, saving many of the preprocessing steps often required to perform fine-mapping (e.g. handling allelic flips between the summary statistics and reference genotypes).
 
@@ -17,7 +21,7 @@ The files in the `ldstore` directory are an adaptation of the [ldstore package](
 <br>
 
 # Manual
-We provide a detailed manual of PolyFun, PolyLoc and finemapper in the [Wiki page](https://github.com/omerwe/polyfun/wiki). If you run into any issues, please check [the FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ) first.
+We provide a detailed manual of PolyFun, PolyLoc and PolyPred in the [Wiki page](https://github.com/omerwe/polyfun/wiki). If you run into any issues, please check [the FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ) first.
 
 
 
