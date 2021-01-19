@@ -10,7 +10,7 @@ from polyfun_utils import Logger, check_package_versions, set_snpid_index, confi
 from polyfun_utils import SNP_COLUMNS
 from pyarrow import ArrowIOError
 from pyarrow.lib import ArrowInvalid
-from compute_ldscores_ukb import compute_ldscores_chr
+from compute_ldscores_from_ld import compute_ldscores_chr
 import tempfile
 
 
