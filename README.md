@@ -5,7 +5,7 @@
 <br>
 **PolyPred** (POLYgenic Prediction of complex traits)
 
-This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2020 Nat Genet](https://www.nature.com/articles/s41588-020-00735-5).
+This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2020 Nat Genet](https://www.nature.com/articles/s41588-020-00735-5). **PolyPred** is described in [Weissbrod*, Kanai*, Shi* et al. 2021 medRxiv](https://www.medrxiv.org/content/10.1101/2021.01.19.21249483v1).
 <br><br>
 **PolyFun** estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, **PolyFun** can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
 <br><br>
