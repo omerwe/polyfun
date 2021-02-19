@@ -72,7 +72,7 @@ class bcor:
         
         if len( snps ) == 0:
             self.__fh.seek( self.__corr_block_offset )
-            corr = np.identity( self.__nSNPs )
+            corr = np.identity( self.__nSNPs, dtype=np.float32)
             for snp_x in range( self.__nSNPs - 1 ):
                 for snp_y in range( snp_x + 1, self.__nSNPs ):
                     corr[ snp_y, snp_x ] = self.__readCorrPair( snp_x, snp_y, False )
@@ -80,7 +80,7 @@ class bcor:
         else:
             areSNPsIncluded( snps, self.__nSNPs, self.__fname )
             
-            corr = np.zeros( [ self.__nSNPs, len( snps ) ] )
+            corr = np.zeros( [ self.__nSNPs, len( snps ) ], dtype=np.float32)
             for snp_x, index in zip( snps, list(range( len( snps ))) ):
                 for snp_y in range( self.__nSNPs ):
                     if snp_x == snp_y:
