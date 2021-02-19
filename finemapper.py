@@ -68,6 +68,7 @@ def load_ld_npz(ld_prefix):
     ld_arr = sparse.load_npz(R_filename).toarray()
     ld_arr = ld_arr+ld_arr.T
     assert np.allclose(np.diag(ld_arr), 1.0)
+    assert np.all(~np.isnan(ld_arr))
     
     #sanity checks
     assert ld_arr.shape[0] == ld_arr.shape[1]
@@ -97,6 +98,7 @@ def load_ld_bcor(ld_prefix):
     bcor_obj = bcor(bcor_file)
     df_ld_snps = get_bcor_meta(bcor_obj)
     ld_arr = bcor_obj.readCorr([])
+    assert np.all(~np.isnan(ld_arr))
     logging.info('Done in %0.2f seconds'%(time.time() - t0))
     return ld_arr, df_ld_snps
     
@@ -118,7 +120,7 @@ def read_ld_from_file(ld_file):
         ld_arr, df_ld_snps = load_ld_npz(ld_file[:-4])
     else:
         raise ValueError('unknown LD format')
-    
+    assert np.all(~np.isnan(ld_arr))
     return ld_arr, df_ld_snps
     
     
@@ -290,6 +292,7 @@ class Fine_Mapping(object):
         #update self.df_ld
         self.df_ld = df_ld
         self.df_ld_snps = df_ld_snps
+        assert self.df_ld.notnull().all().all()
         
 
 
@@ -647,6 +650,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                 ld_arr, df_ld_snps = self.get_ld_data(locus_start, locus_end, need_bcor=False, verbose=verbose)
             else:
                 ld_arr, df_ld_snps = read_ld_from_file(ld_file)
+            assert np.all(~np.isnan(ld_arr))
             self.sync_ld_sumstats(ld_arr, df_ld_snps, allow_missing=allow_missing)
             del ld_arr
             del df_ld_snps
@@ -715,7 +719,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                 zf.write(debug_file, os.path.basename(debug_file), compress_type=zipfile.ZIP_DEFLATED)
                 
 
-            
+        assert self.df_ld.notnull().all().all()
             
         # susie_obj = self.susieR.susie_z(
                 # z=self.df_sumstats_locus['Z'].values.reshape((m,1)),
