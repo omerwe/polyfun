@@ -841,8 +841,8 @@ class FINEMAP_Wrapper(Fine_Mapping):
             raise ValueError('cannot specify residual_var for FINEMAP')
         if debug_dir is not None:
             raise NotImplementedError('FINEMAP object does not support --debug-dir')
-        if allow_missing:
-            raise ValueError('FINEMAP object does not support --allow-missing')
+        # if allow_missing:
+            # raise ValueError('FINEMAP object does not support --allow-missing')
             
         #download LD file if it's a url
         if uri_validator(ld_file):
