@@ -888,13 +888,6 @@ class FINEMAP_Wrapper(Fine_Mapping):
             else:
                 raise ValueError('unknown LD file format for file: %s'%(ld_file))
         
-        #define prior causal probabilities
-        if use_prior_causal_prob:
-            prior_weights = self.df_sumstats_locus['SNPVAR'].copy().values
-            prior_weights /= prior_weights.sum()
-            assert np.isclose(prior_weights.sum(), 1)
-
-            
 
         #define file names
         master_file = finemap_output_prefix+'.master'
@@ -928,7 +921,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
         df_z['maf'] = 0.05
         df_z = df_z[['rsid', 'chromosome', 'position', 'allele1', 'allele2', 'maf', 'beta', 'se']]
         if use_prior_causal_prob:
-            df_z['prob'] = prior_weights
+            df_z['prob'] = self.df_sumstats_locus['SNPVAR'] / self.df_sumstats_locus['SNPVAR'].sum()
         df_z.to_csv(z_filename, header=True, index=False, sep=' ', float_format='%0.5f')
 
         #create the master file
