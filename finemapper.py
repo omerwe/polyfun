@@ -7,6 +7,7 @@ import logging
 import gzip
 from tqdm import tqdm
 import tempfile
+import shutil
 import glob
 import subprocess
 from importlib import reload
@@ -638,6 +639,9 @@ class SUSIE_Wrapper(Fine_Mapping):
         #download LD file if it's a url
         if uri_validator(ld_file):
             ld_file = download_ld_file(ld_file)
+            delete_ld_files_on_exit = True
+        else:
+            delete_ld_files_on_exit = False
     
         #Load LD data into memory if num_causal_snps>1
         if num_causal_snps==1:
@@ -811,6 +815,11 @@ class SUSIE_Wrapper(Fine_Mapping):
             R_base.saveRDS(susie_obj, file=susie_outfile)
             logging.info('Saved SuSiE object to RDS file: %s'%(susie_outfile))
 
+        
+        #delete the LD file if needed
+        if delete_ld_files_on_exit:
+            ld_file_dir = os.path.dirname(ld_file)
+            if os.path.exists(ld_file_dir): shutil.rmtree(ld_file_dir)
         
         return df_susie
         
