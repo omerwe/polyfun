@@ -299,6 +299,8 @@ def estimate_mixing_weights(args):
     df_prs_sum_all = pd.concat(df_prs_sum_list, axis=1)
     
     #sync df_pheno and df_prs_sum_all
+    df_prs_sum_all.index = df_prs_sum_all.index.astype(str)
+    df_pheno.index = df_pheno.index.astype(str)
     index_shared = df_prs_sum_all.index.intersection(df_pheno.index)
     assert len(index_shared)>0
     if len(index_shared) < df_prs_sum_all.shape[0]:
