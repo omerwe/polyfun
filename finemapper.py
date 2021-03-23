@@ -435,7 +435,7 @@ class Fine_Mapping(object):
         
         #read the plink file
         df_bim, df_fam, bed = read_plink(self.genotypes_file)
-        df_bim.rename(columns={'snp':'SNP', 'pos':'BP', 'chrom':'CHR', 'a0':'A1', 'a1':'A2'}, inplace=True)
+        df_bim.rename(columns={'snp':'SNP', 'pos':'BP', 'chrom':'CHR', 'a0':'A2', 'a1':'A1'}, inplace=True)
         df_bim['A1'] = df_bim['A1'].astype('str')
         df_bim['A2'] = df_bim['A2'].astype('str')
         df_bim['CHR'] = df_bim['CHR'].astype(np.int)
