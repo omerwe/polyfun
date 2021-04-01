@@ -63,7 +63,7 @@ def set_snpid_index(df, copy=False, allow_duplicates=False):
     df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
     df['A2s'] = df['A1'].copy()
     df.loc[df['A1_first'], 'A2s'] = df.loc[df['A1_first'], 'A2'].copy()
-    df.index = df['CHR'].astype(str) + '.' + df['BP'].astype(str) + '.' + df['A1s'] + '.' + df['A2s']
+    df.index = df['CHR'].astype(int).astype(str) + '.' + df['BP'].astype(str) + '.' + df['A1s'] + '.' + df['A2s']
     df.index.name = 'snpid'
     df.drop(columns=['A1_first', 'A1s', 'A2s'], inplace=True)
     

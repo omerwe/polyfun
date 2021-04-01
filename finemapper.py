@@ -85,7 +85,7 @@ def load_ld_npz(ld_prefix):
 def get_bcor_meta(bcor_obj):
     df_ld_snps = bcor_obj.getMeta()
     df_ld_snps.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-    df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
+    ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
     df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
     return df_ld_snps
     
@@ -290,6 +290,13 @@ class Fine_Mapping(object):
         assert np.all(df_ld.index == self.df_sumstats_locus.index)
         assert np.all(df_ld_snps.index == self.df_sumstats_locus.index)
         
+        #add leading zero to sumstats CHR column if needed
+        if np.any(df_ld_snps['CHR'].astype(str).str.startswith('0')):
+            self.df_sumstats_locus = self.df_sumstats_locus.copy()
+            self.df_sumstats_locus['CHR'] = self.df_sumstats_locus['CHR'].astype(str)
+            is_1digit = self.df_sumstats_locus['CHR'].str.len()==1
+            self.df_sumstats_locus.loc[is_1digit, 'CHR'] = '0' + self.df_sumstats_locus.loc[is_1digit, 'CHR']
+        
         #update self.df_ld
         self.df_ld = df_ld
         self.df_ld_snps = df_ld_snps
@@ -336,7 +343,7 @@ class Fine_Mapping(object):
                 df_ld_snps = bcor_obj.getMeta()
                 del bcor_obj
                 df_ld_snps.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-                df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
+                ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
                 df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
             else:
                 raise IOError('unknown file extension')
@@ -924,7 +931,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
         df_z.loc[is_flipped, 'A1'] = self.df_sumstats_locus.loc[is_flipped, 'A2']
         df_z.loc[is_flipped, 'A2'] = self.df_sumstats_locus.loc[is_flipped, 'A1']
         df_z.loc[is_flipped, 'Z'] *= (-1)
-        if df_z['CHR'].iloc[0]<10: df_z['CHR'] = '0' + df_z['CHR'].astype(str)
+        
         df_z.rename(columns={'SNP':'rsid', 'CHR':'chromosome', 'BP':'position', 'A1':'allele1', 'A2':'allele2', 'Z':'beta'}, inplace=True, errors='ignore')
         df_z['se'] = 1
         df_z['maf'] = 0.05
