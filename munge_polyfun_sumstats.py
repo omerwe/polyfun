@@ -197,10 +197,23 @@ def sanity_checks(df_sumstats):
     
     
 def convert_odds_ratio_to_log(df_sumstats):
-    if 'OR' in df_sumstats.columns and np.all(df_sumstats['OR']>0):
+    if 'OR' not in df_sumstats.columns:
+        return df_sumstats
+
+    # If there are negative values, assume it already contains log-odds
+    if np.any(df_sumstats['OR']<0):
+        return df_sumstats
+
+    # If they are all greater than zero, log transform
+    if np.all(df_sumstats['OR']>0):
         df_sumstats['OR'] = np.log(df_sumstats['OR'])
         logging.info('Converting OR column to log-odds')
-    return df_sumstats
+        return df_sumstats
+
+    # Edge case: No negative values, but contains zero(s)
+    if np.any(df_sumstats['OR']==0):
+        raise ValueError('The input file includes SNPs with an odds ratio (OR) of 0. Please remove these variant(s).')
+
         
     
     
