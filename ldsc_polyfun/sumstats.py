@@ -259,9 +259,10 @@ def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
         annotations = args.anno.split(',')
         if np.any(~np.isin(annotations, ref_ld.columns.str[:-2])):
             raise ValueError('Not all annotations specified with --anno are found in the LD scores file')        
-        cols_to_keep = (ref_ld.columns.str[:-2].isin(annotations)) | (ref_ld.columns.isin(['CHR', 'SNP']))
+        cols_to_keep = (ref_ld.columns.str[:-2].isin(annotations)) | (ref_ld.columns.str[:-4].isin(annotations)) | (ref_ld.columns.isin(['CHR', 'SNP']))
         assert np.sum(cols_to_keep) == len(annotations)+2
-        M_cols_to_keep = ref_ld.drop(columns=['CHR', 'SNP']).columns.str[:-2].isin(annotations)
+        cols_nochrsnp = ref_ld.drop(columns=['CHR', 'SNP']).columns
+        M_cols_to_keep = (cols_nochrsnp.str[:-2].isin(annotations)) | (cols_nochrsnp.str[:-4].isin(annotations))
         assert np.sum(M_cols_to_keep) == len(annotations)
         ref_ld = ref_ld.loc[:, cols_to_keep]
         M_annot = M_annot[:, M_cols_to_keep]
