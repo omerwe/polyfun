@@ -914,17 +914,20 @@ class FINEMAP_Wrapper(Fine_Mapping):
         z_filename = finemap_output_prefix+'.z'
         
         #flip some of the alleles
-        if ld_file.endswith('.bcor'):
-            bcor_obj = bcor(ld_file)
-            df_ld_snps = get_bcor_meta(bcor_obj)
-            self.sync_ld_sumstats(None, df_ld_snps, allow_missing=allow_missing)
-            del df_ld_snps
-        assert np.all(self.df_ld_snps['BP'] == self.df_sumstats_locus['BP'])
-        is_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A2']
-        is_not_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A1']
-        assert np.all(is_flipped | is_not_flipped)
-        if np.any(is_flipped):
-            logging.info('Flipping the effect-sign of %d SNPs that are flipped compared to the LD panel'%(is_flipped.sum()))
+        if num_causal_snps == 1:
+            is_flipped = np.zeros(self.df_sumstats_locus.shape[0], dtype=np.bool)
+        else:
+            if ld_file.endswith('.bcor'):
+                bcor_obj = bcor(ld_file)
+                df_ld_snps = get_bcor_meta(bcor_obj)
+                self.sync_ld_sumstats(None, df_ld_snps, allow_missing=allow_missing)
+                del df_ld_snps
+            assert np.all(self.df_ld_snps['BP'] == self.df_sumstats_locus['BP'])
+            is_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A2']
+            is_not_flipped = self.df_ld_snps['A1'] == self.df_sumstats_locus['A1']
+            assert np.all(is_flipped | is_not_flipped)
+            if np.any(is_flipped):
+                logging.info('Flipping the effect-sign of %d SNPs that are flipped compared to the LD panel'%(is_flipped.sum()))
             
         #create df_z and save it to disk
         df_z = self.df_sumstats_locus[['SNP', 'CHR', 'BP', 'A1', 'A2', 'Z']].copy()
