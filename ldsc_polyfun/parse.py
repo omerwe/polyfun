@@ -166,9 +166,7 @@ def annot_parser(fh, compression, frqfile_full=None, compression_frq=None, anno=
     df_annot = read_csv(fh, header=0, compression=compression)
     df_annot.drop(columns=['SNP', 'BP', 'CM', 'CHR', 'A1', 'A2'], inplace=True, errors='ignore')
     df_annot = df_annot.astype(float)
-    if (anno is not None):
-        for a in anno:
-            assert a in df_annot.columns
+    if anno is not None:
         df_annot = df_annot.loc[:, [c for c in df_annot.columns if (c=='SNP' or c in anno)]]
     if frqfile_full is not None:
         df_frq = frq_parser(frqfile_full, compression_frq)
@@ -277,11 +275,18 @@ def annot(fh_list, num=None, frqfile=None, anno=None):
                 df_annot_chr_list = [annot_parser(sub_chr(fh, chr) + annot_suffix[i], annot_compression[i], anno=anno)
                                      for i, fh in enumerate(fh_list)]
 
+            if anno is not None:
+                list_list_c = [list(df.columns) for df in df_annot_chr_list]
+                list_c = [c for c_list in list_list_c for c in c_list]
+                for a in anno:
+                    assert a in list_c, 'Annotation %s was not found in the annotations file'%(a)
+                    
             annot_matrix_chr_list = [np.matrix(df_annot_chr) for df_annot_chr in df_annot_chr_list]
             if len(annot_matrix_chr_list)==1:
                 annot_matrix_chr = annot_matrix_chr_list[0]
             else:
                 annot_matrix_chr = np.hstack(annot_matrix_chr_list)
+                
             y.append(np.dot(annot_matrix_chr.T, annot_matrix_chr))
             M_tot += len(df_annot_chr_list[0])
 
@@ -304,6 +309,12 @@ def annot(fh_list, num=None, frqfile=None, anno=None):
             df_annot_list = [annot_parser(fh + annot_suffix[i], annot_compression[i], anno=anno)
                              for i, fh in enumerate(fh_list)]
 
+        if anno is not None:
+            list_list_c = [list(df.columns) for df in df_annot_list]
+            list_c = [c for c_list in list_list_c for c in c_list]
+            for a in anno:
+                assert a in list_c, 'Annotation %s was not found in the annotations file'%(a)
+                
         annot_matrix_list = [np.matrix(y) for y in df_annot_list]
         annot_matrix = np.hstack(annot_matrix_list)
         x = np.dot(annot_matrix.T, annot_matrix)
