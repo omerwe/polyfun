@@ -187,15 +187,12 @@ def compute_ldscores_region(df_R_region, df_annot_region, n, is_binary, chr_num,
     return df_ldscores_region
 
 
-def compute_ldscores_chr(args, df_annot_chr):
+def compute_ldscores_chr(df_annot_chr, ld_dir=None, use_ukb=False, n=None, ld_files=None, no_cache=False):
 
     #create a temp output dir if required
-    if args.ukb:
-        ld_dir = args.ld_dir
-        if ld_dir is None:
-            ld_dir = tempfile.mkdtemp()
-        if not os.path.exists(ld_dir):
-            raise IOError('LD directory %s doesn\'t exist'%(ld_dir))
+    if use_ukb:
+        if ld_dir is None: ld_dir = tempfile.mkdtemp()
+        if not os.path.exists(ld_dir): raise IOError('LD directory %s doesn\'t exist'%(ld_dir))
 
     #infer chromosome number
     assert len(df_annot_chr['CHR'].unique()) == 1
@@ -229,7 +226,7 @@ def compute_ldscores_chr(args, df_annot_chr):
     df_ldscores_regions_list = []
     
     #iterate over regions - UKB
-    if args.ukb:    
+    if use_ukb:
         for region_start in tqdm(range(1, df_annot_chr['BP'].max()+1, REGION_LENGTH)):
         
             #extract annotations for this region only
@@ -238,7 +235,7 @@ def compute_ldscores_chr(args, df_annot_chr):
             if df_annot_region.shape[0]==0: continue
             
             #download the LD data
-            df_R_region = download_ukb_ld_file(chr_num, region_start, ld_dir=ld_dir, no_cache=args.no_cache)
+            df_R_region = download_ukb_ld_file(chr_num, region_start, ld_dir=ld_dir, no_cache=no_cache)
             
             df_ldscores_region = compute_ldscores_region(df_R_region, df_annot_region, n=UKB_N, is_binary=is_binary,
                                                          chr_num=chr_num, region_start=region_start, region_end=region_end)
@@ -246,12 +243,12 @@ def compute_ldscores_chr(args, df_annot_chr):
 
     #iterate over LD files
     else:
-        for ld_file in args.files:
+        for ld_file in ld_files:
             df_R_region, chr_num_ld, region_start, region_end = load_ld(ld_file)
             assert chr_num_ld == chr_num
             df_annot_region = df_annot_chr.query('%d <= BP <= %d'%(region_start, region_end))
             if df_annot_region.shape[0]==0: continue
-            df_ldscores_region = compute_ldscores_region(df_R_region, df_annot_region, n=args.n, is_binary=is_binary,
+            df_ldscores_region = compute_ldscores_region(df_R_region, df_annot_region, n=n, is_binary=is_binary,
                                                          chr_num=chr_num, region_start=region_start, region_end=region_end)
             df_ldscores_regions_list.append(df_ldscores_region)
         
@@ -271,7 +268,8 @@ def compute_ldscores_main(args, df_annot):
     #iterate over chromosomes
     df_ldscores_chr_list = []
     for chr_num, df_annot_chr in df_annot.groupby('CHR'):
-        df_ldscores_chr = compute_ldscores_chr(args, df_annot_chr)
+        #df_ldscores_chr = compute_ldscores_chr(args, df_annot_chr)
+        df_ldscores_chr = compute_ldscores_chr(df_annot_chr, ld_dir=args.ld_dir, use_ukb=args.ukb, n=args.n, ld_files=args.files, no_cache=args.no_cache)
         df_ldscores_chr_list.append(df_ldscores_chr)
         
     df_ldscores = pd.concat((df_ldscores_chr_list), axis=0)

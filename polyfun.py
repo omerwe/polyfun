@@ -634,7 +634,7 @@ class PolyFun:
                 if args.ld_dir is None: ld_dir = tempfile.mkdtemp()
                 else: ld_dir = args.ld_dir
                 df_bins_chr = set_snpid_index(df_bins_chr)
-                df_ldscores_chr = compute_ldscores_chr(df_bins_chr, ld_dir)
+                df_ldscores_chr = compute_ldscores_chr(df_bins_chr, ld_dir=ld_dir, use_ukb=True)
             elif args.bfile_chr is not None:
                 df_ldscores_chr = self.compute_ldscores_plink_chr(args, chr_num, df_bins_chr)
             else:
