@@ -80,7 +80,14 @@ if __name__ == '__main__':
     logging.info('Merging sumstats with per-SNP h2 data...')
     t0 = time.time()
     df_meta = df_meta.loc[df_meta.index.isin(df_snps.index)]
+    df_snps = df_snps.rename(columns = {'A1': 'A_eff'})
     df = df_meta.merge(df_snps.drop(columns=SNP_COLUMNS, errors='ignore'), left_index=True, right_index=True)
+    #flip Z-sign if A1 of prior not match A1 of sumstats
+    is_flipped = df['A2'] == df['A_eff']
+    if is_flipped.sum() > 0:
+        df.loc[is_flipped, 'Z'] *= -1
+        logging.info('Flipping the Z-sign of %d SNPs that A1 in sumstats = A2 in the per-SNP h2 data'%(is_flipped.sum()))
+    df = df.drop(columns = 'A_eff')
     logging.info('Done in %0.2f seconds'%(time.time() - t0))
         
     #If we didn't find everything, write a list of missing SNPs to an output file
