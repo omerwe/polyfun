@@ -634,11 +634,13 @@ class SUSIE_Wrapper(Fine_Mapping):
         
     
         
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None):
     
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
             raise ValueError('SNPVAR column not found in sumstats file')
+        if hess_resvar:
+            assert hess, 'hess_resvar cannot be specified if hess is FALSE'
             
         #set locus
         self.set_locus(locus_start, locus_end)
@@ -691,6 +693,10 @@ class SUSIE_Wrapper(Fine_Mapping):
             if prior_var <= 0:
                 raise ValueError('HESS estimates that the locus causally explains zero heritability')
             logging.info('HESS estimated causal effect size variance: %0.4e'%(prior_var))
+            
+            if hess_resvar:
+                residual_var = 1 - prior_var*num_causal_snps
+                assert residual_var>=0
     
         #rpy2 bug fix
         import rpy2.robjects.numpy2ri as numpy2ri
@@ -744,6 +750,8 @@ class SUSIE_Wrapper(Fine_Mapping):
                 # verbose=verbose,
                 # prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
             # )
+            
+        if residual_var is not None: residual_var_init = residual_var
         try:
             susie_obj = self.susieR.susie_suff_stat(
                     bhat=bhat.reshape((m,1)),
@@ -753,7 +761,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                     L=num_causal_snps,
                     scaled_prior_variance=(0.0001 if (prior_var is None) else prior_var),
                     estimate_prior_variance=(prior_var is None),
-                    residual_variance=(self.R_null if (residual_var is None) else residual_var),
+                    residual_variance=(self.R_null if (residual_var_init is None) else residual_var_init),
                     estimate_residual_variance=(residual_var is None),
                     verbose=verbose,
                     prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
@@ -846,7 +854,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
 
     
         
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False):
     
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -857,6 +865,10 @@ class FINEMAP_Wrapper(Fine_Mapping):
             raise ValueError('cannot specify residual_var for FINEMAP')
         if debug_dir is not None:
             raise NotImplementedError('FINEMAP object does not support --debug-dir')
+        if hess_resvar:
+            raise NotImplementedError('FINEMAP object does not support --susie-resvar-hess')
+        if residual_var_init is not None:
+            raise NotImplementedError('FINEMAP object does not support --susie-resvar-init')
         # if allow_missing:
             # raise ValueError('FINEMAP object does not support --allow-missing')
             
@@ -1085,6 +1097,10 @@ if __name__ == '__main__':
     parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to include in fine-mapping')
     parser.add_argument('--out', required=True, help='name of the output file')
     
+    parser.add_argument('--susie-resvar', default=None, type=float, help='If specified, SuSiE will use this value of the residual variance')
+    parser.add_argument('--susie-resvar-init', default=None, type=float, help='If specified, SuSiE will use this initial value of the residual variance')
+    parser.add_argument('--susie-resvar-hess', default=False, action='store_true', help='If specified, SuSiE will specify the residual variance using the HESS estimate')
+    
     #check package versions
     check_package_versions()
     
@@ -1141,8 +1157,10 @@ if __name__ == '__main__':
         
     #run fine-mapping
     df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
-                 use_prior_causal_prob=not args.non_funct, prior_var=None, residual_var=None, hess=args.hess,
-                 verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing, susie_outfile=args.susie_outfile)
+                 use_prior_causal_prob=not args.non_funct, prior_var=None, hess=args.hess,
+                 verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing,
+                 susie_outfile=args.susie_outfile,
+                 residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess)
     logging.info('Writing fine-mapping results to %s'%(args.out))
     df_finemap.sort_values('PIP', ascending=False, inplace=True)
     if args.out.endswith('.parquet'):
