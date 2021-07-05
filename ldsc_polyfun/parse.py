@@ -126,8 +126,9 @@ def ldscore_fromlist(flist, num=None):
     ldscore_array = []
     for fh_i, fh in enumerate(flist):
         y = ldscore(fh, num)
-        if len(ldscore_array)>0:            
-            if (not series_eq(y.SNP, ldscore_array[0].SNP)) or (not series_eq(y.index, ldscore_array[0].index)):                
+        if len(ldscore_array)>0:
+            import ipdb; ipdb.set_trace()
+            if ((not series_eq(y.index, ldscore_array[0].index) or not series_eq(y.SNP, ldscore_array[0].SNP))):
                 raise ValueError('LD Scores for concatenation must have identical SNP columns (and A1/A2 columns if such columns exist).')
             else:  # keep SNP and CHR column from only the first file
                 y = y.drop(columns=['SNP', 'CHR'], axis=1)
