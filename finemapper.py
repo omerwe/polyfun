@@ -437,7 +437,7 @@ class Fine_Mapping(object):
     
     
     def compute_ld_plink(self, locus_start, locus_end, verbose):
-        logging.info('Computing LD from plink fileset %s region %s-%d'%(self.genotypes_file, locus_start, locus_end))
+        logging.info('Computing LD from plink fileset %s chromosome %s region %s-%s'%(self.genotypes_file, self.chr, locus_start, locus_end))
         t0 = time.time()
         
         #read the plink file
@@ -451,10 +451,11 @@ class Fine_Mapping(object):
         bed = bed.T
         
         #zoom in on target locus
-        is_snp_in_region = df_bim['BP'].between(locus_start, locus_end)
+        is_snp_in_region = (df_bim['BP'].between(locus_start, locus_end)) & (df_bim['CHR']==self.chr)
         df_bim = df_bim.loc[is_snp_in_region]
         df_ld_snps = df_bim
         bed = bed[:, is_snp_in_region.values]
+        assert bed.shape[1]>0, 'No SNPs found in the target region'
         
         #compute chunk size, using the formula MEM = bed.shape[0] * chunk_size * 4 / 2**30
         if self.memory is None:
