@@ -631,12 +631,12 @@ class SUSIE_Wrapper(Fine_Mapping):
         self.susieR = importr('susieR')
         self.R_null = ro.rinterface.NULL
         #self.RNULLType = rpy2.rinterface.RNULLType
-        
-        
-    
-        
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None):
-    
+
+
+
+
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
+
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
             raise ValueError('SNPVAR column not found in sumstats file')
@@ -853,10 +853,10 @@ class FINEMAP_Wrapper(Fine_Mapping):
         super(FINEMAP_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory)
         self.finemap_exe = finemap_exe
 
-    
-        
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False):
-    
+
+
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
+
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
             raise ValueError('SNPVAR column not found in sumstats file')
@@ -878,8 +878,12 @@ class FINEMAP_Wrapper(Fine_Mapping):
             ld_file = download_ld_file(ld_file)            
             
         #create prefix of output files
-        finemap_dir = tempfile.mkdtemp()
-        assert os.path.isdir(finemap_dir)        
+        if finemap_dir is None:
+            finemap_dir = tempfile.mkdtemp()
+        else:
+            os.makedirs(finemap_dir, exist_ok=True)
+            logging.info('Saving FINEMAP files to directory: %s'%(finemap_dir))
+        assert os.path.isdir(finemap_dir)
         finemap_output_prefix = os.path.join(finemap_dir, 'finemap')
                     
     
@@ -1083,6 +1087,7 @@ if __name__ == '__main__':
     parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
     parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')    
     parser.add_argument('--susie-outfile', default=None, help='If specified, the SuSiE object will be saved to an output file')
+    parser.add_argument('--finemap-dir', default=None, help='If specified, the FINEMAP files will be saved to this directory')
     
     
     
@@ -1138,7 +1143,9 @@ if __name__ == '__main__':
     
     #Create a fine-mapping class member
     if args.method == 'susie':
-        finemap_obj = SUSIE_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr, 
+        if args.finemap_dir is not None:
+            raise ValueError('--finemap-dir cannot be specified with susie method')
+        finemap_obj = SUSIE_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr,
                                     sample_file=args.sample_file, incl_samples=args.incl_samples,
                                     ldstore_exe=args.ldstore2, n_threads=args.threads,
                                     cache_dir=args.cache_dir, memory=args.memory)
@@ -1160,7 +1167,7 @@ if __name__ == '__main__':
     df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
                  use_prior_causal_prob=not args.non_funct, prior_var=None, hess=args.hess,
                  verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing,
-                 susie_outfile=args.susie_outfile,
+                 susie_outfile=args.susie_outfile, finemap_dir=args.finemap_dir,
                  residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess)
     logging.info('Writing fine-mapping results to %s'%(args.out))
     df_finemap.sort_values('PIP', ascending=False, inplace=True)
