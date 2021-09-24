@@ -500,8 +500,9 @@ class Fine_Mapping(object):
     
         #update self.df_sumstats_locus
         self.df_sumstats_locus = self.df_sumstats.query('%d <= BP <= %d'%(locus_start, locus_end))
-        if self.df_sumstats_locus.shape[0] == 0:
-            raise ValueError('No SNPs found in sumstats file in the BP range %d-%d'%(locus_start, locus_end))
+        num_snps = self.df_sumstats_locus.shape[0]
+        if num_snps < 2:
+            raise ValueError('%d SNP(s) found in sumstats file in the BP range %d-%d'%(num_snps, locus_start, locus_end))
             
             
             

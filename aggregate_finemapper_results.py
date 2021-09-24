@@ -29,7 +29,8 @@ def main(args):
     if args.chr is not None:
         df_regions = df_regions.query('CHR==%d'%(args.chr))
         if df_regions.shape[0]==0: raise ValueError('no SNPs found in chromosome %d'%(args.chr))
-    df_regions = df_regions.loc[df_regions.apply(lambda r: np.any((df_sumstats['CHR']==r['CHR']) & (df_sumstats['BP'].between(r['START'], r['END']))), axis=1)]
+    df_regions_keep = df_regions.apply(lambda r: np.sum((df_sumstats['CHR']==r['CHR']) & (df_sumstats['BP'].between(r['START'], r['END']))) > 1, axis=1)
+    df_regions = df_regions.loc[df_regions_keep]
     
     #aggregate outputs
     df_sumstats_list = []
