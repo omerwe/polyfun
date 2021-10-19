@@ -351,6 +351,7 @@ class Fine_Mapping(object):
             
             #make sure that the LD file includes data for all the SNPs in the locus
             if not np.all(self.df_sumstats_locus.index.isin(df_ld_snps.index)):
+                logging.warning('The available cached LD file was ignored because it does not contain data for all the SNPs in the locus')
                 continue
     
             #if we got here than we found a suitable d file

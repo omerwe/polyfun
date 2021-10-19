@@ -58,7 +58,12 @@ def set_snpid_index(df, copy=False, allow_duplicates=False):
     if copy:
         df = df.copy()
     is_indel = (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
-    df['A1_first'] = (df['A1'] < df['A2']) | is_indel
+    alleles_are_alphabetical = df['A1'] < df['A2']
+    num_indels_nonalpha = np.sum(is_indel & ~ alleles_are_alphabetical)
+    if num_indels_nonalpha > 0:
+        logging.warning('There are %d indels whose allele order (A1/A2) is non-alphabetical and will **not** be rearranged for creating the unique SNP ID.'%(num_indels_nonalpha))
+        logging.warning('The allele order of these indels must be identical between the summary statistics and the reference LD matrix; otherwise they will be discard prior to fine-mapping.')
+    df['A1_first'] = alleles_are_alphabetical | is_indel
     df['A1s'] = df['A2'].copy()
     df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
     df['A2s'] = df['A1'].copy()
