@@ -265,11 +265,17 @@ class Fine_Mapping(object):
             df_ld = pd.DataFrame(ld_arr, index=df_ld_snps.index, columns=df_ld_snps.index)
         
         #make sure that all SNPs in the sumstats file are in the LD file
-        if not np.all(self.df_sumstats_locus.index.isin(df_ld.index)):
+        snps_in_ld_file = self.df_sumstats_locus.index.isin(df_ld.index)
+        if not np.all(snps_in_ld_file):
+            # Could the missing SNPs be due to mismatched indel alleles?
+            df_sumstats_missing = self.df_sumstats_locus.loc[~snps_in_ld_file]
+            num_missing_is_indel = np.sum((df_sumstats_missing['A1'].str.len()>1) | (df_sumstats_missing['A2'].str.len()>1))
             if allow_missing:
-                num_missing = np.sum(~self.df_sumstats_locus.index.isin(df_ld.index))
+                num_missing = np.sum(~snps_in_ld_file)
                 logging.warning('%d variants with sumstats were not found in the LD file and will be omitted (please note that this may lead to false positives if the omitted SNPs are causal!)'%(num_missing))            
-                self.df_sumstats_locus = self.df_sumstats_locus.loc[self.df_sumstats_locus.index.isin(df_ld.index)]
+                if num_missing_is_indel > 0:
+                    logging.warning('%d of the missing variants were indels. Check that the allele order (A1/A2) matches between the sumstats and the LD file'%(num_missing_is_indel))
+                self.df_sumstats_locus = self.df_sumstats_locus.loc[snps_in_ld_file]
                 assert np.all(self.df_sumstats_locus.index.isin(df_ld.index))
             else:
                 error_msg = ('not all SNPs in the sumstats file were found in the LD matrix!'
