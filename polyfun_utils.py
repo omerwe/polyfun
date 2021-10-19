@@ -54,12 +54,15 @@ def check_package_versions():
         raise ValueError('\n\nPlease install the python package pandas_plink (using either "pip install pandas-plink" or "conda install -c conda-forge pandas-plink")\n\n')
     
     
-def set_snpid_index(df, copy=False, allow_duplicates=False):
+def set_snpid_index(df, copy=False, allow_duplicates=False, allow_swapped_indel_alleles=False):
     if copy:
         df = df.copy()
     is_indel = (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
     alleles_are_alphabetical = df['A1'] < df['A2']
-    df['A1_first'] = alleles_are_alphabetical | is_indel
+    if allow_swapped_indel_alleles:
+        df['A1_first'] = alleles_are_alphabetical
+    else:
+        df['A1_first'] = alleles_are_alphabetical | is_indel
     df['A1s'] = df['A2'].copy()
     df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
     df['A2s'] = df['A1'].copy()
