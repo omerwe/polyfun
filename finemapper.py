@@ -215,7 +215,8 @@ def save_ld_to_npz(ld_arr, df_ld_snps, npz_file):
 
 class Fine_Mapping(object):
     def __init__(self, genotypes_file, sumstats_file, n, chr_num, ldstore_exe, 
-                    sample_file=None, incl_samples=None, cache_dir=None, n_threads=None, memory=None):
+                    sample_file=None, incl_samples=None, cache_dir=None, n_threads=None, memory=None,
+                    allow_swapped_indel_alleles=False):
     
         #check that data is valid
         if genotypes_file is not None:        
@@ -235,7 +236,7 @@ class Fine_Mapping(object):
             raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))
         if np.any(df_sumstats['CHR'] != chr_num):
             df_sumstats = df_sumstats.query('CHR==%s'%(chr_num)).copy()
-        df_sumstats = set_snpid_index(df_sumstats)
+        df_sumstats = set_snpid_index(df_sumstats, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
         if 'P' not in df_sumstats.columns:
             df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
         logging.info('Loaded sumstats for %d SNPs in %0.2f seconds'%(df_sumstats.shape[0], time.time()-t0))
@@ -252,10 +253,11 @@ class Fine_Mapping(object):
         self.n_threads = n_threads
         self.chr = chr_num
         self.memory = memory
+        self.allow_swapped_indel_alleles = allow_swapped_indel_alleles
         
         
     def sync_ld_sumstats(self, ld_arr, df_ld_snps, allow_missing=False):
-        df_ld_snps = set_snpid_index(df_ld_snps)
+        df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
         
         if ld_arr is None:
             df_ld = pd.DataFrame(np.zeros(len(df_ld_snps.index), dtype=np.int), index=df_ld_snps.index, columns=['dummy'])
@@ -265,16 +267,23 @@ class Fine_Mapping(object):
             df_ld = pd.DataFrame(ld_arr, index=df_ld_snps.index, columns=df_ld_snps.index)
         
         #make sure that all SNPs in the sumstats file are in the LD file
-        if not np.all(self.df_sumstats_locus.index.isin(df_ld.index)):
+        snps_in_ld_file = self.df_sumstats_locus.index.isin(df_ld.index)
+        if not np.all(snps_in_ld_file):
+            # Could the missing SNPs be due to mismatched indel alleles?
+            df_sumstats_missing = self.df_sumstats_locus.loc[~snps_in_ld_file]
+            num_missing_is_indel = np.sum((df_sumstats_missing['A1'].str.len()>1) | (df_sumstats_missing['A2'].str.len()>1))
             if allow_missing:
-                num_missing = np.sum(~self.df_sumstats_locus.index.isin(df_ld.index))
+                num_missing = np.sum(~snps_in_ld_file)
                 logging.warning('%d variants with sumstats were not found in the LD file and will be omitted (please note that this may lead to false positives if the omitted SNPs are causal!)'%(num_missing))            
-                self.df_sumstats_locus = self.df_sumstats_locus.loc[self.df_sumstats_locus.index.isin(df_ld.index)]
+                if num_missing_is_indel > 0 and not self.allow_swapped_indel_alleles:
+                    logging.warning('%d of the missing variants were indels. Check that the allele order (A1/A2) matches between the sumstats and the LD file. Also see the flag --allow-swapped-indel-alleles'%(num_missing_is_indel))
+                self.df_sumstats_locus = self.df_sumstats_locus.loc[snps_in_ld_file]
                 assert np.all(self.df_sumstats_locus.index.isin(df_ld.index))
             else:
                 error_msg = ('not all SNPs in the sumstats file were found in the LD matrix!'
                             ' You could drop the missing SNPs with the flag --allow-missing, but please note that'
-                            ' these omitted SNPs may be causal, in which case you may get false positive results...')
+                            ' these omitted SNPs may be causal, in which case you may get false positive results...'
+                            ' If there should be no missing SNPs (e.g. you are using insample LD), see the flag --allow-swapped-indel-alleles')
                 raise ValueError(error_msg)
         
         #filter LD to only SNPs found in the sumstats file
@@ -347,10 +356,11 @@ class Fine_Mapping(object):
                 df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
             else:
                 raise IOError('unknown file extension')
-            df_ld_snps = set_snpid_index(df_ld_snps)
+            df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
             
             #make sure that the LD file includes data for all the SNPs in the locus
             if not np.all(self.df_sumstats_locus.index.isin(df_ld_snps.index)):
+                logging.warning('The available cached LD file was ignored because it does not contain data for all the SNPs in the locus')
                 continue
     
             #if we got here than we found a suitable d file
@@ -618,9 +628,10 @@ class Fine_Mapping(object):
 class SUSIE_Wrapper(Fine_Mapping):
 
     def __init__(self, genotypes_file, sumstats_file, n, chr_num, ldstore_exe, sample_file=None,
-                 incl_samples=None, cache_dir=None, n_threads=None, memory=None):
+                 incl_samples=None, cache_dir=None, n_threads=None, memory=None,
+                 allow_swapped_indel_alleles=False):
 
-        super(SUSIE_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory)
+        super(SUSIE_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
                        
         #load SuSiE R package
         import rpy2
@@ -849,9 +860,10 @@ class SUSIE_Wrapper(Fine_Mapping):
 class FINEMAP_Wrapper(Fine_Mapping):
 
     def __init__(self, genotypes_file, sumstats_file, n, chr_num, finemap_exe, ldstore_exe, sample_file=None,
-                 incl_samples=None, cache_dir=None, n_threads=None, memory=None):
+                 incl_samples=None, cache_dir=None, n_threads=None, memory=None,
+                 allow_swapped_indel_alleles=False):
 
-        super(FINEMAP_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory)
+        super(FINEMAP_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
         self.finemap_exe = finemap_exe
 
 
@@ -1099,7 +1111,14 @@ if __name__ == '__main__':
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, SNPs with sumstats that are not \
                             found in the LD panel will be omitted. This is not recommended, because the omitted SNPs may be causal,\
                             which could lead to false positive results')
-    
+    parser.add_argument('--allow-swapped-indel-alleles', default=False, action='store_true',
+                        help='If specified, indels whose alleles are swapped between the sumstats and LD matrix \
+                            are kept for fine-mapping. The default behavior considers indels at the same position \
+                            with swapped alleles to be different variants, and thus removes them. Use with caution. \
+                            This is intended for use only when you are confident that the indels are identical, \
+                            e.g. when using insample LD')
+
+
     parser.add_argument('--sample-file', default=None, help='BGEN files must be used together with a sample file')
     parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to include in fine-mapping')
     parser.add_argument('--out', required=True, help='name of the output file')
@@ -1160,7 +1179,8 @@ if __name__ == '__main__':
         finemap_obj = FINEMAP_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr, 
                                     sample_file=args.sample_file, incl_samples=args.incl_samples,
                                     ldstore_exe=args.ldstore2, finemap_exe=args.finemap_exe, n_threads=args.threads,
-                                    cache_dir=args.cache_dir, memory=args.memory)
+                                    cache_dir=args.cache_dir, memory=args.memory,
+                                    allow_swapped_indel_alleles=args.allow_swapped_indel_alleles)
     else:
         raise ValueError('unknown method specified in --method')
         
