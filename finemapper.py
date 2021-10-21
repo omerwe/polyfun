@@ -398,20 +398,32 @@ class Fine_Mapping(object):
         if bgen_chromosomes[0].startswith('0'):
             df_z['CHR'] = '0' + df_z['CHR'].astype(str)
             
-        #check if the order of minor alleles in the bgen file and in the sumstats file is consistent
+            
+        #sync the order of the alleles between the sumstats and the bgen file
+        list_bgen = []
         rsids = bfile.rsids()
         for snp_i, rsid in enumerate(rsids):
             if rsid not in df_z['SNP'].values: continue
             snp_alleles = bfile[snp_i].alleles
+            snp_chrom = bfile[snp_i].chrom
+            snp_pos = bfile[snp_i].pos
             assert len(snp_alleles) == 2, 'cannot handle SNPs with more than two alleles'
             df_snp = df_z.query('SNP == "%s"'%(rsid))
             assert df_snp.shape[0]==1
             a1, a2 = df_snp['A1'].iloc[0], df_snp['A2'].iloc[0]
-            if a1 != snp_alleles[0] or a2 != snp_alleles[1]:
+            snp_a1, snp_a2 = snp_alleles[0], snp_alleles[1]
+            if set([a1,a2]) != set([snp_a1, snp_a2]):
                 raise ValueError('The alleles for SNP %s are different in the sumstats and in the bgen file:\n \
                                  bgen:     A1=%s  A2=%s\n \
                                  sumstats: A1=%s  A2=%s \
                                 '%(rsid, snp_alleles[0], snp_alleles[1], a1, a2))
+            d = {'SNP':rsid, 'CHR':snp_chrom, 'BP':snp_pos, 'A1':snp_a1, 'A2':snp_a2}
+            list_bgen.append(d)
+        df_bgen = pd.DataFrame(list_bgen)
+        df_bgen = set_snpid_index(df_bgen, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
+        df_z = set_snpid_index(df_z, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
+        df_z = df_z[[]].merge(df_bgen, left_index=True, right_index=True)
+        df_z = df_z[['SNP', 'CHR', 'BP', 'A1', 'A2']]
             
         
         #rename columns
