@@ -23,4 +23,7 @@ dependencies:
   - pandas
   - r-expm
   - pandas-plink
+  - pip
+  - pip:
+    - bgen
 

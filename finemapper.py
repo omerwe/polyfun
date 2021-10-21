@@ -386,7 +386,35 @@ class Fine_Mapping(object):
     
         #create df_z
         df_z = self.df_sumstats_locus[['SNP', 'CHR', 'BP', 'A1', 'A2']].copy()
-        if df_z['CHR'].iloc[0]<10: df_z['CHR'] = '0' + df_z['CHR'].astype(str)
+        
+        #add leading zeros to chromosome numbers if needed
+        try:
+            import bgen
+        except (ImportError, ModuleNotFoundError):
+            raise ValueError('\n\nPlease install the bgen package (using "pip install bgen")')
+        from bgen.reader import BgenFile
+        bfile = BgenFile(self.genotypes_file)
+        bgen_chromosomes = bfile.chroms()
+        if bgen_chromosomes[0].startswith('0'):
+            df_z['CHR'] = '0' + df_z['CHR'].astype(str)
+            
+        #check if the order of minor alleles in the bgen file and in the sumstats file is consistent
+        rsids = bfile.rsids()
+        for snp_i, rsid in enumerate(rsids):
+            if rsid not in df_z['SNP'].values: continue
+            snp_alleles = bfile[snp_i].alleles
+            assert len(snp_alleles) == 2, 'cannot handle SNPs with more than two alleles'
+            df_snp = df_z.query('SNP == "%s"'%(rsid))
+            assert df_snp.shape[0]==1
+            a1, a2 = df_snp['A1'].iloc[0], df_snp['A2'].iloc[0]
+            if a1 != snp_alleles[0] or a2 != snp_alleles[1]:
+                raise ValueError('The alleles for SNP %s are different in the sumstats and in the bgen file:\n \
+                                 bgen:     A1=%s  A2=%s\n \
+                                 sumstats: A1=%s  A2=%s \
+                                '%(rsid, snp_alleles[0], snp_alleles[1], a1, a2))
+            
+        
+        #rename columns
         df_z.rename(columns={'SNP':'rsid', 'CHR':'chromosome', 'BP':'position', 'A1':'allele1', 'A2':'allele2'}, inplace=True)
                 
         #Create LDstore input files
