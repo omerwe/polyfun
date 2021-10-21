@@ -1196,7 +1196,8 @@ if __name__ == '__main__':
         finemap_obj = SUSIE_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr,
                                     sample_file=args.sample_file, incl_samples=args.incl_samples,
                                     ldstore_exe=args.ldstore2, n_threads=args.threads,
-                                    cache_dir=args.cache_dir, memory=args.memory)
+                                    cache_dir=args.cache_dir, memory=args.memory,
+                                    allow_swapped_indel_alleles=args.allow_swapped_indel_alleles)
     elif args.method == 'finemap':
         if args.susie_outfile is not None:
             raise ValueError('--susie-outfile cannot be specified with finemap method')
