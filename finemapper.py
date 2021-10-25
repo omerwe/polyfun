@@ -744,8 +744,12 @@ class SUSIE_Wrapper(Fine_Mapping):
         if hess:
             if prior_var is not None:
                 raise ValueError('cannot specify both hess and a custom prior_var')
+            if self.n < 20000:
+                logging.warning('HESS method is intended for studies with large sample sizes (i.e. >20K)')
             h2_hess = self.estimate_h2_hess_wrapper(num_samples=hess_iter)
             logging.info('Average local SNP heritability estimated by modified HESS over %d iterations: %0.4e'%(hess_iter, h2_hess))
+            if h2_hess > 10:
+                logging.warning('The HESS estimator is unconstrained, and the estimate is an order of magnitude greater than the expected max of 1. Use with caution')
             prior_var = h2_hess / num_causal_snps
             if prior_var <= 0:
                 raise ValueError('HESS estimates that the locus causally explains zero heritability')
