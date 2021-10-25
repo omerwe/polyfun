@@ -654,7 +654,9 @@ class Fine_Mapping(object):
             pvalue_bound = None
         else:
             pvalue_bound = stats.chi2(1).sf(min_h2 * self.n)
-        
+
+        assert num_samples > 0, 'Number of random samples must be a positive integer'
+
         h2_hess_list = [self.estimate_h2_hess(prop_keep=prop_keep, R_cutoff=R_cutoff, pvalue_bound=pvalue_bound) \
                         for try_num in range(num_samples)]
         h2_hess = np.mean(h2_hess_list)
@@ -687,7 +689,7 @@ class SUSIE_Wrapper(Fine_Mapping):
 
 
 
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, hess_iter=100, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
 
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -742,8 +744,8 @@ class SUSIE_Wrapper(Fine_Mapping):
         if hess:
             if prior_var is not None:
                 raise ValueError('cannot specify both hess and a custom prior_var')
-            h2_hess = self.estimate_h2_hess()
-            logging.info('Local SNP heritability estimated by modified HESS: %0.4e'%(h2_hess))
+            h2_hess = self.estimate_h2_hess_wrapper(num_samples=hess_iter)
+            logging.info('Average local SNP heritability estimated by modified HESS over %d iterations: %0.4e'%(hess_iter, h2_hess))
             prior_var = h2_hess / num_causal_snps
             if prior_var <= 0:
                 raise ValueError('HESS estimates that the locus causally explains zero heritability')
@@ -911,7 +913,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
 
 
 
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, hess_iter=100, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
 
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -1150,6 +1152,7 @@ if __name__ == '__main__':
     parser.add_argument('--max-num-causal', required=True, type=int, help='Number of causal SNPs')
     parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
     parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
+    parser.add_argument('--hess-iter', type=int, default=100, help='Average HESS over this number of iterations (default: 100)')
     parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, SNPs with sumstats that are not \
                             found in the LD panel will be omitted. This is not recommended, because the omitted SNPs may be causal,\
@@ -1230,7 +1233,7 @@ if __name__ == '__main__':
         
     #run fine-mapping
     df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
-                 use_prior_causal_prob=not args.non_funct, prior_var=None, hess=args.hess,
+                 use_prior_causal_prob=not args.non_funct, prior_var=None, hess=args.hess, hess_iter=args.hess_iter,
                  verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing,
                  susie_outfile=args.susie_outfile, finemap_dir=args.finemap_dir,
                  residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess)
