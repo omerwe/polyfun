@@ -742,13 +742,16 @@ class SUSIE_Wrapper(Fine_Mapping):
         if hess:
             if prior_var is not None:
                 raise ValueError('cannot specify both hess and a custom prior_var')
-            prior_var = self.estimate_h2_hess() / num_causal_snps
+            h2_hess = self.estimate_h2_hess()
+            logging.info('Local SNP heritability estimated by modified HESS: %0.4e'%(h2_hess))
+            prior_var = h2_hess / num_causal_snps
             if prior_var <= 0:
                 raise ValueError('HESS estimates that the locus causally explains zero heritability')
             logging.info('HESS estimated causal effect size variance: %0.4e'%(prior_var))
             
             if hess_resvar:
-                residual_var = 1 - prior_var*num_causal_snps
+                residual_var = 1 - h2_hess
+                logging.info('Residual variance using the HESS estimate: %0.4e'%(residual_var))
                 assert residual_var>=0
     
         #rpy2 bug fix
