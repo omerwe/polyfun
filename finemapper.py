@@ -610,9 +610,20 @@ class Fine_Mapping(object):
         
     def estimate_h2_hess(self, prop_keep=0.005, R_cutoff=0.99, pvalue_bound=None):
         '''
-            prop_keep:  Proprtion of SNPs to use in the estimation (only the ones with the smallest p-values)
+            prop_keep:  Proportion of SNPs to use in the estimation (only the ones with the smallest p-values)
             R_cutoff: Exclude one of each pair of SNPs with with magnitude of correlation greater than this value
             pvalue_bound: An upper bound on the p-value cutoff (i.e., SNPs with P greater than this cutoff will never be used in the estimation)
+
+            The modified HESS equation implemented below is
+
+            $$ \frac{n \alpha R^{-1} \alpha - m}{n} = \alpha R^{-1} \alpha - \frac{m}{n} $$
+
+            where $\alpha$ is a vector of marginal effect size estimates for $m$ standardized SNPs,
+            $R$ is a matrix of summary LD information, and $n$ is the sample size.
+
+            This is a biased estimator (denominator of $n$) with a smaller estimation variance compared
+            with the unbiased estimator (denominator of $n - m$) used in the original HESS publication
+            (Shi et al., 2014; https://doi.org/10.1016/j.ajhg.2016.05.013).
         '''
         
         #keep only potential causal SNPs
