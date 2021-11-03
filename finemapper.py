@@ -610,9 +610,20 @@ class Fine_Mapping(object):
         
     def estimate_h2_hess(self, prop_keep=0.005, R_cutoff=0.99, pvalue_bound=None):
         '''
-            prop_keep:  Proprtion of SNPs to use in the estimation (only the ones with the smallest p-values)
+            prop_keep:  Proportion of SNPs to use in the estimation (only the ones with the smallest p-values)
             R_cutoff: Exclude one of each pair of SNPs with with magnitude of correlation greater than this value
             pvalue_bound: An upper bound on the p-value cutoff (i.e., SNPs with P greater than this cutoff will never be used in the estimation)
+
+            The modified HESS equation implemented below is
+
+            $$ \frac{n \alpha R^{-1} \alpha - m}{n} = \alpha R^{-1} \alpha - \frac{m}{n} $$
+
+            where $\alpha$ is a vector of marginal effect size estimates for $m$ standardized SNPs,
+            $R$ is a matrix of summary LD information, and $n$ is the sample size.
+
+            This is a biased estimator (denominator of $n$) with a smaller estimation variance compared
+            with the unbiased estimator (denominator of $n - m$) used in the original HESS publication
+            (Shi et al., 2014; https://doi.org/10.1016/j.ajhg.2016.05.013).
         '''
         
         #keep only potential causal SNPs
@@ -642,7 +653,7 @@ class Fine_Mapping(object):
         return h2_hess
         
         
-    def estimate_h2_hess_wrapper(self, prop_keep=0.005, R_cutoff=0.99, min_h2=1e-4, num_samples=100):
+    def estimate_h2_hess_wrapper(self, prop_keep=0.005, R_cutoff=0.99, min_h2=None, num_samples=100):
         '''
             prop_keep:  Proprtion of SNPs to use in the estimation (only the ones with the smallest p-values)
             R_cutoff: Exclude one of each pair of SNPs with with magnitude of correlation greater than this value
@@ -653,8 +664,12 @@ class Fine_Mapping(object):
         if min_h2 is None:
             pvalue_bound = None
         else:
+            assert min_h2 > 0 and min_h2 < 1, \
+                'The minimum proportion of heritability to exclude SNPs from HESS estimation must be between 0 and 1'
             pvalue_bound = stats.chi2(1).sf(min_h2 * self.n)
-        
+
+        assert num_samples > 0, 'Number of random samples must be a positive integer'
+
         h2_hess_list = [self.estimate_h2_hess(prop_keep=prop_keep, R_cutoff=R_cutoff, pvalue_bound=pvalue_bound) \
                         for try_num in range(num_samples)]
         h2_hess = np.mean(h2_hess_list)
@@ -687,7 +702,7 @@ class SUSIE_Wrapper(Fine_Mapping):
 
 
 
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, hess_iter=100, hess_min_h2=None, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
 
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -742,13 +757,24 @@ class SUSIE_Wrapper(Fine_Mapping):
         if hess:
             if prior_var is not None:
                 raise ValueError('cannot specify both hess and a custom prior_var')
-            prior_var = self.estimate_h2_hess() / num_causal_snps
+            if self.n < 20000:
+                logging.warning('HESS method is intended for studies with large sample sizes (i.e. >20K)')
+            if hess_min_h2 is None:
+                logging.warning('For best results, you should consider setting --hess-min-h2 to exclude SNPs with low heritability from the HESS estimation. You will need to experiment with your data to find a suitable heritability threshold. To start, try --hess-min-h2 1e-4')
+            else:
+                logging.info('Excluding SNPs with heritability less than %0.4e from the HESS estimation'%(hess_min_h2))
+            h2_hess = self.estimate_h2_hess_wrapper(min_h2=hess_min_h2, num_samples=hess_iter)
+            logging.info('Average local SNP heritability estimated by modified HESS over %d iterations: %0.4e'%(hess_iter, h2_hess))
+            if h2_hess > 10:
+                logging.warning('The HESS estimator is unconstrained, and the estimate is an order of magnitude greater than the expected max of 1. Use with caution')
+            prior_var = h2_hess / num_causal_snps
             if prior_var <= 0:
                 raise ValueError('HESS estimates that the locus causally explains zero heritability')
             logging.info('HESS estimated causal effect size variance: %0.4e'%(prior_var))
             
             if hess_resvar:
-                residual_var = 1 - prior_var*num_causal_snps
+                residual_var = 1 - h2_hess
+                logging.info('Residual variance using the HESS estimate: %0.4e'%(residual_var))
                 assert residual_var>=0
     
         #rpy2 bug fix
@@ -908,7 +934,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
 
 
 
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, hess_iter=100, hess_min_h2=None, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
 
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -1147,6 +1173,8 @@ if __name__ == '__main__':
     parser.add_argument('--max-num-causal', required=True, type=int, help='Number of causal SNPs')
     parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
     parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
+    parser.add_argument('--hess-iter', type=int, default=100, help='Average HESS over this number of iterations (default: 100)')
+    parser.add_argument('--hess-min-h2', type=float, default=None, help='When estimating causal effect variance via HESS, exclude SNPs that tag less than this amount of heritability (default: None)')
     parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, SNPs with sumstats that are not \
                             found in the LD panel will be omitted. This is not recommended, because the omitted SNPs may be causal,\
@@ -1227,7 +1255,8 @@ if __name__ == '__main__':
         
     #run fine-mapping
     df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
-                 use_prior_causal_prob=not args.non_funct, prior_var=None, hess=args.hess,
+                 use_prior_causal_prob=not args.non_funct, prior_var=None,
+                 hess=args.hess, hess_iter=args.hess_iter, hess_min_h2=args.hess_min_h2,
                  verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing,
                  susie_outfile=args.susie_outfile, finemap_dir=args.finemap_dir,
                  residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess)
