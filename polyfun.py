@@ -568,7 +568,7 @@ class PolyFun:
         df_snpvar = df_snpvar.merge(df_sumstats, left_index=True, right_index=True)
         df_snpvar = df_snpvar[list(svpvar_cols) + [c for c in df_sumstats.columns if c not in list(svpvar_cols)]]
         if df_snpvar.shape[0] < df_sumstats.shape[0]:
-            error_message = 'not all SNPs in the sumstats file are also in the annotations file'
+            error_message = 'not all SNPs in the sumstats file and/or in the LD reference files are also in the annotations file'
             if args.allow_missing:
                 logging.warning(error_message + '. Keeping %d/%d SNPs'%(df_snpvar.shape[0], df_sumstats.shape[0]))
             else:
@@ -674,7 +674,7 @@ class PolyFun:
         #make sure that all SNPs have a bin
         keep_snps = None
         if np.any(~df_bim.index.isin(df_bins_chr.index)):
-            error_msg = 'Not all SNPs were assigned a bin (meaning some SNPS are not in the annotation files)'
+            error_msg = 'Not all SNPs were assigned a bin (meaning some SNPS in the summary statistics and/or in the LD reference files are not in the annotation files)'
             if args.allow_missing:
                 is_good_snp = df_bim.index.isin(df_bins_chr.index)
                 if not np.any(is_good_snp):
