@@ -52,7 +52,9 @@ def main(args):
             else:
                 raise IOError(err_msg + '.\nTo override this error, please provide the flag --allow-missing-jobs')
         df_sumstats_r = pd.read_table(output_file_r)
-        df_sumstats_r['REGION'] = 'chr%s:%s-%s'%(chr_num, start, end)
+        
+        #add the current region to the credible set
+        df_sumstats_r['CREDIBLE_SET'] = 'chr%s:%s-%s:'%(chr_num, start, end) + df_sumstats_r['CREDIBLE_SET'].astype(str)
         
         #mark distance from center
         middle = (start+end)//2
