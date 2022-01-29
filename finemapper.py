@@ -215,7 +215,8 @@ def save_ld_to_npz(ld_arr, df_ld_snps, npz_file):
 
 class Fine_Mapping(object):
     def __init__(self, genotypes_file, sumstats_file, n, chr_num, ldstore_exe, 
-                    sample_file=None, incl_samples=None, cache_dir=None, n_threads=None, memory=None):
+                    sample_file=None, incl_samples=None, cache_dir=None, n_threads=None, memory=None,
+                    allow_swapped_indel_alleles=False):
     
         #check that data is valid
         if genotypes_file is not None:        
@@ -235,7 +236,7 @@ class Fine_Mapping(object):
             raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))
         if np.any(df_sumstats['CHR'] != chr_num):
             df_sumstats = df_sumstats.query('CHR==%s'%(chr_num)).copy()
-        df_sumstats = set_snpid_index(df_sumstats)
+        df_sumstats = set_snpid_index(df_sumstats, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
         if 'P' not in df_sumstats.columns:
             df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
         logging.info('Loaded sumstats for %d SNPs in %0.2f seconds'%(df_sumstats.shape[0], time.time()-t0))
@@ -252,10 +253,11 @@ class Fine_Mapping(object):
         self.n_threads = n_threads
         self.chr = chr_num
         self.memory = memory
+        self.allow_swapped_indel_alleles = allow_swapped_indel_alleles
         
         
     def sync_ld_sumstats(self, ld_arr, df_ld_snps, allow_missing=False):
-        df_ld_snps = set_snpid_index(df_ld_snps)
+        df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
         
         if ld_arr is None:
             df_ld = pd.DataFrame(np.zeros(len(df_ld_snps.index), dtype=np.int), index=df_ld_snps.index, columns=['dummy'])
@@ -265,16 +267,23 @@ class Fine_Mapping(object):
             df_ld = pd.DataFrame(ld_arr, index=df_ld_snps.index, columns=df_ld_snps.index)
         
         #make sure that all SNPs in the sumstats file are in the LD file
-        if not np.all(self.df_sumstats_locus.index.isin(df_ld.index)):
+        snps_in_ld_file = self.df_sumstats_locus.index.isin(df_ld.index)
+        if not np.all(snps_in_ld_file):
+            # Could the missing SNPs be due to mismatched indel alleles?
+            df_sumstats_missing = self.df_sumstats_locus.loc[~snps_in_ld_file]
+            num_missing_is_indel = np.sum((df_sumstats_missing['A1'].str.len()>1) | (df_sumstats_missing['A2'].str.len()>1))
             if allow_missing:
-                num_missing = np.sum(~self.df_sumstats_locus.index.isin(df_ld.index))
+                num_missing = np.sum(~snps_in_ld_file)
                 logging.warning('%d variants with sumstats were not found in the LD file and will be omitted (please note that this may lead to false positives if the omitted SNPs are causal!)'%(num_missing))            
-                self.df_sumstats_locus = self.df_sumstats_locus.loc[self.df_sumstats_locus.index.isin(df_ld.index)]
+                if num_missing_is_indel > 0 and not self.allow_swapped_indel_alleles:
+                    logging.warning('%d of the missing variants were indels. Check that the allele order (A1/A2) matches between the sumstats and the LD file. Also see the flag --allow-swapped-indel-alleles'%(num_missing_is_indel))
+                self.df_sumstats_locus = self.df_sumstats_locus.loc[snps_in_ld_file]
                 assert np.all(self.df_sumstats_locus.index.isin(df_ld.index))
             else:
                 error_msg = ('not all SNPs in the sumstats file were found in the LD matrix!'
                             ' You could drop the missing SNPs with the flag --allow-missing, but please note that'
-                            ' these omitted SNPs may be causal, in which case you may get false positive results...')
+                            ' these omitted SNPs may be causal, in which case you may get false positive results...'
+                            ' If there should be no missing SNPs (e.g. you are using insample LD), see the flag --allow-swapped-indel-alleles')
                 raise ValueError(error_msg)
         
         #filter LD to only SNPs found in the sumstats file
@@ -347,10 +356,11 @@ class Fine_Mapping(object):
                 df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
             else:
                 raise IOError('unknown file extension')
-            df_ld_snps = set_snpid_index(df_ld_snps)
+            df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
             
             #make sure that the LD file includes data for all the SNPs in the locus
             if not np.all(self.df_sumstats_locus.index.isin(df_ld_snps.index)):
+                logging.warning('The available cached LD file was ignored because it does not contain data for all the SNPs in the locus')
                 continue
     
             #if we got here than we found a suitable d file
@@ -376,7 +386,47 @@ class Fine_Mapping(object):
     
         #create df_z
         df_z = self.df_sumstats_locus[['SNP', 'CHR', 'BP', 'A1', 'A2']].copy()
-        if df_z['CHR'].iloc[0]<10: df_z['CHR'] = '0' + df_z['CHR'].astype(str)
+        
+        #add leading zeros to chromosome numbers if needed
+        try:
+            import bgen
+        except (ImportError, ModuleNotFoundError):
+            raise ValueError('\n\nPlease install the bgen package (using "pip install bgen")')
+        from bgen.reader import BgenFile
+        bfile = BgenFile(self.genotypes_file)
+        bgen_chromosomes = bfile.chroms()
+        if bgen_chromosomes[0].startswith('0'):
+            df_z['CHR'] = '0' + df_z['CHR'].astype(str)
+            
+            
+        #sync the order of the alleles between the sumstats and the bgen file
+        list_bgen = []
+        rsids = bfile.rsids()
+        for snp_i, rsid in enumerate(rsids):
+            if rsid not in df_z['SNP'].values: continue
+            snp_alleles = bfile[snp_i].alleles
+            snp_chrom = bfile[snp_i].chrom
+            snp_pos = bfile[snp_i].pos
+            assert len(snp_alleles) == 2, 'cannot handle SNPs with more than two alleles'
+            df_snp = df_z.query('SNP == "%s"'%(rsid))
+            assert df_snp.shape[0]==1
+            a1, a2 = df_snp['A1'].iloc[0], df_snp['A2'].iloc[0]
+            snp_a1, snp_a2 = snp_alleles[0], snp_alleles[1]
+            if set([a1,a2]) != set([snp_a1, snp_a2]):
+                raise ValueError('The alleles for SNP %s are different in the sumstats and in the bgen file:\n \
+                                 bgen:     A1=%s  A2=%s\n \
+                                 sumstats: A1=%s  A2=%s \
+                                '%(rsid, snp_alleles[0], snp_alleles[1], a1, a2))
+            d = {'SNP':rsid, 'CHR':snp_chrom, 'BP':snp_pos, 'A1':snp_a1, 'A2':snp_a2}
+            list_bgen.append(d)
+        df_bgen = pd.DataFrame(list_bgen)
+        df_bgen = set_snpid_index(df_bgen, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
+        df_z = set_snpid_index(df_z, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
+        df_z = df_z[[]].merge(df_bgen, left_index=True, right_index=True)
+        df_z = df_z[['SNP', 'CHR', 'BP', 'A1', 'A2']]
+            
+        
+        #rename columns
         df_z.rename(columns={'SNP':'rsid', 'CHR':'chromosome', 'BP':'position', 'A1':'allele1', 'A2':'allele2'}, inplace=True)
                 
         #Create LDstore input files
@@ -500,8 +550,9 @@ class Fine_Mapping(object):
     
         #update self.df_sumstats_locus
         self.df_sumstats_locus = self.df_sumstats.query('%d <= BP <= %d'%(locus_start, locus_end))
-        if self.df_sumstats_locus.shape[0] == 0:
-            raise ValueError('No SNPs found in sumstats file in the BP range %d-%d'%(locus_start, locus_end))
+        num_snps = self.df_sumstats_locus.shape[0]
+        if num_snps < 2:
+            raise ValueError('%d SNP(s) found in sumstats file in the BP range %d-%d'%(num_snps, locus_start, locus_end))
             
             
             
@@ -559,9 +610,20 @@ class Fine_Mapping(object):
         
     def estimate_h2_hess(self, prop_keep=0.005, R_cutoff=0.99, pvalue_bound=None):
         '''
-            prop_keep:  Proprtion of SNPs to use in the estimation (only the ones with the smallest p-values)
+            prop_keep:  Proportion of SNPs to use in the estimation (only the ones with the smallest p-values)
             R_cutoff: Exclude one of each pair of SNPs with with magnitude of correlation greater than this value
             pvalue_bound: An upper bound on the p-value cutoff (i.e., SNPs with P greater than this cutoff will never be used in the estimation)
+
+            The modified HESS equation implemented below is
+
+            $$ \frac{n \alpha R^{-1} \alpha - m}{n} = \alpha R^{-1} \alpha - \frac{m}{n} $$
+
+            where $\alpha$ is a vector of marginal effect size estimates for $m$ standardized SNPs,
+            $R$ is a matrix of summary LD information, and $n$ is the sample size.
+
+            This is a biased estimator (denominator of $n$) with a smaller estimation variance compared
+            with the unbiased estimator (denominator of $n - m$) used in the original HESS publication
+            (Shi et al., 2014; https://doi.org/10.1016/j.ajhg.2016.05.013).
         '''
         
         #keep only potential causal SNPs
@@ -591,7 +653,7 @@ class Fine_Mapping(object):
         return h2_hess
         
         
-    def estimate_h2_hess_wrapper(self, prop_keep=0.005, R_cutoff=0.99, min_h2=1e-4, num_samples=100):
+    def estimate_h2_hess_wrapper(self, prop_keep=0.005, R_cutoff=0.99, min_h2=None, num_samples=100):
         '''
             prop_keep:  Proprtion of SNPs to use in the estimation (only the ones with the smallest p-values)
             R_cutoff: Exclude one of each pair of SNPs with with magnitude of correlation greater than this value
@@ -602,8 +664,12 @@ class Fine_Mapping(object):
         if min_h2 is None:
             pvalue_bound = None
         else:
+            assert min_h2 > 0 and min_h2 < 1, \
+                'The minimum proportion of heritability to exclude SNPs from HESS estimation must be between 0 and 1'
             pvalue_bound = stats.chi2(1).sf(min_h2 * self.n)
-        
+
+        assert num_samples > 0, 'Number of random samples must be a positive integer'
+
         h2_hess_list = [self.estimate_h2_hess(prop_keep=prop_keep, R_cutoff=R_cutoff, pvalue_bound=pvalue_bound) \
                         for try_num in range(num_samples)]
         h2_hess = np.mean(h2_hess_list)
@@ -617,9 +683,10 @@ class Fine_Mapping(object):
 class SUSIE_Wrapper(Fine_Mapping):
 
     def __init__(self, genotypes_file, sumstats_file, n, chr_num, ldstore_exe, sample_file=None,
-                 incl_samples=None, cache_dir=None, n_threads=None, memory=None):
+                 incl_samples=None, cache_dir=None, n_threads=None, memory=None,
+                 allow_swapped_indel_alleles=False):
 
-        super(SUSIE_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory)
+        super(SUSIE_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
                        
         #load SuSiE R package
         import rpy2
@@ -631,12 +698,12 @@ class SUSIE_Wrapper(Fine_Mapping):
         self.susieR = importr('susieR')
         self.R_null = ro.rinterface.NULL
         #self.RNULLType = rpy2.rinterface.RNULLType
-        
-        
-    
-        
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None):
-    
+
+
+
+
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, hess_iter=100, hess_min_h2=None, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
+
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
             raise ValueError('SNPVAR column not found in sumstats file')
@@ -690,13 +757,24 @@ class SUSIE_Wrapper(Fine_Mapping):
         if hess:
             if prior_var is not None:
                 raise ValueError('cannot specify both hess and a custom prior_var')
-            prior_var = self.estimate_h2_hess() / num_causal_snps
+            if self.n < 20000:
+                logging.warning('HESS method is intended for studies with large sample sizes (i.e. >20K)')
+            if hess_min_h2 is None:
+                logging.warning('For best results, you should consider setting --hess-min-h2 to exclude SNPs with low heritability from the HESS estimation. You will need to experiment with your data to find a suitable heritability threshold. To start, try --hess-min-h2 1e-4')
+            else:
+                logging.info('Excluding SNPs with heritability less than %0.4e from the HESS estimation'%(hess_min_h2))
+            h2_hess = self.estimate_h2_hess_wrapper(min_h2=hess_min_h2, num_samples=hess_iter)
+            logging.info('Average local SNP heritability estimated by modified HESS over %d iterations: %0.4e'%(hess_iter, h2_hess))
+            if h2_hess > 10:
+                logging.warning('The HESS estimator is unconstrained, and the estimate is an order of magnitude greater than the expected max of 1. Use with caution')
+            prior_var = h2_hess / num_causal_snps
             if prior_var <= 0:
                 raise ValueError('HESS estimates that the locus causally explains zero heritability')
             logging.info('HESS estimated causal effect size variance: %0.4e'%(prior_var))
             
             if hess_resvar:
-                residual_var = 1 - prior_var*num_causal_snps
+                residual_var = 1 - h2_hess
+                logging.info('Residual variance using the HESS estimate: %0.4e'%(residual_var))
                 assert residual_var>=0
     
         #rpy2 bug fix
@@ -810,7 +888,7 @@ class SUSIE_Wrapper(Fine_Mapping):
         df_susie['DISTANCE_FROM_CENTER'] = np.abs(df_susie['BP'] - middle)        
         
         #mark causal sets
-        self.susie_dict = {key:np.array(susie_obj.rx2(key)) for key in list(susie_obj.names)}
+        self.susie_dict = {key:np.array(susie_obj.rx2(key), dtype=np.object) for key in list(susie_obj.names)}
         df_susie['CREDIBLE_SET'] = 0
         susie_sets = self.susie_dict['sets'][0]
         #if type(susie_sets) != self.RNULLType:
@@ -848,15 +926,16 @@ class SUSIE_Wrapper(Fine_Mapping):
 class FINEMAP_Wrapper(Fine_Mapping):
 
     def __init__(self, genotypes_file, sumstats_file, n, chr_num, finemap_exe, ldstore_exe, sample_file=None,
-                 incl_samples=None, cache_dir=None, n_threads=None, memory=None):
+                 incl_samples=None, cache_dir=None, n_threads=None, memory=None,
+                 allow_swapped_indel_alleles=False):
 
-        super(FINEMAP_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory)
+        super(FINEMAP_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
         self.finemap_exe = finemap_exe
 
-    
-        
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False):
-    
+
+
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, hess_iter=100, hess_min_h2=None, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
+
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
             raise ValueError('SNPVAR column not found in sumstats file')
@@ -878,8 +957,12 @@ class FINEMAP_Wrapper(Fine_Mapping):
             ld_file = download_ld_file(ld_file)            
             
         #create prefix of output files
-        finemap_dir = tempfile.mkdtemp()
-        assert os.path.isdir(finemap_dir)        
+        if finemap_dir is None:
+            finemap_dir = tempfile.mkdtemp()
+        else:
+            os.makedirs(finemap_dir, exist_ok=True)
+            logging.info('Saving FINEMAP files to directory: %s'%(finemap_dir))
+        assert os.path.isdir(finemap_dir)
         finemap_output_prefix = os.path.join(finemap_dir, 'finemap')
                     
     
@@ -1083,17 +1166,27 @@ if __name__ == '__main__':
     parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
     parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')    
     parser.add_argument('--susie-outfile', default=None, help='If specified, the SuSiE object will be saved to an output file')
+    parser.add_argument('--finemap-dir', default=None, help='If specified, the FINEMAP files will be saved to this directory')
     
     
     
     parser.add_argument('--max-num-causal', required=True, type=int, help='Number of causal SNPs')
     parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
     parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
+    parser.add_argument('--hess-iter', type=int, default=100, help='Average HESS over this number of iterations (default: 100)')
+    parser.add_argument('--hess-min-h2', type=float, default=None, help='When estimating causal effect variance via HESS, exclude SNPs that tag less than this amount of heritability (default: None)')
     parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, SNPs with sumstats that are not \
                             found in the LD panel will be omitted. This is not recommended, because the omitted SNPs may be causal,\
                             which could lead to false positive results')
-    
+    parser.add_argument('--allow-swapped-indel-alleles', default=False, action='store_true',
+                        help='If specified, indels whose alleles are swapped between the sumstats and LD matrix \
+                            are kept for fine-mapping. The default behavior considers indels at the same position \
+                            with swapped alleles to be different variants, and thus removes them. Use with caution. \
+                            This is intended for use only when you are confident that the indels are identical, \
+                            e.g. when using insample LD')
+
+
     parser.add_argument('--sample-file', default=None, help='BGEN files must be used together with a sample file')
     parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to include in fine-mapping')
     parser.add_argument('--out', required=True, help='name of the output file')
@@ -1138,10 +1231,13 @@ if __name__ == '__main__':
     
     #Create a fine-mapping class member
     if args.method == 'susie':
-        finemap_obj = SUSIE_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr, 
+        if args.finemap_dir is not None:
+            raise ValueError('--finemap-dir cannot be specified with susie method')
+        finemap_obj = SUSIE_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr,
                                     sample_file=args.sample_file, incl_samples=args.incl_samples,
                                     ldstore_exe=args.ldstore2, n_threads=args.threads,
-                                    cache_dir=args.cache_dir, memory=args.memory)
+                                    cache_dir=args.cache_dir, memory=args.memory,
+                                    allow_swapped_indel_alleles=args.allow_swapped_indel_alleles)
     elif args.method == 'finemap':
         if args.susie_outfile is not None:
             raise ValueError('--susie-outfile cannot be specified with finemap method')
@@ -1152,15 +1248,17 @@ if __name__ == '__main__':
         finemap_obj = FINEMAP_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr, 
                                     sample_file=args.sample_file, incl_samples=args.incl_samples,
                                     ldstore_exe=args.ldstore2, finemap_exe=args.finemap_exe, n_threads=args.threads,
-                                    cache_dir=args.cache_dir, memory=args.memory)
+                                    cache_dir=args.cache_dir, memory=args.memory,
+                                    allow_swapped_indel_alleles=args.allow_swapped_indel_alleles)
     else:
         raise ValueError('unknown method specified in --method')
         
     #run fine-mapping
     df_finemap = finemap_obj.finemap(locus_start=args.start, locus_end=args.end, num_causal_snps=args.max_num_causal,
-                 use_prior_causal_prob=not args.non_funct, prior_var=None, hess=args.hess,
+                 use_prior_causal_prob=not args.non_funct, prior_var=None,
+                 hess=args.hess, hess_iter=args.hess_iter, hess_min_h2=args.hess_min_h2,
                  verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing,
-                 susie_outfile=args.susie_outfile,
+                 susie_outfile=args.susie_outfile, finemap_dir=args.finemap_dir,
                  residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess)
     logging.info('Writing fine-mapping results to %s'%(args.out))
     df_finemap.sort_values('PIP', ascending=False, inplace=True)

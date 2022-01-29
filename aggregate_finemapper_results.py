@@ -29,7 +29,8 @@ def main(args):
     if args.chr is not None:
         df_regions = df_regions.query('CHR==%d'%(args.chr))
         if df_regions.shape[0]==0: raise ValueError('no SNPs found in chromosome %d'%(args.chr))
-    df_regions = df_regions.loc[df_regions.apply(lambda r: np.any((df_sumstats['CHR']==r['CHR']) & (df_sumstats['BP'].between(r['START'], r['END']))), axis=1)]
+    df_regions_keep = df_regions.apply(lambda r: np.sum((df_sumstats['CHR']==r['CHR']) & (df_sumstats['BP'].between(r['START'], r['END']))) > 1, axis=1)
+    df_regions = df_regions.loc[df_regions_keep]
     
     #aggregate outputs
     df_sumstats_list = []
@@ -51,6 +52,9 @@ def main(args):
             else:
                 raise IOError(err_msg + '.\nTo override this error, please provide the flag --allow-missing-jobs')
         df_sumstats_r = pd.read_table(output_file_r)
+        
+        #add the current region to the credible set
+        df_sumstats_r['CREDIBLE_SET'] = 'chr%s:%s-%s:'%(chr_num, start, end) + df_sumstats_r['CREDIBLE_SET'].astype(str)
         
         #mark distance from center
         middle = (start+end)//2
