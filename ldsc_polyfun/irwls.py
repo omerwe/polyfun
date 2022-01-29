@@ -193,5 +193,5 @@ class IRWLS(object):
                 'w has shape {S}. w must have shape (n, 1).'.format(S=w.shape))
 
         w = w / float(np.sum(w))
-        x *= w
-        return x
+        x_new = x*w
+        return x_new
