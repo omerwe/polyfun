@@ -307,6 +307,10 @@ def estimate_mixing_weights(args):
         df_prs_sum_all = df_prs_sum_all.loc[index_shared]
     if df_pheno.shape[0] != df_prs_sum_all.shape[0] or np.any(df_prs_sum_all.index != df_pheno.index):
         df_pheno = df_pheno.loc[df_prs_sum_all.index]
+        
+    #flip PRS that are negatively correlated with the phenotype
+    is_flipped = df_prs_sum_all.T.dot(df_pheno['PHENO']) < 0
+    df_prs_sum_all.loc[:, is_flipped] *= -1
     
     #compute mixing weights
     mix_weights, intercept = nonneg_lstsq(df_prs_sum_all.values, df_pheno['PHENO'].values)
@@ -364,6 +368,10 @@ def check_args(args):
         raise ValueError('you must specify either --predict or --combine-betas (but not both)')
     if args.plink_exe is None and args.plink2_exe is None:
         raise ValueError('you must specify either --plink-exe or --plink2-exe')
+    if args.plink_exe is not None and not os.path.exists(args.plink_exe):
+        raise ValueError('%s not found'%(args.plink_exe))
+    if args.plink2_exe is not None and not os.path.exists(args.plink_exe):
+        raise ValueError('%s not found'%(args.plink2_exe))
     if args.combine_betas:
         if args.keep is not None:
             raise ValueError('you cannot provide both --combine-betas and --keep')
