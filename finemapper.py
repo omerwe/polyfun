@@ -879,6 +879,8 @@ class SUSIE_Wrapper(Fine_Mapping):
         df_susie = self.df_sumstats_locus.copy()
         df_susie['PIP'] = pip
         df_susie['BETA_MEAN'] = beta_mean
+        # flip back the finemap BETA, as the alleles are in original order
+        df_susie.loc[is_flipped, 'BETA_MEAN'] *= (-1)
         df_susie['BETA_SD'] = np.sqrt(beta_var)
         
         #add distance from center
