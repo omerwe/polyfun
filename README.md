@@ -38,8 +38,8 @@ cd polyfun
 conda env create -f polyfun.yml
 conda activate polyfun
 ```
-This will install all the dependencies except for [SuSiE](https://github.com/stephenslab/susieR), [FINEMAP](http://www.christianbenner.com), and [LDstore](http://www.christianbenner.com)
-You can use PolyFun without these packages to compute prior causal probabilities, but you won't be able to apply the actual fine-mapping. Please see installation instructions for these three packages below.
+This will install all the dependencies except for [FINEMAP](http://www.christianbenner.com) and [LDstore](http://www.christianbenner.com)
+This will allow you to perform fine-mapping using SuSiE, but not using FINEMAP. Please see installation instructions for FINEMAP and LDstore below.
 
 After the installation, you can always invoke the PolyFun environment with the command `conda activate polyfun`.
 We recommend that you frequently make sure you have the latest version of polyfun installed by going to the polyfun directory and typing `git pull`.
