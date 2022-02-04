@@ -55,6 +55,7 @@ PolyFun and PolyLoc are designed for Python >=3.6 and require the following free
 * [bitarray](https://github.com/ilanschnell/bitarray)
 * [networkx](https://github.com/networkx/networkx) (only required for HESS-based estimation of effect size variance)
 * [pandas-plink](https://github.com/limix/pandas-plink)
+* [r-susier](https://anaconda.org/conda-forge/r-susier)
 
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
@@ -63,8 +64,8 @@ It is recommended (but not required) to also install the following:
 
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
 
-The `finemapper` script also requires the following:
-1. A fine-mapping package you'd like to use. At the moment we support [susieR](https://github.com/stephenslab/susieR) and [FINEMAP v1.4](http://www.christianbenner.com). Please see installation instructions for these packages below.
+If you'd like to use FINEMAP instead of SuSiE for fine-mappping, you will also require:
+1. [FINEMAP v1.4](http://www.christianbenner.com). Please see installation instructions for these packages below.
 2. (optional) The program [LDstore 2.0](http://www.christianbenner.com) for computing LD directly from .bgen files (imputed genotypes)
 
 We recommend running PolyFun/PolyLoc via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the Python packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
@@ -76,13 +77,6 @@ git clone https://github.com/omerwe/polyfun
 We recommend that you frequently make sure you have the latest version of polyfun installed by going to the polyfun directory and typing `git pull`.
 
 
-
-## Installing SuSiE
-To install SuSiE, please start an R shell (usually by typing `R`) and then type: <br>
-```
-devtools::install_github("stephenslab/susieR@0.8.0",build_vignettes=FALSE)
-```
-If this doesn't work, please refer to the [SuSiE website](https://github.com/stephenslab/susieR) for more information, or contact the SuSiE authors through the [SuSiE Github page](https://github.com/stephenslab/susieR).
 
 ## Installing FINEMAP v1.4
 To install FINEMAP v1.4, please type one of the following two commands:
