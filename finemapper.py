@@ -702,7 +702,7 @@ class SUSIE_Wrapper(Fine_Mapping):
 
 
 
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, hess_iter=100, hess_min_h2=None, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, residual_var_init=None, hess_resvar=False, hess=False, hess_iter=100, hess_min_h2=None, susie_max_iter=100, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, finemap_dir=None):
 
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -826,6 +826,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                 # estimate_prior_variance=(prior_var is None),
                 # residual_variance=(self.R_null if (residual_var is None) else residual_var),
                 # estimate_residual_variance=(residual_var is None),
+                # max_iter=susie_max_iter,
                 # verbose=verbose,
                 # prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
             # )
@@ -842,6 +843,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                     estimate_prior_variance=(prior_var is None),
                     residual_variance=(self.R_null if (residual_var_init is None) else residual_var_init),
                     estimate_residual_variance=(residual_var is None),
+                    max_iter=susie_max_iter,
                     verbose=verbose,
                     prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
                 )
@@ -856,6 +858,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                     estimate_prior_variance=(prior_var is None),
                     residual_variance=(self.R_null if (residual_var is None) else residual_var),
                     estimate_residual_variance=(residual_var is None),
+                    max_iter=susie_max_iter,
                     verbose=verbose,
                     prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
                 )
@@ -936,7 +939,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
 
 
 
-    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, hess_iter=100, hess_min_h2=None, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
+    def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, hess_iter=100, hess_min_h2=None, susie_max_iter=100, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
 
         #check params
         if use_prior_causal_prob and 'SNPVAR' not in self.df_sumstats.columns:
@@ -1196,6 +1199,7 @@ if __name__ == '__main__':
     parser.add_argument('--susie-resvar', default=None, type=float, help='If specified, SuSiE will use this value of the residual variance')
     parser.add_argument('--susie-resvar-init', default=None, type=float, help='If specified, SuSiE will use this initial value of the residual variance')
     parser.add_argument('--susie-resvar-hess', default=False, action='store_true', help='If specified, SuSiE will specify the residual variance using the HESS estimate')
+    parser.add_argument('--susie-max-iter', default=100, type=int, help='SuSiE argument max_iter which controls the max number of IBSS iterations to perform (default: 100)')
     
     #check package versions
     check_package_versions()
@@ -1261,7 +1265,8 @@ if __name__ == '__main__':
                  hess=args.hess, hess_iter=args.hess_iter, hess_min_h2=args.hess_min_h2,
                  verbose=args.verbose, ld_file=args.ld, debug_dir=args.debug_dir, allow_missing=args.allow_missing,
                  susie_outfile=args.susie_outfile, finemap_dir=args.finemap_dir,
-                 residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess)
+                 residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess,
+                 susie_max_iter=args.susie_max_iter)
     logging.info('Writing fine-mapping results to %s'%(args.out))
     df_finemap.sort_values('PIP', ascending=False, inplace=True)
     if args.out.endswith('.parquet'):
