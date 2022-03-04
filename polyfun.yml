@@ -26,5 +26,5 @@ dependencies:
   - pip
   - r-susier
   - pip:
-    - bgen
+    - bgen==1.2.10
 
