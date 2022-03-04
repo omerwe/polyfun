@@ -204,7 +204,7 @@ def save_ld_to_npz(ld_arr, df_ld_snps, npz_file):
     df_ld_snps.to_csv(meta_file, sep='\t', index=False)
     
     #save .npz file
-    R = np.tril(ld_arr).astype(np.float32)
+    R = np.tril(ld_arr).astype(np.float64)
     np.fill_diagonal(R, np.diag(R)/2.0)    
     R = sparse.coo_matrix(R)
     sparse.save_npz(npz_file, R, compressed=True)
@@ -474,7 +474,7 @@ class Fine_Mapping(object):
     
     
     def read_plink_genotypes(self, bed):
-        X = bed.compute().astype(np.float32)
+        X = bed.compute().astype(np.float64)
         if np.any(np.isnan(X)):
             imp = SimpleImputer(missing_values=np.nan, strategy='mean', copy=False)
             imp.fit(X)
@@ -523,7 +523,7 @@ class Fine_Mapping(object):
         
         #compute LD in chunks
         logging.info('Found %d SNPs in target region. Computing LD in %d chunks...'%(bed.shape[1], num_chunks))
-        ld_arr = np.empty((bed.shape[1], bed.shape[1]), dtype=np.float32)
+        ld_arr = np.empty((bed.shape[1], bed.shape[1]), dtype=np.float64)
         for chunk_i in tqdm(range(num_chunks)):
             chunk_i_start = chunk_i*chunk_size
             chunk_i_end = np.minimum(chunk_i_start+chunk_size, bed.shape[1])
