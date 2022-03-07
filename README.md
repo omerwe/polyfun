@@ -80,18 +80,18 @@ We recommend that you frequently make sure you have the latest version of polyfu
 
 
 
-## Installing FINEMAP v1.4
-To install FINEMAP v1.4, please type one of the following two commands:
+## Installing FINEMAP v1.4.1
+To install FINEMAP v1.4.1, please type one of the following two commands:
 <br>
 If you use Linux:
 ```
-wget http://www.christianbenner.com/finemap_v1.4_x86_64.tgz
-tar xvf finemap_v1.4_x86_64.tgz
+wget http://christianbenner.com/finemap_v1.4.1_x86_64.tgz
+tar xvf finemap_v1.4.1_x86_64.tgz
 ```
 If you use Mac OS X :
 ```
-wget http://www.christianbenner.com/finemap_v1.4_MacOSX.tgz
-tar xvf finemap_v1.4_MacOSX.tgz
+wget http://christianbenner.com/finemap_v1.4.1_MacOSX.tgz
+tar xvf finemap_v1.4.1_MacOSX.tgz
 ```
 
 ## Installing LDstore 2.0
