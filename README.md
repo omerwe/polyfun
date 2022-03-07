@@ -65,7 +65,7 @@ It is recommended (but not required) to also install the following:
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
 
 If you'd like to use FINEMAP instead of SuSiE for fine-mappping, you will also require:
-1. [FINEMAP v1.4](http://www.christianbenner.com).
+1. [FINEMAP v1.4.1](http://www.christianbenner.com).
 2. (optional) The program [LDstore 2.0](http://www.christianbenner.com) for computing LD directly from .bgen files (imputed genotypes)
 
 Please see installation instructions for these packages below.
