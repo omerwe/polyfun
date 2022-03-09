@@ -1103,8 +1103,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
         #load results
         df_finemap = pd.read_table(snp_filename, sep=' ', usecols=['rsid', 'chromosome', 'position', 'allele1', 'allele2', 'prob', 'mean', 'sd'])
         df_finemap.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'prob':'PIP', 'mean':'BETA_MEAN', 'sd':'BETA_SD', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-        df_finemap.sort_values('PIP', inplace=True, ascending=False)
-        
+
         #read log10bf
         log10bf = None
         with open(log_filename+'_sss', 'r') as f:
