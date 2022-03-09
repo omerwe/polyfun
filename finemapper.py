@@ -1179,6 +1179,8 @@ if __name__ == '__main__':
                             with swapped alleles to be different variants, and thus removes them. Use with caution. \
                             This is intended for use only when you are confident that the indels are identical, \
                             e.g. when using insample LD')
+    parser.add_argument('--no-sort-pip', default=False, action='store_true',
+                        help='Do **not** sort results by PIP. Recommended for use with --susie-outfile')
 
     #LDstore related parameters
     parser.add_argument('--ldstore2', default=None, help='Path to an LDstore 2.0 executable file')
@@ -1191,7 +1193,7 @@ if __name__ == '__main__':
     parser.add_argument('--finemap-dir', default=None, help='If specified, the FINEMAP files will be saved to this directory')
 
     # SuSiE-specific parameters
-    parser.add_argument('--susie-outfile', default=None, help='If specified, the SuSiE object will be saved to an output file')
+    parser.add_argument('--susie-outfile', default=None, help='If specified, the SuSiE object will be saved to an output file (also see --no-sort-pip for help merging with main output file)')
     parser.add_argument('--susie-resvar', default=None, type=float, help='If specified, SuSiE will use this value of the residual variance')
     parser.add_argument('--susie-resvar-init', default=None, type=float, help='If specified, SuSiE will use this initial value of the residual variance')
     parser.add_argument('--susie-resvar-hess', default=False, action='store_true', help='If specified, SuSiE will specify the residual variance using the HESS estimate')
@@ -1233,7 +1235,10 @@ if __name__ == '__main__':
                 raise ValueError('cannot specify both --geno and --ld')
             if args.geno.endswith('.bgen') and args.ldstore2 is None:
                 raise ValueError('You must specify --ldstore2 when --geno that points to a bgen file')
-    
+
+    if args.susie_outfile is not None and not args.no_sort_pip:
+        logging.warning('--susie-outfile was set but not --no-sort-pip. This will make it difficult to assign SNP names to the SuSiE R object')
+
     #Create a fine-mapping class member
     if args.method == 'susie':
         if args.finemap_dir is not None:
@@ -1267,7 +1272,8 @@ if __name__ == '__main__':
                  residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess,
                  susie_max_iter=args.susie_max_iter)
     logging.info('Writing fine-mapping results to %s'%(args.out))
-    df_finemap.sort_values('PIP', ascending=False, inplace=True)
+    if not args.no_sort_pip:
+        df_finemap.sort_values('PIP', ascending=False, inplace=True)
     if args.out.endswith('.parquet'):
         df_finemap.to_parquet(args.out, index=False)
     else:
