@@ -118,6 +118,10 @@ python test_polyfun.py --python3 <python3_exe>
 ```
 where `python3_exe` (optional) is the command you type to start a python3 session (default is `python`). If the script completes without an error, everything is fine. If you see any errors, please consult the [FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ).
 
+To test FINEMAP integration, provide the path to the executable when invoking the script:
+```
+python test_polyfun.py --python3 <python3_exe> --finemap-exe <finemap_exe>
+```
 
 
 

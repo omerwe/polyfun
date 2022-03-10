@@ -80,8 +80,15 @@ def is_Ckmeans_installed():
         return False
     return True
 
-    
-    
+
+def is_finemap_installed(finemap_exe):
+    if finemap_exe is None:
+        return False
+    if not os.path.exists(finemap_exe):
+        return False
+    return True
+
+
 def test_munge_sumstats(tmpdir, python3_exe):
     script_path = os.path.dirname(os.path.realpath(__file__))
     example_dir = os.path.join(script_path, 'example_data')
@@ -240,9 +247,45 @@ def test_finemapper(tmpdir, python3_exe):
     if retval != 0:
         raise ValueError('finemapper command failed')
     compare_dfs(tmpdir, gold_dir, outfile, sort_column='SNP')
-   
-   
-    
+
+
+def test_finemapper_finemap(tmpdir, python3_exe, finemap_exe):
+
+    if not is_finemap_installed(finemap_exe):
+        print('Skipping FINEMAP test because the executable is not available. Re-run with --finemap-exe to test FINEMAP')
+        return
+
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    example_dir = os.path.join(script_path, 'example_data')
+    gold_dir = os.path.join(script_path, 'gold')
+    script_exe = os.path.join(script_path, 'finemapper.py')
+    sumstats_file = os.path.join(example_dir, 'chr1.finemap_sumstats.txt.gz')
+    plink_file = os.path.join(example_dir, 'chr1')
+    outfile = 'finemap.FINEMAP.1.46000001.49000001.gz'
+    output_file = os.path.join(tmpdir, outfile)
+
+    finemapper_cmd = '%s %s \
+       --geno %s \
+       --sumstats %s \
+       --n 383290 \
+       --chr 1 \
+       --start 46000001 \
+       --end 49000001 \
+       --method finemap \
+       --finemap-exe %s \
+       --max-num-causal 5 \
+       --out %s \
+       --threads 1 \
+       --verbose \
+       ' \
+       %(python3_exe, script_exe, plink_file, sumstats_file, finemap_exe, output_file)
+
+    #print(finemapper_cmd)
+    retval = os.system(finemapper_cmd)
+    if retval != 0:
+        raise ValueError('finemapper command failed')
+    compare_dfs(tmpdir, gold_dir, outfile, sort_column='SNP')
+
 
 if __name__ == '__main__':
 
@@ -250,10 +293,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--python3', default='python', help='python 3 executable')
+    parser.add_argument('--finemap-exe', default=None, help='Path to FINEMAP executable file')
     args = parser.parse_args()
     temp_dir = tempfile.mkdtemp()
     
     test_finemapper(temp_dir, args.python3)
+    test_finemapper_finemap(temp_dir, args.python3, args.finemap_exe)
         
     test_polyloc(temp_dir, args.python3)
     test_polyfun(temp_dir, args.python3)

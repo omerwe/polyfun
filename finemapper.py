@@ -1103,8 +1103,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
         #load results
         df_finemap = pd.read_table(snp_filename, sep=' ', usecols=['rsid', 'chromosome', 'position', 'allele1', 'allele2', 'prob', 'mean', 'sd'])
         df_finemap.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'prob':'PIP', 'mean':'BETA_MEAN', 'sd':'BETA_SD', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-        df_finemap.sort_values('PIP', inplace=True, ascending=False)
-        
+
         #read log10bf
         log10bf = None
         with open(log_filename+'_sss', 'r') as f:
@@ -1162,25 +1161,15 @@ if __name__ == '__main__':
     parser.add_argument('--n', required=True, type=int, help='Sample size')
     parser.add_argument('--geno', default=None, help='Genotypes file (plink or bgen format)')
     parser.add_argument('--ld', default=None, help='prefix or fill name of an LD matrix file')
-    
-    #LDstore related parameters
-    parser.add_argument('--ldstore2', default=None, help='Path to an LDstore 2.0 executable file')
-    parser.add_argument('--finemap-exe', default=None, help='Path to FINEMAP v1.4 executable file')
-    parser.add_argument('--memory', type=int, default=1, help='Maximum amount of memory in GB to allocate to LDStore')
-    parser.add_argument('--threads', type=int, default=None, help='The number of CPU cores LDstore will use (if not specified, LDstore will use the max number of CPU cores available')
-    parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
-    parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')    
-    parser.add_argument('--susie-outfile', default=None, help='If specified, the SuSiE object will be saved to an output file')
-    parser.add_argument('--finemap-dir', default=None, help='If specified, the FINEMAP files will be saved to this directory')
-    
-    
-    
+    parser.add_argument('--out', required=True, help='name of the output file')
+    parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
+    parser.add_argument('--debug-dir', default=None, help='If specified, this is a path of a directory that will include files for debugging problems')
+    parser.add_argument('--sample-file', default=None, help='BGEN files must be used together with a sample file')
+    parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to include in fine-mapping')
+
+    #fine-mapping parameters
     parser.add_argument('--max-num-causal', required=True, type=int, help='Number of causal SNPs')
     parser.add_argument('--non-funct', action='store_true', default=False, help='Perform non-functionally informed fine-mapping')
-    parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
-    parser.add_argument('--hess-iter', type=int, default=100, help='Average HESS over this number of iterations (default: 100)')
-    parser.add_argument('--hess-min-h2', type=float, default=None, help='When estimating causal effect variance via HESS, exclude SNPs that tag less than this amount of heritability (default: None)')
-    parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, SNPs with sumstats that are not \
                             found in the LD panel will be omitted. This is not recommended, because the omitted SNPs may be causal,\
                             which could lead to false positive results')
@@ -1190,17 +1179,29 @@ if __name__ == '__main__':
                             with swapped alleles to be different variants, and thus removes them. Use with caution. \
                             This is intended for use only when you are confident that the indels are identical, \
                             e.g. when using insample LD')
+    parser.add_argument('--no-sort-pip', default=False, action='store_true',
+                        help='Do **not** sort results by PIP. Recommended for use with --susie-outfile')
 
+    #LDstore related parameters
+    parser.add_argument('--ldstore2', default=None, help='Path to an LDstore 2.0 executable file')
+    parser.add_argument('--finemap-exe', default=None, help='Path to FINEMAP v1.4 executable file')
+    parser.add_argument('--memory', type=int, default=1, help='Maximum amount of memory in GB to allocate to LDStore')
+    parser.add_argument('--threads', type=int, default=None, help='The number of CPU cores LDstore will use (if not specified, LDstore will use the max number of CPU cores available')
+    parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
 
-    parser.add_argument('--sample-file', default=None, help='BGEN files must be used together with a sample file')
-    parser.add_argument('--incl-samples', default=None, help='A single-column text file specifying the ids of individuals to include in fine-mapping')
-    parser.add_argument('--out', required=True, help='name of the output file')
-    
+    # FINEMAP-specific parameters
+    parser.add_argument('--finemap-dir', default=None, help='If specified, the FINEMAP files will be saved to this directory')
+
+    # SuSiE-specific parameters
+    parser.add_argument('--susie-outfile', default=None, help='If specified, the SuSiE object will be saved to an output file (also see --no-sort-pip for help merging with main output file)')
     parser.add_argument('--susie-resvar', default=None, type=float, help='If specified, SuSiE will use this value of the residual variance')
     parser.add_argument('--susie-resvar-init', default=None, type=float, help='If specified, SuSiE will use this initial value of the residual variance')
     parser.add_argument('--susie-resvar-hess', default=False, action='store_true', help='If specified, SuSiE will specify the residual variance using the HESS estimate')
     parser.add_argument('--susie-max-iter', default=100, type=int, help='SuSiE argument max_iter which controls the max number of IBSS iterations to perform (default: 100)')
-    
+    parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
+    parser.add_argument('--hess-iter', type=int, default=100, help='Average HESS over this number of iterations (default: 100)')
+    parser.add_argument('--hess-min-h2', type=float, default=None, help='When estimating causal effect variance via HESS, exclude SNPs that tag less than this amount of heritability (default: None)')
+
     #check package versions
     check_package_versions()
     
@@ -1234,7 +1235,10 @@ if __name__ == '__main__':
                 raise ValueError('cannot specify both --geno and --ld')
             if args.geno.endswith('.bgen') and args.ldstore2 is None:
                 raise ValueError('You must specify --ldstore2 when --geno that points to a bgen file')
-    
+
+    if args.susie_outfile is not None and not args.no_sort_pip:
+        logging.warning('--susie-outfile was set but not --no-sort-pip. This will make it difficult to assign SNP names to the SuSiE R object')
+
     #Create a fine-mapping class member
     if args.method == 'susie':
         if args.finemap_dir is not None:
@@ -1268,7 +1272,8 @@ if __name__ == '__main__':
                  residual_var=args.susie_resvar, residual_var_init=args.susie_resvar_init, hess_resvar=args.susie_resvar_hess,
                  susie_max_iter=args.susie_max_iter)
     logging.info('Writing fine-mapping results to %s'%(args.out))
-    df_finemap.sort_values('PIP', ascending=False, inplace=True)
+    if not args.no_sort_pip:
+        df_finemap.sort_values('PIP', ascending=False, inplace=True)
     if args.out.endswith('.parquet'):
         df_finemap.to_parquet(args.out, index=False)
     else:
