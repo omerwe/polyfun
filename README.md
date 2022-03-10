@@ -38,6 +38,9 @@ cd polyfun
 conda env create -f polyfun.yml
 conda activate polyfun
 ```
+ ⚡ **Note**: You can speed up the installation by ~100x by [installing mamba](https://github.com/mamba-org/mamba) and then replacing mamba with conda in the commands above.
+
+
 This will install all the dependencies except for [FINEMAP](http://www.christianbenner.com) and [LDstore](http://www.christianbenner.com)
 This will allow you to perform fine-mapping using SuSiE, but not using FINEMAP. Please see installation instructions for FINEMAP and LDstore below.
 
