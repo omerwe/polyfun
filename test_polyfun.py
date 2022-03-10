@@ -82,10 +82,9 @@ def is_Ckmeans_installed():
 
 
 def is_finemap_installed(finemap_exe):
-    if finemap_exe is None:
-        return False
-    if not os.path.exists(finemap_exe):
-        return False
+    if finemap_exe is None: return False
+    assert os.path.exists(finemap_exe), 'the FINEMAP path provided is wrong (%s)'%(finemap_exe)        
+    assert os.access(finemap_exe, os.X_OK), 'the FINEMAP executable doesn\'t have execution permissions'
     return True
 
 
@@ -212,7 +211,7 @@ def test_extract_snpvar(tmpdir, python3_exe):
     compare_dfs(tmpdir, gold_dir, outfile)
 
 
-def test_finemapper(tmpdir, python3_exe):
+def test_finemapper_susie(tmpdir, python3_exe):
 
     if not is_susie_installed():
         print('Skipping fine-mapping test because either rpy2 or SuSiE are not properly installed. Please try reinstalling rpy2 and/or SuSiE')
@@ -297,7 +296,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     temp_dir = tempfile.mkdtemp()
     
-    test_finemapper(temp_dir, args.python3)
+    test_finemapper_susie(temp_dir, args.python3)
     test_finemapper_finemap(temp_dir, args.python3, args.finemap_exe)
         
     test_polyloc(temp_dir, args.python3)
