@@ -255,7 +255,7 @@ def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
     
     #keep only requested annotations if --anno was specified
     if args.anno is not None:
-        cols_to_keep = np.zeros(len(ref_ld.columns), dtype=np.bool)        
+        cols_to_keep = np.zeros(len(ref_ld.columns), dtype=bool)        
         annotations = args.anno.split(',')
         is_found1 = np.isin(annotations, ref_ld.columns.str[:-2])
         is_found2 = np.isin(annotations, ref_ld.columns.str[:-4])

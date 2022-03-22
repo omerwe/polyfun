@@ -204,16 +204,16 @@ class PolyLoc(PolyFun):
         num_jk = cumsum_prop_h2.shape[1]
         
         last_bin_index = np.argmax(cumsum_prop_h2 >= p, axis=0)
-        num_snps_bin1 = np.zeros(num_jk, dtype=np.int)
+        num_snps_bin1 = np.zeros(num_jk, dtype=np.int64)
         h2_bin1 = np.zeros(num_jk)
         num_snps_bin1[last_bin_index != 0] = cumnum_binsize[last_bin_index[last_bin_index != 0] - 1]
         h2_bin1[last_bin_index != 0] = cumsum_prop_h2[last_bin_index[last_bin_index != 0] - 1, np.arange(num_jk)[last_bin_index != 0]]
             
         num_snps_bin2 = cumnum_binsize[last_bin_index]        
         h2_bin2 = cumsum_prop_h2[last_bin_index, np.arange(num_jk)]
-        slope = (num_snps_bin2-num_snps_bin1).astype(np.float) / (h2_bin2-h2_bin1)
+        slope = (num_snps_bin2-num_snps_bin1).astype(np.float64) / (h2_bin2-h2_bin1)
         assert not np.any(np.isnan(slope))
-        Mp = np.ceil(num_snps_bin1 + slope * (p - h2_bin1)).astype(np.int)        
+        Mp = np.ceil(num_snps_bin1 + slope * (p - h2_bin1)).astype(np.int64)        
         
         return Mp
             

@@ -405,7 +405,7 @@ class PolyFun:
         ind=0
         df_bins = pd.DataFrame(index=df_snpvar_sorted.index)        
         for bin_i, bin_size in enumerate(bin_sizes):
-            snpvar_bin = np.zeros(df_bins.shape[0], dtype=np.bool)
+            snpvar_bin = np.zeros(df_bins.shape[0], dtype=bool)
             snpvar_bin[ind : ind+bin_size] = True
             df_bins['snpvar_bin%d'%(len(bin_sizes) - bin_i)] = snpvar_bin
             ind += bin_size
@@ -462,7 +462,7 @@ class PolyFun:
             seg_obj = median_seg_func(df_snpvar_sorted.values, k=np.array([5,30]))
         else:
             seg_obj = median_seg_func(df_snpvar_sorted.values, k=args.num_bins)
-        bin_sizes = np.array(seg_obj.rx2('size')).astype(np.int)
+        bin_sizes = np.array(seg_obj.rx2('size')).astype(np.int64)
         num_bins = len(bin_sizes)
         logging.info('Ckmedian.1d.dp partitioned SNPs into %d bins'%(num_bins))        
 

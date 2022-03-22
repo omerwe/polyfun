@@ -85,8 +85,8 @@ def load_ld_npz(ld_prefix):
 def get_bcor_meta(bcor_obj):
     df_ld_snps = bcor_obj.getMeta()
     df_ld_snps.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-    ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
-    df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
+    ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int64)
+    df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int64)
     return df_ld_snps
     
 
@@ -260,7 +260,7 @@ class Fine_Mapping(object):
         df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
         
         if ld_arr is None:
-            df_ld = pd.DataFrame(np.zeros(len(df_ld_snps.index), dtype=np.int), index=df_ld_snps.index, columns=['dummy'])
+            df_ld = pd.DataFrame(np.zeros(len(df_ld_snps.index), dtype=np.int64), index=df_ld_snps.index, columns=['dummy'])
         else:
             assert ld_arr.shape[0] == df_ld_snps.shape[0]
             assert ld_arr.shape[0] == ld_arr.shape[1]
@@ -352,8 +352,8 @@ class Fine_Mapping(object):
                 df_ld_snps = bcor_obj.getMeta()
                 del bcor_obj
                 df_ld_snps.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-                ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
-                df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
+                ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int64)
+                df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int64)
             else:
                 raise IOError('unknown file extension')
             df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
@@ -495,7 +495,7 @@ class Fine_Mapping(object):
         df_bim.rename(columns={'snp':'SNP', 'pos':'BP', 'chrom':'CHR', 'a0':'A2', 'a1':'A1'}, inplace=True)
         df_bim['A1'] = df_bim['A1'].astype('str')
         df_bim['A2'] = df_bim['A2'].astype('str')
-        df_bim['CHR'] = df_bim['CHR'].astype(np.int)
+        df_bim['CHR'] = df_bim['CHR'].astype(np.int64)
         del df_bim['i']
         del df_bim['cm']
         bed = bed.T
@@ -512,10 +512,10 @@ class Fine_Mapping(object):
             mem_limit = 1
         else:
             mem_limit = self.memory
-        chunk_size = np.int((np.float(mem_limit) * 0.8) / bed.shape[0] / 4 * (2**30))
+        chunk_size = np.int64((np.float64(mem_limit) * 0.8) / bed.shape[0] / 4 * (2**30))
         if chunk_size==0: chunk_size=1
         if chunk_size > bed.shape[1]: chunk_size = bed.shape[1]
-        num_chunks = np.int(np.ceil(bed.shape[1] / chunk_size))
+        num_chunks = np.int64(np.ceil(bed.shape[1] / chunk_size))
         if num_chunks>1:
             assert chunk_size * (num_chunks-2) < bed.shape[1]-1
         if chunk_size * (num_chunks-1) >= bed.shape[1]:
@@ -893,13 +893,13 @@ class SUSIE_Wrapper(Fine_Mapping):
         df_susie['DISTANCE_FROM_CENTER'] = np.abs(df_susie['BP'] - middle)        
         
         #mark causal sets
-        self.susie_dict = {key:np.array(susie_obj.rx2(key), dtype=np.object) for key in list(susie_obj.names)}
+        self.susie_dict = {key:np.array(susie_obj.rx2(key), dtype=object) for key in list(susie_obj.names)}
         df_susie['CREDIBLE_SET'] = 0
         susie_sets = self.susie_dict['sets'][0]
         #if type(susie_sets) != self.RNULLType:
         try:
             for set_i, susie_set in enumerate(susie_sets):
-                is_in_set = np.zeros(df_susie.shape[0], dtype=np.bool)
+                is_in_set = np.zeros(df_susie.shape[0], dtype=bool)
                 is_in_set[np.array(susie_set)-1] = True
                 is_in_set[df_susie['CREDIBLE_SET']>0] = False
                 df_susie.loc[is_in_set, 'CREDIBLE_SET'] = set_i+1
@@ -979,7 +979,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
             if ld_file is not None:
                 raise ValueError('cannot specify an ld file when assuming a single causal SNP per locus')
             ld_file = finemap_output_prefix+'.ld'
-            np.savetxt(ld_file, np.eye(self.df_sumstats_locus.shape[0], dtype=np.int), fmt='%s')
+            np.savetxt(ld_file, np.eye(self.df_sumstats_locus.shape[0], dtype=np.int64), fmt='%s')
         else:
             if ld_file is None:
                 ld_data = self.get_ld_data(locus_start, locus_end, need_bcor=True, verbose=verbose)
@@ -1016,7 +1016,7 @@ class FINEMAP_Wrapper(Fine_Mapping):
         
         #flip some of the alleles
         if num_causal_snps == 1:
-            is_flipped = np.zeros(self.df_sumstats_locus.shape[0], dtype=np.bool)
+            is_flipped = np.zeros(self.df_sumstats_locus.shape[0], dtype=bool)
         else:
             if ld_file.endswith('.bcor'):
                 bcor_obj = bcor(ld_file)
