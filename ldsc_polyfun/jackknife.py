@@ -705,7 +705,7 @@ class Jackknife_Ridge(Jackknife):
         
     def _divide_chromosomes_to_sets(self, chr_sizes, num_sets):
         chr_order = np.argsort(chr_sizes)[::-1]     #np.arange(len(chr_sizes))
-        chr_assignments = np.zeros(22, dtype=np.int) - 1
+        chr_assignments = np.zeros(22, dtype=np.int64) - 1
         chr_assignments[chr_order[:num_sets]] = np.arange(num_sets)
         set_sizes = chr_sizes[chr_order[:num_sets]].copy()    
         for c_i in chr_order[num_sets : len(chr_sizes)]:

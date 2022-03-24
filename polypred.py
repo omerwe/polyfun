@@ -47,7 +47,7 @@ def create_plink_range_file(df_betas, temp_dir, num_jk=200):
     scores_file = os.path.join(temp_dir, 'snp_scores.txt')
     separators = np.floor(np.linspace(0, df_betas.shape[0], num_jk+1)).astype(int)
     df_betas['score'] = 0
-    is_in_range = np.zeros(df_betas.shape[0], dtype=np.bool)
+    is_in_range = np.zeros(df_betas.shape[0], dtype=bool)
     for i in range(len(separators)-1):
         is_in_range[separators[i] : separators[i+1]] = True
         df_betas.loc[is_in_range, 'score'] = i+1.5
@@ -176,7 +176,7 @@ def load_betas_files(betas_file, verbose=True):
     df_betas.rename(columns={'sid':'SNP', 'nt1':'A1', 'nt2':'A2', 'BETA_MEAN':'BETA', 'ldpred_inf_beta':'BETA', 'chrom':'CHR', 'Chrom':'CHR', 'pos':'BP'}, inplace=True, errors='ignore')
     if not is_numeric_dtype(df_betas['CHR']):
         if df_betas['CHR'].str.startswith('chrom_').all():
-            df_betas['CHR'] = df_betas['CHR'].str[6:].astype(np.int)
+            df_betas['CHR'] = df_betas['CHR'].str[6:].astype(np.int64)
         else:
             raise ValueError('unknown CHR format')
     df_betas.rename(columns={'BETA_joint':'BETA', 'ALLELE1':'A1', 'ALLELE0':'A2', 'beta_mean':'BETA', 'MAF_BOLT':'A1Frq', 'Name':'SNP', 'A1Effect':'BETA', 'Name':'SNP', 'Chrom':'CHR', 'Position':'BP', 'beta':'BETA'}, inplace=True, errors='ignore')
@@ -284,7 +284,7 @@ def estimate_mixing_weights(args):
         float(df_pheno['PHENO'].iloc[0])
     except:
         df_pheno = df_pheno.iloc[1:]
-        df_pheno['PHENO'] = df_pheno['PHENO'].astype(np.float)
+        df_pheno['PHENO'] = df_pheno['PHENO'].astype(np.float64)
     if np.any(df_pheno.index.duplicated()):
         raise ValueError('duplicate ids found in %s'%(args.pheno))
 

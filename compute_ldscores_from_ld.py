@@ -87,8 +87,8 @@ def load_ld_npz(ld_dir, ld_prefix):
 def get_bcor_meta(bcor_obj):
     df_ld_snps = bcor_obj.getMeta()
     df_ld_snps.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-    df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
-    df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
+    df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int64)
+    df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int64)
     df_ld_snps = set_snpid_index(df_ld_snps)
     return df_ld_snps
                 
@@ -215,7 +215,7 @@ def compute_ldscores_chr(df_annot_chr, ld_dir=None, use_ukb=False, n=None, ld_fi
     
     #check if the data is binary
     df_annot_chr_raw = df_annot_chr.drop(columns=META_COLUMNS, errors='raise')
-    if np.all(df_annot_chr_raw.dtypes == np.bool):
+    if np.all(df_annot_chr_raw.dtypes == bool):
         is_binary = True
     elif np.all([len(np.unique(df_annot_chr_raw[c]))<=2 for c in df_annot_chr_raw.columns]):
         is_binary = True
