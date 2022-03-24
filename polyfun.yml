@@ -1,12 +1,12 @@
 name: polyfun
 channels:
   - conda-forge
-  - defaults
+  - nodefaults
 dependencies:
   - tqdm
   - r-wavethresh
-  - pyarrow
-  - python=3.6
+  - pyarrow>=3.0
+  - python=3.8
   - scikit-learn
   - r-lattice
   - r-ckmeans.1d.dp
@@ -19,7 +19,7 @@ dependencies:
   - rpy2
   - scipy
   - r-devtools
-  - numpy
+  - numpy>=1.20
   - pandas
   - r-expm
   - pandas-plink
@@ -27,4 +27,3 @@ dependencies:
   - r-susier
   - pip:
     - bgen==1.2.10
-
