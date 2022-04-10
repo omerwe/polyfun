@@ -127,10 +127,22 @@ def ldscore_fromlist(flist, num=None):
     for fh_i, fh in enumerate(flist):
         y = ldscore(fh, num)
         if len(ldscore_array)>0:
+        
+            #make sure that all files contain the same SNPs in the same order
             if ((not series_eq(y.index, ldscore_array[0].index) or not series_eq(y.SNP, ldscore_array[0].SNP))):
-                raise ValueError('LD Scores for concatenation must have identical SNP columns (and A1/A2 columns if such columns exist).')
-            else:  # keep SNP and CHR column from only the first file
-                y = y.drop(columns=['SNP', 'CHR'], axis=1)
+                all_baseline_snps_found = np.all(ldscore_array[0].index.isin(y.index))
+                if not all_baseline_snps_found:
+                    raise ValueError('Some SNPs in the first set of annotations are not found in the one of the other sets of annotations')
+                extra_snps_found = np.any(~(y.index.isin(ldscore_array[0].index)))
+                if extra_snps_found:
+                    logging.warning('some SNPs in one of the sets of annotations are not found in the first set of annotations. We will ignore these SNPs')
+                    
+                #reorder the SNPs to make sure that they're in the corret order
+                y = y.loc[ldscore_array[0].index]
+                assert series_eq(y.index, ldscore_array[0].index) and series_eq(y.SNP, ldscore_array[0].SNP)
+            
+            # keep SNP and CHR column from only the first file
+            y = y.drop(columns=['SNP', 'CHR'], axis=1)
 
         new_col_dict = {c: c + '_' + str(fh_i) for c in y.columns if c not in ['SNP', 'CHR']}
         y.rename(columns=new_col_dict, inplace=True)
@@ -192,7 +204,7 @@ def ldscore(fh, num=None):
         chr_ld = []
         for i in tqdm(range(1, num+1)):
             chr_ld.append(l2_parser(sub_chr(fh, i) + suffix + s, compression))
-        x = pd.concat(chr_ld)  # automatically sorted by chromosome
+        x = pd.concat(chr_ld, axis=0)  # automatically sorted by chromosome
         del chr_ld
     else:  # just one file
         s, compression = which_compression(fh + suffix)
@@ -205,6 +217,8 @@ def ldscore(fh, num=None):
         if not is_sorted: break            
     if not is_sorted:
         x.sort_values(by=['CHR', 'BP'], inplace=True) # SEs will be wrong unless sorted
+        
+        
     x.drop(columns=['BP'], inplace=True)
     
     if x.index.name == 'snpid':
