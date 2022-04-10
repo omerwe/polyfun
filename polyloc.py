@@ -16,7 +16,7 @@ def splash_screen():
     print('*********************************************************************')
     print('* PolyLoc (POLYgenic LOCalization of complex trait heritability')
     print('* Version 1.0.0')
-    print('* (C) 2019-2021 Omer Weissbrod')
+    print('* (C) 2019-2022 Omer Weissbrod')
     print('*********************************************************************')
     print()
     
