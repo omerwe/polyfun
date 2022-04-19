@@ -284,7 +284,8 @@ class PolyFun:
             
         #if we have more annotations that ref-ld, it might mean that some annotations were removed, so remove them from here as well
         if not np.all(np.isin(self.ref_ld_cnames, df_annot_chr.columns)):
-            raise ValueError('Annotation names in annotations file do not match the one in the LD-scores file')
+            missing_annot = self.ref_ld_cnames[~np.isin(self.ref_ld_cnames, df_annot_chr.columns)]
+            raise ValueError('The following annotations have LD-scores but are not in any of the annotation files: %s'%(missing_annot))
         if len(self.ref_ld_cnames) < len(df_annot_chr.columns) - len(SNP_COLUMNS):            
             df_annot_chr = df_annot_chr[SNP_COLUMNS + self.ref_ld_cnames]
 
