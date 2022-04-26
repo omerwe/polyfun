@@ -213,7 +213,7 @@ class PolyFun:
         chisq = chisq[ii].reshape((n_snp, 1))
 
         #Run S-LDSC
-        self.ref_ld_cnames = [c for c in ref_ld_cnames.str[:-2] if c not in SNP_COLUMNS]
+        self.ref_ld_cnames = [c[:c.rfind('_')] for c in ref_ld_cnames if c not in SNP_COLUMNS]
         hsqhat = regressions.Hsq(chisq, 
             ref_ld,
             s(df_sumstats[w_ld_cname]),
