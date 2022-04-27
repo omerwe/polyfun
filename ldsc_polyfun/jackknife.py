@@ -254,7 +254,7 @@ class LstsqJackknifeSlow(Jackknife):
         return np.concatenate(d, axis=0)
         
     
-    def __init__(self, x, y, is_large_chi2, n_blocks=None, nn=False, separators=None, chr_num=None, evenodd_split=False, nnls_exact=False):
+    def __init__(self, x, y, is_large_chi2=False, n_blocks=None, nn=False, separators=None, chr_num=None, evenodd_split=False, nnls_exact=False):
     
         Jackknife.__init__(self, x, y, n_blocks, separators)
     
@@ -323,7 +323,7 @@ class LstsqJackknifeSlow(Jackknife):
         
 class LstsqJackknifeFast(Jackknife):
     
-    def __init__(self, x, y, is_large_chi2, n_blocks=None, separators=None, chr_num=None, evenodd_split=False):
+    def __init__(self, x, y, is_large_chi2=False, n_blocks=None, separators=None, chr_num=None, evenodd_split=False):
     
         #compute jackknife estimates using all SNPs
         Jackknife.__init__(self, x, y, n_blocks, separators)

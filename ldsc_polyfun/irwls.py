@@ -125,7 +125,7 @@ class IRWLS(object):
                 x, y, n_blocks, separators=separators)
         else:
             jknife = jk.LstsqJackknifeFast(
-                x, y, n_blocks, separators=separators)
+                x, y, n_blocks=n_blocks, separators=separators)
 
         return jknife
 
