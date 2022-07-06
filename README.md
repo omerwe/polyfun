@@ -130,7 +130,7 @@ python test_polyfun.py --python3 <python3_exe> --finemap-exe <finemap_exe>
 
 <br><br>
 # Contact
-For questions and comments, please open a Github issue (preferred) or contact Omer Weissbrod at oweissbrod[at]hsph.harvard.edu
+For questions and comments, please open a Github issue.
 
 
 
