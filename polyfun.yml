@@ -24,6 +24,6 @@ dependencies:
   - r-expm
   - pandas-plink
   - pip
-  - r-susier
+  - r-susier==0.11.92
   - pip:
     - bgen==1.2.10
