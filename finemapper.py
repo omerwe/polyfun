@@ -846,7 +846,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                     shat=np.ones((m,1)),
                     R=self.df_ld.values,
                     n=self.n,
-                    L=num_causal_snps, refine=True, max_iter = 500,
+                    L=num_causal_snps,
                     scaled_prior_variance=(0.0001 if (prior_var is None) else prior_var),
                     estimate_prior_variance=(prior_var is None),
                     residual_variance=(self.R_null if (residual_var_init is None) else residual_var_init),
