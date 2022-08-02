@@ -87,8 +87,8 @@ def load_ld_npz(ld_dir, ld_prefix):
 def get_bcor_meta(bcor_obj):
     df_ld_snps = bcor_obj.getMeta()
     df_ld_snps.rename(columns={'rsid':'SNP', 'position':'BP', 'chromosome':'CHR', 'allele1':'A1', 'allele2':'A2'}, inplace=True, errors='raise')
-    df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int)
-    df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int)
+    df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int64)
+    df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int64)
     df_ld_snps = set_snpid_index(df_ld_snps)
     return df_ld_snps
                 
@@ -135,10 +135,20 @@ def download_ukb_ld_file(chr_num, region_start, overwrite=False, ld_dir=None, no
         
     #download the region files
     for suffix in ['npz', 'gz']:
+    
         suffix_file = os.path.join(ld_dir, '%s.%s'%(ld_prefix, suffix))
         url = '%s/%s.%s'%(UKBB_LD_URL, ld_prefix, suffix)
-        with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc='downloading %s'%(url)) as t:                  
+        
+        #special handling for long-range LD regions
+        try:
+            urllib.request.urlopen(url)
+        except urllib.request.HTTPError:
+            url += '2'
+            urllib.request.urlopen(url)        
+        
+        with TqdmUpTo(unit='B', unit_scale=True, unit_divisor=1024, miniters=1, desc='downloading %s'%(url)) as t:
             urllib.request.urlretrieve(url, filename=suffix_file, reporthook=t.update_to)
+            
             
     #load the LD matrix to memory
     df_R, _ = load_ld_npz(ld_dir, ld_prefix)
@@ -198,15 +208,15 @@ def compute_ldscores_chr(df_annot_chr, ld_dir=None, use_ukb=False, n=None, ld_fi
     assert len(df_annot_chr['CHR'].unique()) == 1
     chr_num = df_annot_chr['CHR'].unique()[0]
     
-    #remove long-range LD regions
-    for r in LONG_RANGE_LD_REGIONS:
-        if r['chr'] != chr_num: continue
-        is_in_r = df_annot_chr['BP'].between(r['start'], r['end'])
-        if not np.any(is_in_r): continue
-        logging.warning('Removing %d SNPs from long-range LD region on chromosome %d BP %d-%d'%(is_in_r.sum(), r['chr'], r['start'], r['end']))
-        df_annot_chr = df_annot_chr.loc[~is_in_r]
-    if df_annot_chr.shape[0]==0:
-        raise ValueError('No SNPs found in chromosome %d (ater removing long-range LD regions)'%(chr_num))
+    # #remove long-range LD regions
+    # for r in LONG_RANGE_LD_REGIONS:
+        # if r['chr'] != chr_num: continue
+        # is_in_r = df_annot_chr['BP'].between(r['start'], r['end'])
+        # if not np.any(is_in_r): continue
+        # logging.warning('Removing %d SNPs from long-range LD region on chromosome %d BP %d-%d'%(is_in_r.sum(), r['chr'], r['start'], r['end']))
+        # df_annot_chr = df_annot_chr.loc[~is_in_r]
+    # if df_annot_chr.shape[0]==0:
+        # raise ValueError('No SNPs found in chromosome %d (after removing long-range LD regions)'%(chr_num))
     
     #sort the SNPs by BP if needed
     if not np.all(np.diff(df_annot_chr['BP'])>=0):
@@ -215,7 +225,7 @@ def compute_ldscores_chr(df_annot_chr, ld_dir=None, use_ukb=False, n=None, ld_fi
     
     #check if the data is binary
     df_annot_chr_raw = df_annot_chr.drop(columns=META_COLUMNS, errors='raise')
-    if np.all(df_annot_chr_raw.dtypes == np.bool):
+    if np.all(df_annot_chr_raw.dtypes == bool):
         is_binary = True
     elif np.all([len(np.unique(df_annot_chr_raw[c]))<=2 for c in df_annot_chr_raw.columns]):
         is_binary = True
@@ -233,6 +243,9 @@ def compute_ldscores_chr(df_annot_chr, ld_dir=None, use_ukb=False, n=None, ld_fi
             region_end = region_start+REGION_LENGTH
             df_annot_region = df_annot_chr.query('%d <= BP <= %d'%(region_start, region_end))
             if df_annot_region.shape[0]==0: continue
+            
+            #skip over HLA region
+            if chr_num==6 and region_start in [28000001, 29000001, 30000001]: continue
             
             #download the LD data
             df_R_region = download_ukb_ld_file(chr_num, region_start, ld_dir=ld_dir, no_cache=no_cache)

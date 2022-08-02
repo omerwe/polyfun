@@ -254,7 +254,7 @@ class LstsqJackknifeSlow(Jackknife):
         return np.concatenate(d, axis=0)
         
     
-    def __init__(self, x, y, is_large_chi2, n_blocks=None, nn=False, separators=None, chr_num=None, evenodd_split=False, nnls_exact=False):
+    def __init__(self, x, y, is_large_chi2=False, n_blocks=None, nn=False, separators=None, chr_num=None, evenodd_split=False, nnls_exact=False):
     
         Jackknife.__init__(self, x, y, n_blocks, separators)
     
@@ -323,7 +323,7 @@ class LstsqJackknifeSlow(Jackknife):
         
 class LstsqJackknifeFast(Jackknife):
     
-    def __init__(self, x, y, is_large_chi2, n_blocks=None, separators=None, chr_num=None, evenodd_split=False):
+    def __init__(self, x, y, is_large_chi2=False, n_blocks=None, separators=None, chr_num=None, evenodd_split=False):
     
         #compute jackknife estimates using all SNPs
         Jackknife.__init__(self, x, y, n_blocks, separators)
@@ -705,7 +705,7 @@ class Jackknife_Ridge(Jackknife):
         
     def _divide_chromosomes_to_sets(self, chr_sizes, num_sets):
         chr_order = np.argsort(chr_sizes)[::-1]     #np.arange(len(chr_sizes))
-        chr_assignments = np.zeros(22, dtype=np.int) - 1
+        chr_assignments = np.zeros(22, dtype=np.int64) - 1
         chr_assignments[chr_order[:num_sets]] = np.arange(num_sets)
         set_sizes = chr_sizes[chr_order[:num_sets]].copy()    
         for c_i in chr_order[num_sets : len(chr_sizes)]:

@@ -5,7 +5,7 @@
 <br>
 **PolyPred** (POLYgenic Prediction of complex traits)
 
-This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2020 Nat Genet](https://www.nature.com/articles/s41588-020-00735-5). **PolyPred** is described in [Weissbrod*, Kanai*, Shi* et al. 2021 medRxiv](https://www.medrxiv.org/content/10.1101/2021.01.19.21249483v1).
+This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2020 Nat Genet](https://www.nature.com/articles/s41588-020-00735-5). **PolyPred** is described in [Weissbrod*, Kanai*, Shi* et al. 2022 Nat Genet](https://www.nature.com/articles/s41588-022-01036-9).
 <br><br>
 **PolyFun** estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, **PolyFun** can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
 <br><br>
@@ -38,8 +38,11 @@ cd polyfun
 conda env create -f polyfun.yml
 conda activate polyfun
 ```
-This will install all the dependencies except for [SuSiE](https://github.com/stephenslab/susieR), [FINEMAP](http://www.christianbenner.com), and [LDstore](http://www.christianbenner.com)
-You can use PolyFun without these packages to compute prior causal probabilities, but you won't be able to apply the actual fine-mapping. Please see installation instructions for these three packages below.
+ ⚡ **Note**: You can speed up the installation by ~100x by [installing mamba](https://github.com/mamba-org/mamba) and then replacing mamba with conda in the commands above.
+
+
+This will install all the dependencies except for [FINEMAP](http://www.christianbenner.com) and [LDstore](http://www.christianbenner.com)
+This will allow you to perform fine-mapping using SuSiE, but not using FINEMAP. Please see installation instructions for FINEMAP and LDstore below.
 
 After the installation, you can always invoke the PolyFun environment with the command `conda activate polyfun`.
 We recommend that you frequently make sure you have the latest version of polyfun installed by going to the polyfun directory and typing `git pull`.
@@ -55,6 +58,7 @@ PolyFun and PolyLoc are designed for Python >=3.6 and require the following free
 * [bitarray](https://github.com/ilanschnell/bitarray)
 * [networkx](https://github.com/networkx/networkx) (only required for HESS-based estimation of effect size variance)
 * [pandas-plink](https://github.com/limix/pandas-plink)
+* [r-susier](https://anaconda.org/conda-forge/r-susier)
 
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
@@ -63,9 +67,11 @@ It is recommended (but not required) to also install the following:
 
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
 
-The `finemapper` script also requires the following:
-1. A fine-mapping package you'd like to use. At the moment we support [susieR](https://github.com/stephenslab/susieR) and [FINEMAP v1.4](http://www.christianbenner.com). Please see installation instructions for these packages below.
+If you'd like to use FINEMAP instead of SuSiE for fine-mappping, you will also require:
+1. [FINEMAP v1.4.1](http://www.christianbenner.com).
 2. (optional) The program [LDstore 2.0](http://www.christianbenner.com) for computing LD directly from .bgen files (imputed genotypes)
+
+Please see installation instructions for these packages below.
 
 We recommend running PolyFun/PolyLoc via the [Anaconda Python distribution](https://www.anaconda.com/download/). In Anaconda, you can install all the Python packages with the command "conda install \<package_name\>". Alternatively, the Python packages can be installed with the command "pip install --user \<package_name\>".
 
@@ -77,25 +83,18 @@ We recommend that you frequently make sure you have the latest version of polyfu
 
 
 
-## Installing SuSiE
-To install SuSiE, please start an R shell (usually by typing `R`) and then type: <br>
-```
-devtools::install_github("stephenslab/susieR@0.8.0",build_vignettes=FALSE)
-```
-If this doesn't work, please refer to the [SuSiE website](https://github.com/stephenslab/susieR) for more information, or contact the SuSiE authors through the [SuSiE Github page](https://github.com/stephenslab/susieR).
-
-## Installing FINEMAP v1.4
-To install FINEMAP v1.4, please type one of the following two commands:
+## Installing FINEMAP v1.4.1
+To install FINEMAP v1.4.1, please type one of the following two commands:
 <br>
 If you use Linux:
 ```
-wget http://www.christianbenner.com/finemap_v1.4_x86_64.tgz
-tar xvf finemap_v1.4_x86_64.tgz
+wget http://christianbenner.com/finemap_v1.4.1_x86_64.tgz
+tar xvf finemap_v1.4.1_x86_64.tgz
 ```
 If you use Mac OS X :
 ```
-wget http://www.christianbenner.com/finemap_v1.4_MacOSX.tgz
-tar xvf finemap_v1.4_MacOSX.tgz
+wget http://christianbenner.com/finemap_v1.4.1_MacOSX.tgz
+tar xvf finemap_v1.4.1_MacOSX.tgz
 ```
 
 ## Installing LDstore 2.0
@@ -122,12 +121,16 @@ python test_polyfun.py --python3 <python3_exe>
 ```
 where `python3_exe` (optional) is the command you type to start a python3 session (default is `python`). If the script completes without an error, everything is fine. If you see any errors, please consult the [FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ).
 
+To test FINEMAP integration, provide the path to the executable when invoking the script (if not provided, the script will not test FINEMAP integration):
+```
+python test_polyfun.py --python3 <python3_exe> --finemap-exe <finemap_exe>
+```
 
 
 
 <br><br>
 # Contact
-For questions and comments, please open a Github issue (preferred) or contact Omer Weissbrod at oweissbrod[at]hsph.harvard.edu
+For questions and comments, please open a Github issue.
 
 
 

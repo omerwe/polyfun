@@ -40,7 +40,7 @@ def splash_screen():
     print('*********************************************************************')
     print('* PolyFun (POLYgenic FUNctionally-informed fine-mapping)')
     print('* Version 1.0.0')
-    print('* (C) 2019-2021 Omer Weissbrod')
+    print('* (C) 2019-2022 Omer Weissbrod')
     print('*********************************************************************')
     print()
     
@@ -213,7 +213,7 @@ class PolyFun:
         chisq = chisq[ii].reshape((n_snp, 1))
 
         #Run S-LDSC
-        self.ref_ld_cnames = [c for c in ref_ld_cnames.str[:-2] if c not in SNP_COLUMNS]
+        self.ref_ld_cnames = [c[:c.rfind('_')] for c in ref_ld_cnames if c not in SNP_COLUMNS]
         hsqhat = regressions.Hsq(chisq, 
             ref_ld,
             s(df_sumstats[w_ld_cname]),
@@ -284,7 +284,8 @@ class PolyFun:
             
         #if we have more annotations that ref-ld, it might mean that some annotations were removed, so remove them from here as well
         if not np.all(np.isin(self.ref_ld_cnames, df_annot_chr.columns)):
-            raise ValueError('Annotation names in annotations file do not match the one in the LD-scores file')
+            missing_annot = [c for c in self.ref_ld_cnames if c not in df_annot_chr.columns]
+            raise ValueError('The following annotations have LD-scores but are not in any of the annotation files: %s'%(missing_annot))
         if len(self.ref_ld_cnames) < len(df_annot_chr.columns) - len(SNP_COLUMNS):            
             df_annot_chr = df_annot_chr[SNP_COLUMNS + self.ref_ld_cnames]
 
@@ -405,7 +406,7 @@ class PolyFun:
         ind=0
         df_bins = pd.DataFrame(index=df_snpvar_sorted.index)        
         for bin_i, bin_size in enumerate(bin_sizes):
-            snpvar_bin = np.zeros(df_bins.shape[0], dtype=np.bool)
+            snpvar_bin = np.zeros(df_bins.shape[0], dtype=bool)
             snpvar_bin[ind : ind+bin_size] = True
             df_bins['snpvar_bin%d'%(len(bin_sizes) - bin_i)] = snpvar_bin
             ind += bin_size
@@ -462,7 +463,7 @@ class PolyFun:
             seg_obj = median_seg_func(df_snpvar_sorted.values, k=np.array([5,30]))
         else:
             seg_obj = median_seg_func(df_snpvar_sorted.values, k=args.num_bins)
-        bin_sizes = np.array(seg_obj.rx2('size')).astype(np.int)
+        bin_sizes = np.array(seg_obj.rx2('size')).astype(np.int64)
         num_bins = len(bin_sizes)
         logging.info('Ckmedian.1d.dp partitioned SNPs into %d bins'%(num_bins))        
 
@@ -568,7 +569,7 @@ class PolyFun:
         df_snpvar = df_snpvar.merge(df_sumstats, left_index=True, right_index=True)
         df_snpvar = df_snpvar[list(svpvar_cols) + [c for c in df_sumstats.columns if c not in list(svpvar_cols)]]
         if df_snpvar.shape[0] < df_sumstats.shape[0]:
-            error_message = 'not all SNPs in the sumstats file are also in the annotations file'
+            error_message = 'not all SNPs in the sumstats file and/or in the LD reference files are also in the annotations file'
             if args.allow_missing:
                 logging.warning(error_message + '. Keeping %d/%d SNPs'%(df_snpvar.shape[0], df_sumstats.shape[0]))
             else:
@@ -674,7 +675,7 @@ class PolyFun:
         #make sure that all SNPs have a bin
         keep_snps = None
         if np.any(~df_bim.index.isin(df_bins_chr.index)):
-            error_msg = 'Not all SNPs were assigned a bin (meaning some SNPS are not in the annotation files)'
+            error_msg = 'Not all SNPs were assigned a bin (meaning some SNPS in the summary statistics and/or in the LD reference files are not in the annotation files)'
             if args.allow_missing:
                 is_good_snp = df_bim.index.isin(df_bins_chr.index)
                 if not np.any(is_good_snp):
