@@ -401,12 +401,20 @@ class Fine_Mapping(object):
             
         #sync the order of the alleles between the sumstats and the bgen file
         list_bgen = []
-        rsids = bfile.rsids()
+        #rsids = bfile.rsids()
+        #small change reduces the time for bgen processing
+        #the previous implementation would iterate through all the SNPs in the bgen file
+        #this implementation loops over just the snps in the locus
+        rsids = bfile.fetch(self.chr, locus_start, locus_end)
         for snp_i, rsid in enumerate(rsids):
-            if rsid not in df_z['SNP'].values: continue
-            snp_alleles = bfile[snp_i].alleles
-            snp_chrom = bfile[snp_i].chrom
-            snp_pos = bfile[snp_i].pos
+#             if rsid not in df_z['SNP'].values: continue
+#             snp_alleles = bfile[snp_i].alleles
+#             snp_chrom = bfile[snp_i].chrom
+#             snp_pos = bfile[snp_i].pos
+            if rsid.rsid not in df_z['SNP'].values: continue
+            snp_alleles = rsid.alleles
+            snp_chrom = rsid.chrom
+            snp_pos = rsid.pos
             assert len(snp_alleles) == 2, 'cannot handle SNPs with more than two alleles'
             df_snp = df_z.query('SNP == "%s"'%(rsid))
             assert df_snp.shape[0]==1
