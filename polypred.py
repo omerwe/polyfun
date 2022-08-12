@@ -370,7 +370,7 @@ def check_args(args):
         raise ValueError('you must specify either --plink-exe or --plink2-exe')
     if args.plink_exe is not None and not os.path.exists(args.plink_exe):
         raise ValueError('%s not found'%(args.plink_exe))
-    if args.plink2_exe is not None and not os.path.exists(args.plink_exe):
+    if args.plink2_exe is not None and not os.path.exists(args.plink2_exe):
         raise ValueError('%s not found'%(args.plink2_exe))
     if args.combine_betas:
         if args.keep is not None:
