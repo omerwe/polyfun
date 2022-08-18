@@ -11,7 +11,7 @@ import time
 import random
 from pandas.api.types import is_numeric_dtype
 from polyfun_utils import Logger, check_package_versions, set_snpid_index, configure_logger
-from scipy.optimize import nnls
+from sklearn.linear_model import LinearRegression
 
 def splash_screen():
     print('*********************************************************************')
@@ -260,19 +260,7 @@ def computs_prs_all_files(args, betas_file, disable_jackknife=False, keep_file=N
     
     return df_prs_sum
     
-    
-def nonneg_lstsq(X, y):
 
-    assert np.all(X.std(axis=0)>0)
-    y_mean = y.mean()
-    X_mean = X.mean(axis=0)
-    y_c = y-y_mean
-    X_c = X-X_mean
-    coef, _ = nnls(X_c, y_c)
-    y_hat = X.dot(coef)
-    intercept = np.mean(y-y_hat)
-    return coef, intercept
-    
     
 def estimate_mixing_weights(args):
 
@@ -313,7 +301,9 @@ def estimate_mixing_weights(args):
     df_prs_sum_all.loc[:, is_flipped] *= -1
     
     #compute mixing weights
-    mix_weights, intercept = nonneg_lstsq(df_prs_sum_all.values, df_pheno['PHENO'].values)
+    linreg = LinearRegression(positive = not args.allow_neg_mixweights)
+    linreg.fit(df_prs_sum_all, df_pheno['PHENO'])
+    mix_weights, intercept = linreg.coef_, linreg.intercept_
     
     #create and print df_coef, and save it to disk
     df_coef = pd.Series(mix_weights, index=beta_files)
@@ -324,10 +314,11 @@ def estimate_mixing_weights(args):
     
     #compute weighted betas
     df_betas_weighted = None
-    for betas_file, mix_weight in zip(beta_files, mix_weights):
+    for is_flipped_beta, betas_file, mix_weight in zip(is_flipped, beta_files, mix_weights):
         df_betas = load_betas_files(betas_file)
-        df_betas = df_betas[['SNP', 'CHR', 'BP', 'A1', 'A2', 'BETA']]
+        df_betas = df_betas[['SNP', 'CHR', 'BP', 'A1', 'A2', 'BETA']]        
         df_betas['BETA'] *= mix_weight
+        if is_flipped_beta: df_betas['BETA'] = -df_betas['BETA']
         if df_betas_weighted is None:
             df_betas_weighted = df_betas
             continue
@@ -396,6 +387,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-prefix', required=True, help='Prefix of output file')
     
     parser.add_argument('--combine-betas', default=False, action='store_true', help='If specified, PolyPred will estimate mixing weights')
+    parser.add_argument('--allow-neg-mixweights', default=False, action='store_true', help='If specified, PolyPred will not enforce non-negative mixing weights')
     parser.add_argument('--predict', default=False, action='store_true', help='If specified, PolyPred will compute PRS')
     parser.add_argument('--pheno', default=None, help='Phenotype file (required for estimating mixing weights)')
     parser.add_argument('--plink-exe', default=None, help='Plink 1.9 executable (required for .bed files)')
