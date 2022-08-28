@@ -297,7 +297,11 @@ def estimate_mixing_weights(args):
         df_pheno = df_pheno.loc[df_prs_sum_all.index]
         
     #flip PRS that are negatively correlated with the phenotype
-    is_flipped = df_prs_sum_all.T.dot(df_pheno['PHENO']) < 0
+    is_flipped = np.zeros(df_prs_sum_all.shape[1], dtype=bool)
+    linreg_univariate = LinearRegression()
+    for c_i in range(df_prs_sum_all.shape[1]):
+        linreg_univariate.fit(df_prs_sum_all.iloc[:, [c_i]], df_pheno['PHENO'])
+        is_flipped[c_i] = linreg_univariate.coef_[0] < 0
     df_prs_sum_all.loc[:, is_flipped] *= -1
     
     #compute mixing weights
