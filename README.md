@@ -11,7 +11,7 @@ This page contains the code of the methods **PolyFun** for functionally-informed
 <br><br>
 **PolyLoc** generalizes fine-mapping by constructing minimal sets of SNPs that causally explain a given proportion (e.g. 50%) of SNP heritability.
 <br><br>
-**PolyPred** exploits fine-mapping to improve trans-ethnic polygenic risk scores, by predicting using causal effect estimates intead of tagging effect estimates.
+**PolyPred** exploits fine-mapping to improve cross-population polygenic risk scores, by predicting using causal effect estimates intead of tagging effect estimates.
 
 We also provide a script called **finemapper** that facilitates fine-mapping with methods like SuSiE, saving many of the preprocessing steps often required to perform fine-mapping (e.g. handling allelic flips between the summary statistics and reference genotypes).
 
