@@ -40,8 +40,6 @@ if __name__ == '__main__':
         raise ValueError('missing column CHR')
     if 'BP' not in df_snps.columns:
         raise ValueError('missing column BP')
-    if 'Z' not in df_snps.columns:
-        raise ValueError('missing column Z. Did you run munge_polyfun_sumstats.py?')
             
     #set index
     df_snps = set_snpid_index(df_snps)
@@ -88,7 +86,7 @@ if __name__ == '__main__':
     
     #flip Z-sign if A1 of prior not match A1 of sumstats
     is_flipped = df['A2'] == df['A_eff']
-    if is_flipped.any():
+    if is_flipped.any() and 'Z' in df.columns:
         df.loc[is_flipped, 'Z'] *= -1
         logging.info('Flipping the Z-sign of %d SNPs that A1 in sumstats = A2 in the per-SNP h2 data'%(is_flipped.sum()))
             
