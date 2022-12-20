@@ -286,6 +286,9 @@ class Fine_Mapping(object):
                             ' If there should be no missing SNPs (e.g. you are using insample LD), see the flag --allow-swapped-indel-alleles')
                 raise ValueError(error_msg)
         
+        #make sure that df_sumstats_locus is not empty
+        assert self.df_sumstats_locus.shape[0] > 0, 'no SNPs found in df_sumstats_locus. Please double-check that the SNPs in the LD file and in the sumstats file have the exact same positions'
+        
         #filter LD to only SNPs found in the sumstats file
         assert not np.any(self.df_sumstats_locus.index.duplicated())
         if df_ld.shape[0] != self.df_sumstats_locus.shape[0] or np.any(df_ld.index != self.df_sumstats_locus.index):
@@ -305,7 +308,7 @@ class Fine_Mapping(object):
             self.df_sumstats_locus['CHR'] = self.df_sumstats_locus['CHR'].astype(str)
             is_1digit = self.df_sumstats_locus['CHR'].str.len()==1
             self.df_sumstats_locus.loc[is_1digit, 'CHR'] = '0' + self.df_sumstats_locus.loc[is_1digit, 'CHR']
-        
+            
         #update self.df_ld
         self.df_ld = df_ld
         self.df_ld_snps = df_ld_snps
