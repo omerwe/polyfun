@@ -15,7 +15,7 @@ from polyfun_utils import configure_logger, set_snpid_index, TqdmUpTo, LONG_RANG
 from ldstore.bcor import bcor
 
 
-UKBB_LD_URL = 'https://data.broadinstitute.org/alkesgroup/UKBB_LD'
+UKBB_LD_URL = 'https://broad-alkesgroup-ukbb-ld.s3.amazonaws.com/UKBB_LD'
 REGION_LENGTH = 3000000
 UKB_N=337545
 META_COLUMNS = ['SNP', 'CHR', 'BP', 'A1', 'A2']
