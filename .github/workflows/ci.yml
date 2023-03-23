@@ -26,5 +26,17 @@ jobs:
         with:
           environment-file: polyfun.yml
           cache-env: true
+      # WARNING: FINEMAP is non-commercial software
+      #
+      # Do not blindly copy the code below without first checking your use case
+      # against the license terms. This is not legal advice. Seek professional
+      # help if you need it. Good luck!
+      #
+      # http://christianbenner.com/license_finemap_v1.4.html
+      - name: Install FINEMAP
+        run: |
+          wget http://christianbenner.com/finemap_v1.4.1_x86_64.tgz
+          tar xf finemap_v1.4.1_x86_64.tgz
+          cat finemap_v1.4.1_x86_64/LICENSE
       - name: Test
-        run: python test_polyfun.py
+        run: python test_polyfun.py --finemap-exe finemap_v1.4.1_x86_64/finemap_v1.4.1_x86_64
