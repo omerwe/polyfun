@@ -20,8 +20,6 @@ The files in the `ldstore` directory are an adaptation of the [ldstore package](
 <br>
 <br>
 
-# Update on availability of UK Biobank LD matrices (February 24 2023)
-We recently disabled access to the UK Biobank LD matrices due to prohivitely large costs associated with user downloads of these matrices. Our current cloud storage provider (the Broad Institute cloud) charges us prohibitively large amounts for user downloads of LD matrices. The costs approached $100K over the last few months. We're actively looking for an alternative cloud storage provider. If anyone has a suggested cloud storage provider that can store large datasets (>3TB) at reasonable costs, please let us know! (please write a response at [issue #144](https://github.com/omerwe/polyfun/issues/144)).
 
 # Manual
 We provide a detailed manual of PolyFun, PolyLoc and PolyPred in the [Wiki page](https://github.com/omerwe/polyfun/wiki). If you run into any issues, please check [the FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ) first.
