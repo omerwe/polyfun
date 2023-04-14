@@ -63,11 +63,11 @@ PolyFun and PolyLoc are designed for Python >=3.6 and require the following free
 
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
+<br>⚠️ You must use rpy2 version <3.5.7 because newer versions break backwards compatability (see [#149](../../issues/149))
 * [R version 3.5.1 or higher](https://www.r-project.org/)
 * [Ckmeans.1d.dp](https://cran.r-project.org/web/packages/Ckmeans.1d.dp/index.html) (a package for R, that will be invoked from python via the rpy2 package).
 
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
-
 If you'd like to use FINEMAP instead of SuSiE for fine-mappping, you will also require:
 1. [FINEMAP v1.4.1](http://www.christianbenner.com).
 2. (optional) The program [LDstore 2.0](http://www.christianbenner.com) for computing LD directly from .bgen files (imputed genotypes)
