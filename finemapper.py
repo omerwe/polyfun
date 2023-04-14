@@ -21,6 +21,7 @@ from sklearn.impute import SimpleImputer
 from polyfun import configure_logger, check_package_versions
 import urllib.request
 from urllib.parse import urlparse
+from packaging.version import Version
 
 
 def splash_screen():
@@ -865,7 +866,7 @@ class SUSIE_Wrapper(Fine_Mapping):
             raise NotImplementedError('Only susie_suff_stat() and susie_bhat() are supported. Check your version of susieR')
         susie_time = time.time()-t0        
         logging.info('Done in %0.2f seconds'%(susie_time))
-        
+
         #extract pip and beta_mean
         pip = np.array(self.susieR.susie_get_pip(susie_obj))
         beta_mean = np.array(self.susieR.coef_susie(susie_obj)[1:])
@@ -894,7 +895,13 @@ class SUSIE_Wrapper(Fine_Mapping):
         df_susie['DISTANCE_FROM_CENTER'] = np.abs(df_susie['BP'] - middle)        
         
         #mark causal sets
-        self.susie_dict = {key:np.array(susie_obj.rx2(key), dtype=object) for key in list(susie_obj.names)}
+        import rpy2
+        logging.info('Using rpy2 version %s'%(rpy2.__version__))
+        if Version(rpy2.__version__) >= Version('3.5.9'):
+            snames = (susie_obj.names).tolist()
+            self.susie_dict = {key: np.array(susie_obj.rx2(key), dtype=object) for key in snames}
+        else:
+            self.susie_dict = {key:np.array(susie_obj.rx2(key), dtype=object) for key in list(susie_obj.names)}
         df_susie['CREDIBLE_SET'] = 0
         susie_sets = self.susie_dict['sets'][0]
         #if type(susie_sets) != self.RNULLType:
