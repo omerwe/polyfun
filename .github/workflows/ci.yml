@@ -19,13 +19,24 @@ defaults:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    name: run tests (${{ matrix.config.id }} env)
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {id: latest, envfile: polyfun.yml}
+          - {id: locked, envfile: polyfun.yml.lock}
+    env:
+      envfile: ${{ matrix.config.envfile }}
     steps:
       - uses: actions/checkout@v3
       - name: Install conda environment
         uses: mamba-org/provision-with-micromamba@main
         with:
-          environment-file: polyfun.yml
+          environment-file: ${{ env.envfile }}
+          environment-name: ${{ matrix.config.id }}
           cache-env: true
+          cache-env-key: ${{ matrix.config.id }}-${{ hashFiles(env.envfile) }}-0
       # WARNING: FINEMAP is non-commercial software
       #
       # Do not blindly copy the code below without first checking your use case

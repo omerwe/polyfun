@@ -5,6 +5,8 @@
 <br>
 **PolyPred** (POLYgenic Prediction of complex traits)
 
+[![CI](https://github.com/omerwe/polyfun/actions/workflows/ci.yml/badge.svg)](https://github.com/omerwe/polyfun/actions/workflows/ci.yml)
+
 This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2020 Nat Genet](https://www.nature.com/articles/s41588-020-00735-5). **PolyPred** is described in [Weissbrod*, Kanai*, Shi* et al. 2022 Nat Genet](https://www.nature.com/articles/s41588-022-01036-9).
 <br><br>
 **PolyFun** estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, **PolyFun** can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
@@ -48,6 +50,13 @@ This will allow you to perform fine-mapping using SuSiE, but not using FINEMAP. 
 After the installation, you can always invoke the PolyFun environment with the command `conda activate polyfun`.
 We recommend that you frequently make sure you have the latest version of polyfun installed by going to the polyfun directory and typing `git pull`.
 
+If you have any trouble with the conda environment you created, you can instead try installing the dependencies using the conda lockfile `polyfun.yml.lock`.
+This installs software versions that are known to work, but they will be outdated compared to installing a fresh conda environment.
+
+```
+mamba create --name polyfun-lock --file polyfun.yml.lock
+conda activate polyfun-lock
+```
 
 ## Install option 2: Manually install packages
 PolyFun and PolyLoc are designed for Python >=3.6 and require the following freely available Python packages:
