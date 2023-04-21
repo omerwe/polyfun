@@ -1,0 +1,53 @@
+name: CI
+on:
+  push:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README.md'
+  pull_request:
+    paths-ignore:
+      - '.gitignore'
+      - 'LICENSE'
+      - 'README.md'
+  schedule:
+     - cron: "0 0 1 */3 *" # Every 3 months
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash -l {0}
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    name: run tests (${{ matrix.config.id }} env)
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {id: latest, envfile: polyfun.yml}
+          - {id: locked, envfile: polyfun.yml.lock}
+    env:
+      envfile: ${{ matrix.config.envfile }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install conda environment
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: ${{ env.envfile }}
+          environment-name: ${{ matrix.config.id }}
+          cache-env: true
+          cache-env-key: ${{ matrix.config.id }}-${{ hashFiles(env.envfile) }}-0
+      # WARNING: FINEMAP is non-commercial software
+      #
+      # Do not blindly copy the code below without first checking your use case
+      # against the license terms. This is not legal advice. Seek professional
+      # help if you need it. Good luck!
+      #
+      # http://christianbenner.com/license_finemap_v1.4.html
+      - name: Install FINEMAP
+        run: |
+          wget http://christianbenner.com/finemap_v1.4.1_x86_64.tgz
+          tar xf finemap_v1.4.1_x86_64.tgz
+          cat finemap_v1.4.1_x86_64/LICENSE
+      - name: Test
+        run: python test_polyfun.py --finemap-exe finemap_v1.4.1_x86_64/finemap_v1.4.1_x86_64

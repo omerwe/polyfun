@@ -827,23 +827,10 @@ class SUSIE_Wrapper(Fine_Mapping):
                 
 
         assert self.df_ld.notnull().all().all()
-            
-        # susie_obj = self.susieR.susie_z(
-                # z=self.df_sumstats_locus['Z'].values.reshape((m,1)),
-                # R=self.df_ld.values,
-                # n=self.n,
-                # L=num_causal_snps,
-                # prior_variance=(0.0001 if (prior_var is None) else prior_var),
-                # estimate_prior_variance=(prior_var is None),
-                # residual_variance=(self.R_null if (residual_var is None) else residual_var),
-                # estimate_residual_variance=(residual_var is None),
-                # max_iter=susie_max_iter,
-                # verbose=verbose,
-                # prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
-            # )
-            
         if residual_var is not None: residual_var_init = residual_var
-        try:
+
+        if hasattr(self.susieR, 'susie_suff_stat'):
+            logging.info('Using susieR::susie_suff_stat()')
             susie_obj = self.susieR.susie_suff_stat(
                     bhat=bhat.reshape((m,1)),
                     shat=np.ones((m,1)),
@@ -858,7 +845,8 @@ class SUSIE_Wrapper(Fine_Mapping):
                     verbose=verbose,
                     prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
                 )
-        except:
+        elif hasattr(self.susieR, 'susie_bhat'):
+            logging.info('Using susieR::susie_bhat()')
             susie_obj = self.susieR.susie_bhat(
                     bhat=bhat.reshape((m,1)),
                     shat=np.ones((m,1)),
@@ -873,6 +861,8 @@ class SUSIE_Wrapper(Fine_Mapping):
                     verbose=verbose,
                     prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
                 )
+        else:
+            raise NotImplementedError('Only susie_suff_stat() and susie_bhat() are supported. Check your version of susieR')
         susie_time = time.time()-t0        
         logging.info('Done in %0.2f seconds'%(susie_time))
         

@@ -5,7 +5,9 @@
 <br>
 **PolyPred** (POLYgenic Prediction of complex traits)
 
-This page contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2020 Nat Genet](https://www.nature.com/articles/s41588-020-00735-5). **PolyPred** is described in [Weissbrod*, Kanai*, Shi* et al. 2022 Nat Genet](https://www.nature.com/articles/s41588-022-01036-9).
+[![CI](https://github.com/omerwe/polyfun/actions/workflows/ci.yml/badge.svg)](https://github.com/omerwe/polyfun/actions/workflows/ci.yml)
+
+This repo contains the code of the methods **PolyFun** for functionally-informed fine-mapping, **PolyLoc** for polygenic localization of complex trait heritability, and **PolyPred** for complex trait prediction. **PolyFun** and **PolyLoc** are described in [Weissbrod et al. 2020 Nat Genet](https://www.nature.com/articles/s41588-020-00735-5). **PolyPred** is described in [Weissbrod*, Kanai*, Shi* et al. 2022 Nat Genet](https://www.nature.com/articles/s41588-022-01036-9).
 <br><br>
 **PolyFun** estimates prior causal probabilities for SNPs, which can then be used by fine-mapping methods like [SuSiE](https://github.com/stephenslab/susieR) or [FINEMAP](http://www.christianbenner.com/). Unlike previous methods for functionally-informed fine-mapping, **PolyFun** can aggregate polygenic data from across the entire genome and hundreds of functional annotations.
 <br><br>
@@ -20,8 +22,6 @@ The files in the `ldstore` directory are an adaptation of the [ldstore package](
 <br>
 <br>
 
-# Update on availability of UK Biobank LD matrices (February 24 2023)
-We recently disabled access to the UK Biobank LD matrices due to prohivitely large costs associated with user downloads of these matrices. Our current cloud storage provider (the Broad Institute cloud) charges us prohibitively large amounts for user downloads of LD matrices. The costs approached $100K over the last few months. We're actively looking for an alternative cloud storage provider. If anyone has a suggested cloud storage provider that can store large datasets (>3TB) at reasonable costs, please let us know! (please write a response at [issue #144](https://github.com/omerwe/polyfun/issues/144)).
 
 # Manual
 We provide a detailed manual of PolyFun, PolyLoc and PolyPred in the [Wiki page](https://github.com/omerwe/polyfun/wiki). If you run into any issues, please check [the FAQ](https://github.com/omerwe/polyfun/wiki/7.-FAQ) first.
@@ -50,6 +50,13 @@ This will allow you to perform fine-mapping using SuSiE, but not using FINEMAP. 
 After the installation, you can always invoke the PolyFun environment with the command `conda activate polyfun`.
 We recommend that you frequently make sure you have the latest version of polyfun installed by going to the polyfun directory and typing `git pull`.
 
+If you have any trouble with the conda environment you created, you can instead try installing the dependencies using the conda lockfile `polyfun.yml.lock`.
+This installs software versions that are known to work, but they will be outdated compared to installing a fresh conda environment.
+
+```
+mamba create --name polyfun-lock --file polyfun.yml.lock
+conda activate polyfun-lock
+```
 
 ## Install option 2: Manually install packages
 PolyFun and PolyLoc are designed for Python >=3.6 and require the following freely available Python packages:
@@ -65,11 +72,11 @@ PolyFun and PolyLoc are designed for Python >=3.6 and require the following free
 
 It is recommended (but not required) to also install the following:
 * [rpy2](https://rpy2.bitbucket.io/)  (a Python package)
+<br>⚠️ You must use rpy2 version <3.5.7 because newer versions break backwards compatability (see [#149](../../issues/149))
 * [R version 3.5.1 or higher](https://www.r-project.org/)
 * [Ckmeans.1d.dp](https://cran.r-project.org/web/packages/Ckmeans.1d.dp/index.html) (a package for R, that will be invoked from python via the rpy2 package).
 
 If rpy2 or Ckmeans.1d.dp are not installed, PolyFun and PolyLoc will fallback to suboptimal clustering via scikit-learn.
-
 If you'd like to use FINEMAP instead of SuSiE for fine-mappping, you will also require:
 1. [FINEMAP v1.4.1](http://www.christianbenner.com).
 2. (optional) The program [LDstore 2.0](http://www.christianbenner.com) for computing LD directly from .bgen files (imputed genotypes)
