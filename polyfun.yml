@@ -16,7 +16,7 @@ dependencies:
   - r
   - r-matrixstats
   - networkx
-  - rpy2<3.5.7
+  - rpy2<3.5.7|>=3.5.9
   - scipy
   - r-devtools
   - numpy>=1.20
@@ -25,5 +25,6 @@ dependencies:
   - pandas-plink
   - pip
   - r-susier==0.11.92
+  - packaging
   - pip:
     - bgen==1.2.10
