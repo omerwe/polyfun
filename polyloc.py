@@ -97,7 +97,7 @@ def check_files(args):
         
         for chr_num in chr_range:
             get_file_name(args, 'bim', chr_num, verify_exists=True)
-            if not args.ld_ukb:
+            if args.compute_ldscores and not args.ld_ukb:
                 get_file_name(args, 'fam', chr_num, verify_exists=True)
                 get_file_name(args, 'bed', chr_num, verify_exists=True)
             if not args.compute_partitions:
