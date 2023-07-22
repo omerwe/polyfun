@@ -56,14 +56,15 @@ def check_args(args):
     #partitionining-related parameters
     if args.compute_partitions:
         if args.bfile_chr is None:
-            raise ValueError('You must specify --bfile-chr when you specify --compute-partitions')
+            #raise ValueError('You must specify --bfile-chr when you specify --compute-partitions')
+            logging.warning('You did not specify --bfile-chr with --compute-partitions. PolyLoc will only use SNPs provided in the posterior files')
         if args.posterior is None:
             raise ValueError('--posterior must be specified when using --compute-partitions')
             
     #verify LD-score related parameters
     if args.compute_ldscores:
-        if args.bfile_chr is None:
-            raise ValueError('You must specify --bfile-chr when you specify --compute-ldscores')    
+        if not not args.ld_ukb and args.bfile_chr is None:
+            raise ValueError('You must specify either --ld-ukb or --bfile-chr when using --compute-ldscores')
         if not args.ld_ukb and (args.ld_wind_cm is None and args.ld_wind_kb is None and args.ld_wind_snps is None):
             args.ld_wind_cm = 1.0
             logging.warning('no ld-wind argument specified.  PolyLoc will use --ld-cm 1.0')
@@ -96,8 +97,11 @@ def check_files(args):
         else: chr_range = range(args.chr, args.chr+1)
         
         for chr_num in chr_range:
-            get_file_name(args, 'bim', chr_num, verify_exists=True)
+            if args.bfile_chr is not None:
+                get_file_name(args, 'bim', chr_num, verify_exists=True)
             if args.compute_ldscores and not args.ld_ukb:
+                if args.bfile_chr is None:
+                    raise ValueError('--bfile-chr not provided')
                 get_file_name(args, 'fam', chr_num, verify_exists=True)
                 get_file_name(args, 'bed', chr_num, verify_exists=True)
             if not args.compute_partitions:
@@ -143,30 +147,31 @@ class PolyLoc(PolyFun):
     
         self.load_posterior_betas(args)    
         self.partition_snps_to_bins(args, use_ridge=False)
-        
-        #add another partition for all SNPs not in the posterior file
-        df_bim_list = []
-        for chr_num in range(1,23):
-            df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), sep='\s+', names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'], header=None)
-            df_bim_list.append(df_bim_chr)
-        df_bim = pd.concat(df_bim_list, axis=0)
-        df_bim = set_snpid_index(df_bim)
         self.df_bins = set_snpid_index(self.df_bins)
         
-        #make sure that all variants in the posterior file are also in the plink files
-        if np.any(~self.df_bins.index.isin(df_bim.index)):
-            raise ValueError('Found variants in posterior file that are not found in the plink files')
+        #add another partition for all SNPs not in the posterior file
+        if args.bfile_chr is not None:
+            df_bim_list = []
+            for chr_num in range(1,23):
+                df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), sep='\s+', names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'], header=None)
+                df_bim_list.append(df_bim_chr)
+            df_bim = pd.concat(df_bim_list, axis=0)
+            df_bim = set_snpid_index(df_bim)        
             
-        #add a new bin for SNPs that are not found in the posterior file (if there are any)
-        if df_bim.shape[0] > self.df_bins.shape[0]:
-            new_snps = df_bim.index[~df_bim.index.isin(self.df_bins.index)]
-            df_bins_new = df_bim.loc[new_snps, SNP_COLUMNS].copy()
-            for colname in self.df_bins.drop(columns=SNP_COLUMNS).columns:
-                df_bins_new[colname] = False
-            new_colname = 'snpvar_bin%d'%(df_bins_new.shape[1] - len(SNP_COLUMNS)+1)
-            self.df_bins[new_colname] = False
-            df_bins_new[new_colname] = True
-            self.df_bins = pd.concat([self.df_bins, df_bins_new], axis=0)
+            #make sure that all variants in the posterior file are also in the plink files
+            if np.any(~self.df_bins.index.isin(df_bim.index)):
+                raise ValueError('Found variants in posterior file that are not found in the plink files')
+                
+            #add a new bin for SNPs that are not found in the posterior file (if there are any)
+            if df_bim.shape[0] > self.df_bins.shape[0]:
+                new_snps = df_bim.index[~df_bim.index.isin(self.df_bins.index)]
+                df_bins_new = df_bim.loc[new_snps, SNP_COLUMNS].copy()
+                for colname in self.df_bins.drop(columns=SNP_COLUMNS).columns:
+                    df_bins_new[colname] = False
+                new_colname = 'snpvar_bin%d'%(df_bins_new.shape[1] - len(SNP_COLUMNS)+1)
+                self.df_bins[new_colname] = False
+                df_bins_new[new_colname] = True
+                self.df_bins = pd.concat([self.df_bins, df_bins_new], axis=0)
         
         #save the bins to disk
         self.save_bins_to_disk(args)
