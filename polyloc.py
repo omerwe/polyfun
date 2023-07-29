@@ -63,7 +63,7 @@ def check_args(args):
             
     #verify LD-score related parameters
     if args.compute_ldscores:
-        if not not args.ld_ukb and args.bfile_chr is None:
+        if not args.ld_ukb and args.bfile_chr is None:
             raise ValueError('You must specify either --ld-ukb or --bfile-chr when using --compute-ldscores')
         if not args.ld_ukb and (args.ld_wind_cm is None and args.ld_wind_kb is None and args.ld_wind_snps is None):
             args.ld_wind_cm = 1.0
