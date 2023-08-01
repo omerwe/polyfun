@@ -31,12 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Install conda environment
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
           environment-file: ${{ env.envfile }}
           environment-name: ${{ matrix.config.id }}
-          cache-env: true
-          cache-env-key: ${{ matrix.config.id }}-${{ hashFiles(env.envfile) }}-0
+          cache-environment: true
+          cache-environment-key: ${{ matrix.config.id }}-${{ hashFiles(env.envfile) }}-0
       # WARNING: FINEMAP is non-commercial software
       #
       # Do not blindly copy the code below without first checking your use case
