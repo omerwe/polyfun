@@ -214,7 +214,7 @@ def test_extract_snpvar(tmpdir, python3_exe):
     if retval != 0:
         raise ValueError('extract_snpvar command failed when running the following command:\n%s'%(cmd))
     compare_dfs(tmpdir, gold_dir, outfile)
-
+    
 
 def test_finemapper_susie(tmpdir, python3_exe):
 
