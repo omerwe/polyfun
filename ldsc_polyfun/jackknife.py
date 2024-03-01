@@ -264,7 +264,7 @@ class LstsqJackknifeSlow(Jackknife):
                 self.est = np.atleast_2d(nnls(x, np.array(y).T[0])[0])
             else:
                 xtx = x.T.dot(x)
-                lasso = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx, positive=True, max_iter=10000, random_state=0)
+                lasso = Lasso(alpha=1e-100, fit_intercept=False, precompute=xtx, positive=True, max_iter=10000, random_state=0)
                 self.est = lasso.fit(x,y[:,0]).coef_.reshape((1, x.shape[1]))
         else:
             self.est = np.atleast_2d(np.linalg.lstsq(x, np.array(y).T[0])[0])
@@ -292,7 +292,7 @@ class LstsqJackknifeSlow(Jackknife):
                 else:                
                     x_block = x[s[i] : s[i+1]]
                     xtx_noblock = xtx - x_block.T.dot(x_block)
-                    lasso_noblock = Lasso(alpha=1e-100, fit_intercept=False, normalize=False, precompute=xtx_noblock, positive=True, max_iter=10000, random_state=0)
+                    lasso_noblock = Lasso(alpha=1e-100, fit_intercept=False, precompute=xtx_noblock, positive=True, max_iter=10000, random_state=0)
                     jk_est = lasso_noblock.fit(x_noblock, y_noblock[:,0]).coef_.reshape((1, x.shape[1]))
                     ###z = nnls(x_noblock, y_noblock[:,0])[0]
                     ###assert np.allclose(z, jk_est[0])
