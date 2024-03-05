@@ -653,7 +653,7 @@ class Fine_Mapping(object):
         #take a maximally independent subset
         np.fill_diagonal(R_pot_csnp,0)
         import networkx as nx
-        G = nx.from_numpy_matrix(np.abs(R_pot_csnp)>R_cutoff)
+        G = nx.from_numpy_array(np.abs(R_pot_csnp)>R_cutoff)
         np.fill_diagonal(R_pot_csnp,1)
         inds = np.sort(nx.maximal_independent_set(G))
         
