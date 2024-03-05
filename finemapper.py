@@ -782,6 +782,8 @@ class SUSIE_Wrapper(Fine_Mapping):
             prior_var = h2_hess / num_causal_snps
             if prior_var <= 0:
                 raise ValueError('HESS estimates that the locus causally explains zero heritability')
+            if prior_var >= 1:
+                raise ValueError('HESS-estimated prior-var >1. The HESS estimator cannot be used in this locus.')
             logging.info('HESS estimated causal effect size variance: %0.4e'%(prior_var))
             
             if hess_resvar:
