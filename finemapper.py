@@ -22,6 +22,16 @@ from polyfun import configure_logger, check_package_versions
 import urllib.request
 from urllib.parse import urlparse
 from packaging.version import Version
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+
+def is_finemap_tools_installed():
+    try:
+        import finemap_tools
+
+        return True
+    except:
+        return False
 
 
 def splash_screen():
@@ -84,6 +94,10 @@ def get_bcor_meta(bcor_obj):
     ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int64)
     df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int64)
     return df_ld_snps
+
+
+def ldstore_txt_to_npz(ldstore_txt_file, z_file, output_file):
+    pass
 
 
 def load_ld_bcor(ld_prefix):
@@ -206,20 +220,28 @@ def save_ld_to_npz(ld_arr, df_ld_snps, npz_file):
     logging.info('Done in %0.2f seconds'%(time.time() - t0))
 
 
-class Fine_Mapping(object):
-    def __init__(self, genotypes_file, sumstats_file, n, chr_num, ldstore_exe, 
-                    sample_file=None, incl_samples=None, cache_dir=None, n_threads=None, memory=None,
-                    allow_swapped_indel_alleles=False):
+def load_sumstats(sumstats_file, chr_num, allow_swapped_indel_alleles=False):
+    # read sumstats and filter to target chromosome only
+    logging.info("Loading sumstats file...")
+    t0 = time.time()
 
-        # check that data is valid
-        if genotypes_file is not None:        
-            if genotypes_file.endswith('.bgen'):
-                if sample_file is None:
-                    raise IOError('sample-file must be provided with a bgen file')
+    from pathlib import Path
 
-        # read sumstats and filter to target chromosome only
-        logging.info('Loading sumstats file...')
-        t0 = time.time()
+    if (
+        sumstats_file.endswith(".gz")
+        and Path(sumstats_file + ".tbi").exists()
+        and is_finemap_tools_installed()
+    ):
+
+        from finemap_tools.reader import tabix_reader
+
+        df_sumstats = tabix_reader(sumstats_file, region=f"{chr_num}")
+        if all([isinstance(i, str) for i in df_sumstats.iloc[0].values]):
+            logging.info(
+                f"this tabix with header info in simply load and the first row is {df_sumstats.iloc[:1].values}"
+            )
+
+    else:
         try:
             df_sumstats = pd.read_parquet(sumstats_file)
         except (ArrowIOError, ArrowInvalid):
@@ -228,10 +250,97 @@ class Fine_Mapping(object):
             raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))
         if np.any(df_sumstats['CHR'] != chr_num):
             df_sumstats = df_sumstats.query('CHR==%s'%(chr_num)).copy()
-        df_sumstats = set_snpid_index(df_sumstats, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
-        if 'P' not in df_sumstats.columns:
-            df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
-        logging.info('Loaded sumstats for %d SNPs in %0.2f seconds'%(df_sumstats.shape[0], time.time()-t0))
+
+    df_sumstats = set_snpid_index(
+        df_sumstats, allow_swapped_indel_alleles=allow_swapped_indel_alleles
+    )
+
+    if "P" not in df_sumstats.columns:
+        df_sumstats["P"] = stats.chi2(1).sf(df_sumstats["Z"] ** 2)
+    logging.info(
+        "Loaded sumstats for %d SNPs in %0.2f seconds"
+        % (df_sumstats.shape[0], time.time() - t0)
+    )
+    ## filter pipline provided by finemap_tools (if not installed will pass)
+
+    if is_finemap_tools_installed:
+        from finemap_tools.utils import add_ID
+        from finemap_tools.snpfilter import filter_pipline
+
+        df_sumstats["added_id"] = add_ID(df_sumstats, ["CHR", "BP", "A1", "A2"])
+
+        logging.info(
+            f"filtering SNP by finemap_tools with {df_sumstats.shape[0]} SNP at begining........"
+        )
+        df_sumstats = filter_pipline(sumstats=df_sumstats, id_col="added_id")
+
+        logging.info(f"after filtering, left {df_sumstats.shape[0]} SNP")
+        df_sumstats = df_sumstats.drop(columns=["added_id"])
+    return df_sumstats
+
+
+class Fine_Mapping(object):
+    def __init__(
+        self,
+        genotypes_file,
+        sumstats_file,
+        n,
+        chr_num,
+        ldstore_exe,
+        sample_file=None,
+        incl_samples=None,
+        cache_dir=None,
+        cache_format=None,
+        n_threads=None,
+        memory=None,
+        allow_swapped_indel_alleles=False,
+    ):
+
+        # check that data is valid
+        if genotypes_file is not None:
+            if genotypes_file.endswith(".bgen"):
+                if sample_file is None:
+                    raise IOError("sample-file must be provided with a bgen file")
+
+        df_sumstats = load_sumstats(
+            sumstats_file,
+            chr_num,
+            allow_swapped_indel_alleles=allow_swapped_indel_alleles,
+        )
+
+        # # read sumstats and filter to target chromosome only
+        # logging.info('Loading sumstats file...')
+        # t0 = time.time()
+        # try:
+        #     df_sumstats = pd.read_parquet(sumstats_file)
+        # except (ArrowIOError, ArrowInvalid):
+        #     df_sumstats = pd.read_table(sumstats_file, sep='\s+')
+        # if not np.any(df_sumstats['CHR'] == chr_num):
+        #     raise IOError('sumstats file does not include any SNPs in chromosome %s'%(chr_num))
+        # if np.any(df_sumstats['CHR'] != chr_num):
+        #     df_sumstats = df_sumstats.query('CHR==%s'%(chr_num)).copy()
+        # df_sumstats = set_snpid_index(df_sumstats, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
+        # if 'P' not in df_sumstats.columns:
+        #     df_sumstats['P'] = stats.chi2(1).sf(df_sumstats['Z']**2)
+        # logging.info('Loaded sumstats for %d SNPs in %0.2f seconds'%(df_sumstats.shape[0], time.time()-t0))
+
+        # ## filter pipline provided by finemap_tools (if not installed will pass)
+        # try:
+        #     from finemap_tools.utils import add_ID
+        #     from finemap_tools.snpfilter import filter_pipline
+
+        #     df_z["added_id"] = add_ID(df_z, ["CHR", "BP", "A1", "A2"])
+
+        #     logging.info(
+        #         f"filtering SNP by finemap_tools with {df_z.shape[0]} SNP at begining........"
+        #     )
+        #     df_z = filter_pipline(df_z, id_col="added_id")
+
+        #     logging.info(f"after filtering, left {df_z.shape[0]} SNP")
+        #     df_z = df_z.drop(columns=["added_id"])
+        # except:
+        #     logging.info("finemap_tools not installed, will not filter SNPs")
+        #     pass
 
         # save class members
         self.genotypes_file = genotypes_file
@@ -241,6 +350,7 @@ class Fine_Mapping(object):
         self.incl_samples = incl_samples
         self.ldstore_exe = ldstore_exe
         self.cache_dir = cache_dir
+        self.cache_format = cache_format
         self.n_threads = n_threads
         self.chr = chr_num
         self.memory = memory
@@ -255,6 +365,10 @@ class Fine_Mapping(object):
             assert ld_arr.shape[0] == df_ld_snps.shape[0]
             assert ld_arr.shape[0] == ld_arr.shape[1]
             df_ld = pd.DataFrame(ld_arr, index=df_ld_snps.index, columns=df_ld_snps.index)
+        # TODO: rm some LD with NaNs
+        have_na_snp = df_ld[df_ld.isna().sum() == 1].index.tolist()
+        logging.info(f"remove {len(have_na_snp)} SNPs with NaNs in LD")
+        df_ld = df_ld.drop(index=have_na_snp, columns=have_na_snp)
 
         # make sure that all SNPs in the sumstats file are in the LD file
         snps_in_ld_file = self.df_sumstats_locus.index.isin(df_ld.index)
@@ -347,6 +461,9 @@ class Fine_Mapping(object):
                 df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int64)
             else:
                 raise IOError('unknown file extension')
+            import pdb
+
+            pdb.set_trace()
             df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
 
             # make sure that the LD file includes data for all the SNPs in the locus
@@ -376,7 +493,6 @@ class Fine_Mapping(object):
         # create df_z
         df_z = self.df_sumstats_locus[['SNP', 'CHR', 'BP', 'A1', 'A2']].copy()
 
-        # add leading zeros to chromosome numbers if needed
         try:
             import bgen
         except (ImportError, ModuleNotFoundError):
@@ -446,7 +562,22 @@ class Fine_Mapping(object):
             num_samples = pd.read_table(self.incl_samples, header=None).shape[0]
 
         # get output file name
-        bcor_file = self.get_ld_output_file_prefix(locus_start, locus_end, temp_dir) + '.bcor'
+        bcor_file = os.path.join(
+            temp_dir, "chr%s.%s_%s.bcor" % (self.chr, locus_start, locus_end)
+        )
+        ## parse for cache_format
+        if self.cache_format == "npz":  #
+            ld_file = os.path.join(
+                temp_dir, "chr%s.%s_%s.ld" % (self.chr, locus_start, locus_end)
+            )
+
+        elif self.cache_format == "bcor":
+            bcor_file = (
+                self.get_ld_output_file_prefix(locus_start, locus_end, temp_dir)
+                + ".bcor"
+            )
+        else:
+            raise ValueError(f"unknown cache format {self.cache_format}")
 
         # Create LDstore master file
         df_master = pd.DataFrame(columns=['z','bgen','bgi','bcor','dose','sample','n_samples'])
@@ -454,6 +585,7 @@ class Fine_Mapping(object):
         df_master['bgen'] = [self.genotypes_file]
         df_master['bgi'] = [self.genotypes_file+'.bgi']
         df_master['bcor'] = [bcor_file]
+        df_master["ld"] = [ld_file]
         df_master['bdose'] = [dose_file]
         df_master['sample'] = [self.sample_file]
         df_master['n_samples'] = num_samples
@@ -466,21 +598,40 @@ class Fine_Mapping(object):
             self.ldstore_exe,
             "--in-files",
             master_file,
-            "--write-bcor",
+            # "--write-bcor",
+            # "--write-text",
             "--write-bdose",
             "--bdose-version",
             "1.0",
         ]  # TODO: maybe for checking big files or for bdose 1.1
+
+        if self.cache_format == "npz":
+            ldstore_cmd += ["--write-text"]
+        elif self.cache_format == "bcor":
+            ldstore_cmd += ["--write-bcor"]
+
         if self.memory is not None:
             ldstore_cmd += ['--memory', str(self.memory)]
         if self.n_threads is not None:
             ldstore_cmd += ['--n-threads', str(self.n_threads)]
         run_executable(ldstore_cmd, 'LDStore', measure_time=True, show_output=verbose, show_command=verbose)
 
-        if not os.path.exists(bcor_file):
-            raise IOError('Could not find output BCOR file')
+        if self.cache_format == "bcor":
+            if not os.path.exists(bcor_file):
+                raise IOError("Could not find output BCOR file")
+            return bcor_file
+        elif (
+            self.cache_format == "npz"
+        ):  # load txt file by np and return ld_arr and df_z
+            if not os.path.exists(ld_file):
+                raise IOError("Could not find output LD file")
 
-        return bcor_file
+            ld_arr = np.loadtxt(ld_file)
+            assert ld_arr.shape[0] == ld_arr.shape[1] == df_z.shape[0]
+
+            # save_ld_to_npz(ld_arr, df_z, npz_file) # NOTE: after this function will auto save to npz file, so only need to return ld_arr, df_z
+            # return
+            return ld_arr, df_z
 
     def read_plink_genotypes(self, bed):
         X = bed.compute().astype(np.float64)
@@ -569,10 +720,18 @@ class Fine_Mapping(object):
 
         # compute LD if we couldn't find a suitable LD file
         if ld_file is None:
-            if self.genotypes_file.endswith('.bgen'):
+            if self.genotypes_file.endswith(".bgen"):  # this won't return None
                 if not os.path.exists(self.genotypes_file):
                     raise IOError('%s doesn\'t exist'%(self.genotypes_file))
-                ld_file = self.compute_ld_bgen(locus_start, locus_end, verbose=verbose)
+                if self.cache_format == "bcor":
+                    ld_file = self.compute_ld_bgen(
+                        locus_start, locus_end, verbose=verbose
+                    )
+                elif self.cache_format == "npz":
+                    ld_arr, df_ld_snps = self.compute_ld_bgen(
+                        locus_start, locus_end, verbose=verbose
+                    )
+                # ld_file = self.compute_ld_bgen(locus_start, locus_end, verbose=verbose)
             elif os.path.exists(self.genotypes_file+'.bed'):
                 ld_arr, df_ld_snps = self.compute_ld_plink(locus_start, locus_end, verbose=verbose)
             else:
@@ -582,16 +741,17 @@ class Fine_Mapping(object):
         assert ld_file is None or (ld_arr is None and df_ld_snps is None)
 
         # if there is no LD file, return the LD data directly
-        if ld_file is None:
+
+        if ld_file is None:  #  NOTE: this is not possiblely be None as the code
             # cache output if possible
             if self.cache_dir is not None:
                 npz_file = self.get_ld_output_file_prefix(locus_start, locus_end) + '.npz'
                 save_ld_to_npz(ld_arr, df_ld_snps, npz_file)
             return ld_arr, df_ld_snps
-
         # if we have an LD file, return it if it's a bcor and we want a bcor, or return the LD data directly otherwise
-        else:
+        else:  # NOTE: this code is quiet strange
             if ld_file.endswith('.bcor'):
+
                 if need_bcor:
                     return ld_file
                 else:
@@ -679,11 +839,36 @@ class Fine_Mapping(object):
 
 class SUSIE_Wrapper(Fine_Mapping):
 
-    def __init__(self, genotypes_file, sumstats_file, n, chr_num, ldstore_exe, sample_file=None,
-                 incl_samples=None, cache_dir=None, n_threads=None, memory=None,
-                 allow_swapped_indel_alleles=False):
+    def __init__(
+        self,
+        genotypes_file,
+        sumstats_file,
+        n,
+        chr_num,
+        ldstore_exe,
+        sample_file=None,
+        incl_samples=None,
+        cache_dir=None,
+        cache_format=None,
+        n_threads=None,
+        memory=None,
+        allow_swapped_indel_alleles=False,
+    ):
 
-        super(SUSIE_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
+        super(SUSIE_Wrapper, self).__init__(
+            genotypes_file,
+            sumstats_file,
+            n,
+            chr_num,
+            ldstore_exe=ldstore_exe,
+            sample_file=sample_file,
+            incl_samples=incl_samples,
+            cache_dir=cache_dir,
+            cache_format=cache_format,
+            n_threads=n_threads,
+            memory=memory,
+            allow_swapped_indel_alleles=allow_swapped_indel_alleles,
+        )
 
         # load SuSiE R package
         import rpy2
@@ -917,11 +1102,37 @@ class SUSIE_Wrapper(Fine_Mapping):
 
 class FINEMAP_Wrapper(Fine_Mapping):
 
-    def __init__(self, genotypes_file, sumstats_file, n, chr_num, finemap_exe, ldstore_exe, sample_file=None,
-                 incl_samples=None, cache_dir=None, n_threads=None, memory=None,
-                 allow_swapped_indel_alleles=False):
+    def __init__(
+        self,
+        genotypes_file,
+        sumstats_file,
+        n,
+        chr_num,
+        finemap_exe,
+        ldstore_exe,
+        sample_file=None,
+        incl_samples=None,
+        cache_dir=None,
+        cache_format=None,
+        n_threads=None,
+        memory=None,
+        allow_swapped_indel_alleles=False,
+    ):
 
-        super(FINEMAP_Wrapper, self).__init__(genotypes_file, sumstats_file, n, chr_num, ldstore_exe=ldstore_exe, sample_file=sample_file, incl_samples=incl_samples, cache_dir=cache_dir, n_threads=n_threads, memory=memory, allow_swapped_indel_alleles=allow_swapped_indel_alleles)
+        super(FINEMAP_Wrapper, self).__init__(
+            genotypes_file,
+            sumstats_file,
+            n,
+            chr_num,
+            ldstore_exe=ldstore_exe,
+            sample_file=sample_file,
+            incl_samples=incl_samples,
+            cache_dir=cache_dir,
+            cache_format=cache_format,
+            n_threads=n_threads,
+            memory=memory,
+            allow_swapped_indel_alleles=allow_swapped_indel_alleles,
+        )
         self.finemap_exe = finemap_exe
 
     def finemap(self, locus_start, locus_end, num_causal_snps, use_prior_causal_prob=True, prior_var=None, residual_var=None, hess=False, hess_iter=100, hess_min_h2=None, susie_max_iter=100, verbose=False, ld_file=None, debug_dir=None, allow_missing=False, susie_outfile=None, residual_var_init=None, hess_resvar=False, finemap_dir=None):
@@ -1165,7 +1376,12 @@ if __name__ == '__main__':
     parser.add_argument('--memory', type=int, default=1, help='Maximum amount of memory in GB to allocate to LDStore')
     parser.add_argument('--threads', type=int, default=None, help='The number of CPU cores LDstore will use (if not specified, LDstore will use the max number of CPU cores available')
     parser.add_argument('--cache-dir', default=None, help='If specified, this is a path of a directory that will cache LD matrices that have already been computed')
-
+    parser.add_argument(
+        "--cache-format",
+        default=None,
+        help="Format of the LDstore cache files (default: bcor); npz will with a metafile containing snpname named like .npz.gz",
+        choices=["bcor", "npz", None],
+    )
     # FINEMAP-specific parameters
     parser.add_argument('--finemap-dir', default=None, help='If specified, the FINEMAP files will be saved to this directory')
 
@@ -1220,11 +1436,20 @@ if __name__ == '__main__':
     if args.method == 'susie':
         if args.finemap_dir is not None:
             raise ValueError('--finemap-dir cannot be specified with susie method')
-        finemap_obj = SUSIE_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr,
-                                    sample_file=args.sample_file, incl_samples=args.incl_samples,
-                                    ldstore_exe=args.ldstore2, n_threads=args.threads,
-                                    cache_dir=args.cache_dir, memory=args.memory,
-                                    allow_swapped_indel_alleles=args.allow_swapped_indel_alleles)
+        finemap_obj = SUSIE_Wrapper(
+            genotypes_file=args.geno,
+            sumstats_file=args.sumstats,
+            n=args.n,
+            chr_num=args.chr,
+            sample_file=args.sample_file,
+            incl_samples=args.incl_samples,
+            ldstore_exe=args.ldstore2,
+            n_threads=args.threads,
+            cache_dir=args.cache_dir,
+            cache_format=args.cache_format,
+            memory=args.memory,
+            allow_swapped_indel_alleles=args.allow_swapped_indel_alleles,
+        )
     elif args.method == 'finemap':
         if args.susie_outfile is not None:
             raise ValueError('--susie-outfile cannot be specified with finemap method')
@@ -1232,11 +1457,21 @@ if __name__ == '__main__':
             raise ValueError('need to specify --finemap-exe')
         if args.hess:
             raise ValueError('FINEMAP cannot be used with --hess')
-        finemap_obj = FINEMAP_Wrapper(genotypes_file=args.geno, sumstats_file=args.sumstats, n=args.n, chr_num=args.chr, 
-                                    sample_file=args.sample_file, incl_samples=args.incl_samples,
-                                    ldstore_exe=args.ldstore2, finemap_exe=args.finemap_exe, n_threads=args.threads,
-                                    cache_dir=args.cache_dir, memory=args.memory,
-                                    allow_swapped_indel_alleles=args.allow_swapped_indel_alleles)
+        finemap_obj = FINEMAP_Wrapper(
+            genotypes_file=args.geno,
+            sumstats_file=args.sumstats,
+            n=args.n,
+            chr_num=args.chr,
+            sample_file=args.sample_file,
+            incl_samples=args.incl_samples,
+            ldstore_exe=args.ldstore2,
+            finemap_exe=args.finemap_exe,
+            n_threads=args.threads,
+            cache_dir=args.cache_dir,
+            cache_format=args.cache_format,
+            memory=args.memory,
+            allow_swapped_indel_alleles=args.allow_swapped_indel_alleles,
+        )
     else:
         raise ValueError('unknown method specified in --method')
 
