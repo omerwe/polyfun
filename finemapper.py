@@ -65,8 +65,9 @@ def load_ld_npz(ld_prefix):
     if os.path.exists(snps_filename_parquet):
         df_ld_snps = pd.read_parquet(snps_filename_parquet)
     elif os.path.exists(snps_filename_gz):
-        df_ld_snps = pd.read_table(snps_filename_gz, sep='\s+')
-        df_ld_snps.rename(columns={'allele1':'A1', 'allele2':'A2', 'position':'BP', 'chromosome':'CHR', 'rsid':'SNP'}, inplace=True, errors='ignore')
+        df_ld_snps = pd.read_table(snps_filename_gz, sep="\s+")
+
+        # df_ld_snps.rename(columns={'allele1':'A1', 'allele2':'A2', 'position':'BP', 'chromosome':'CHR', 'rsid':'SNP'}, inplace=True, errors='ignore')
     else:
         raise ValueError('couldn\'t find SNPs file %s or %s'%(snps_filename_parquet, snps_filename_gz))
 
@@ -456,18 +457,8 @@ class Fine_Mapping(object):
                 df_ld_snps = pd.read_table(
                     meta_file,
                     sep="\s+",
-                    usecols=["allele1", "allele2", "position", "chromosome", "rsid"],
-                ).rename(
-                    columns={
-                        "allele1": "A1",
-                        "allele2": "A2",
-                        "position": "BP",
-                        "chromosome": "CHR",
-                        "rsid": "SNP",
-                    },
-                    inplace=False,
-                    errors="ignore",
-                )  # meta file should be a table file, and supposed this file is as same as ldstore2 zfile , and columns is : allele1, allele2, position, chromosome, rsid;
+                    usecols=["A1", "A2", "BP", "CHR", "SNP"],
+                )
             elif ld_file.endswith('.bcor'):
                 bcor_obj = bcor(ld_file)
                 df_ld_snps = bcor_obj.getMeta()
@@ -476,10 +467,8 @@ class Fine_Mapping(object):
                 ###df_ld_snps['CHR'] = df_ld_snps['CHR'].astype(np.int64)
                 df_ld_snps['BP'] = df_ld_snps['BP'].astype(np.int64)
             else:
-                raise IOError('unknown file extension')
-            import pdb
+                raise IOError("unknown file extension")
 
-            pdb.set_trace()
             df_ld_snps = set_snpid_index(df_ld_snps, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles)
 
             # make sure that the LD file includes data for all the SNPs in the locus
@@ -644,10 +633,20 @@ class Fine_Mapping(object):
 
             ld_arr = np.loadtxt(ld_file)
             assert ld_arr.shape[0] == ld_arr.shape[1] == df_z.shape[0]
-
+            df_ld_snps = df_z.rename(
+                columns={
+                    "allele1": "A1",
+                    "allele2": "A2",
+                    "position": "BP",
+                    "chromosome": "CHR",
+                    "rsid": "SNP",
+                },
+                inplace=False,
+                errors="ignore",
+            )
             # save_ld_to_npz(ld_arr, df_z, npz_file) # NOTE: after this function will auto save to npz file, so only need to return ld_arr, df_z
             # return
-            return ld_arr, df_z
+            return ld_arr, df_ld_snps
 
     def read_plink_genotypes(self, bed):
         X = bed.compute().astype(np.float64)
@@ -1397,7 +1396,7 @@ if __name__ == '__main__':
     parser.add_argument(
         "--cache-format",
         default=None,
-        help="Format of the LDstore cache files (default: bcor); npz will with a metafile containing snpname named like .npz.gz",
+        help="Format of the LDstore cache files (default: bcor); npz will with a metafile containing snpname named like .npz.gz should have columns: A1 (effect allele) A2 BP, SNP, chromosome",
         choices=["bcor", "npz", None],
     )
     # FINEMAP-specific parameters
