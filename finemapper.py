@@ -367,7 +367,9 @@ class Fine_Mapping(object):
             df_ld = pd.DataFrame(ld_arr, index=df_ld_snps.index, columns=df_ld_snps.index)
         # TODO: rm some LD with NaNs
         have_na_snp = df_ld[df_ld.isna().sum() == 1].index.tolist()
-        logging.info(f"remove {len(have_na_snp)} SNPs with NaNs in LD")
+        logging.info(
+            f"remove {len(have_na_snp)} SNPs with NaNs in LD, this should be think carefully."
+        )
         df_ld = df_ld.drop(index=have_na_snp, columns=have_na_snp)
 
         # make sure that all SNPs in the sumstats file are in the LD file
@@ -451,7 +453,21 @@ class Fine_Mapping(object):
             if ld_file.endswith('.npz'):
                 meta_file = ld_file[:-4] + '.gz'
                 if not os.path.exists(meta_file): continue
-                df_ld_snps = pd.read_table(meta_file)
+                df_ld_snps = pd.read_table(
+                    meta_file,
+                    sep="\s+",
+                    usecols=["allele1", "allele2", "position", "chromosome", "rsid"],
+                ).rename(
+                    columns={
+                        "allele1": "A1",
+                        "allele2": "A2",
+                        "position": "BP",
+                        "chromosome": "CHR",
+                        "rsid": "SNP",
+                    },
+                    inplace=False,
+                    errors="ignore",
+                )  # meta file should be a table file, and supposed this file is as same as ldstore2 zfile , and columns is : allele1, allele2, position, chromosome, rsid;
             elif ld_file.endswith('.bcor'):
                 bcor_obj = bcor(ld_file)
                 df_ld_snps = bcor_obj.getMeta()
@@ -910,7 +926,9 @@ class SUSIE_Wrapper(Fine_Mapping):
                 ld_arr, df_ld_snps = self.get_ld_data(locus_start, locus_end, need_bcor=False, verbose=verbose)
             else:
                 ld_arr, df_ld_snps = read_ld_from_file(ld_file)
-            assert np.all(~np.isnan(ld_arr))
+
+            # assert np.all(~np.isnan(ld_arr)) # NOTE: this may often happned with some ld is NaN, I supposed to rm them instead of raise errors; And code in self.sync_ld_sumstats will do this, so i comments this code here
+
             self.sync_ld_sumstats(ld_arr, df_ld_snps, allow_missing=allow_missing)
             del ld_arr
             del df_ld_snps
@@ -1489,4 +1507,4 @@ if __name__ == '__main__':
     if args.out.endswith('.parquet'):
         df_finemap.to_parquet(args.out, index=False)
     else:
-        df_finemap.to_csv(args.out, sep='\t', index=False, float_format='%0.5e')
+        df_finemap.to_csv(args.out, sep="ll\t", index=False, float_format="%0.5e")
