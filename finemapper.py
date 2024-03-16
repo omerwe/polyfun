@@ -1506,4 +1506,4 @@ if __name__ == '__main__':
     if args.out.endswith('.parquet'):
         df_finemap.to_parquet(args.out, index=False)
     else:
-        df_finemap.to_csv(args.out, sep="ll\t", index=False, float_format="%0.5e")
+        df_finemap.to_csv(args.out, sep="\t", index=False, float_format="%0.5e")
