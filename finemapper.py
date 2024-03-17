@@ -682,7 +682,23 @@ class Fine_Mapping(object):
                 "ALT": "A1",
             }
         )
+        ld_snp_df = set_snpid_index(
+            ld_snp_df, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles
+        )
         logging.info(f"read {ld_snp_df.shape[0]} SNPs from pvar file")
+
+        # used sumstats to include the snp in analysis
+        df_z = self.df_sumstats_locus[["SNP", "CHR", "BP", "A1", "A2"]].copy()
+        df_z = set_snpid_index(
+            df_z, allow_swapped_indel_alleles=self.allow_swapped_indel_alleles
+        )
+        df_z = df_z[[]].merge(ld_snp_df, left_index=True, right_index=True)
+        ld_snp_df = df_z[["SNP", "CHR", "BP", "A1", "A2"]]
+        del df_z
+
+        logging.info(
+            f"only keep {ld_snp_df.shape[0]} SNPs in the sumstats file to cal LD to avoid the long time of cal LD"
+        )
 
         # get_ld
         with tempfile.TemporaryDirectory() as tmpdirname:
