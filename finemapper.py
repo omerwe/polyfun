@@ -1410,7 +1410,11 @@ if __name__ == '__main__':
     parser.add_argument('--start', required=True, type=int, help='First base-pair in the region to finemap')
     parser.add_argument('--end', required=True, type=int, help='Last base-pair in the region to finemap')
     parser.add_argument('--n', required=True, type=int, help='Sample size')
-    parser.add_argument('--geno', default=None, help='Genotypes file (plink or bgen format)')
+    parser.add_argument(
+        "--geno",
+        default=None,
+        help="Genotypes file (plink1 format, plink2 format(pgen) or bgen format)",
+    )
     parser.add_argument('--ld', default=None, help='prefix or fill name of an LD matrix file')
     parser.add_argument('--out', required=True, help='name of the output file')
     parser.add_argument('--verbose', action='store_true', default=False, help='If specified, show verbose output')
@@ -1457,6 +1461,9 @@ if __name__ == '__main__':
     parser.add_argument('--hess', action='store_true', default=False, help='If specified, estimate causal effect variance via HESS')
     parser.add_argument('--hess-iter', type=int, default=100, help='Average HESS over this number of iterations (default: 100)')
     parser.add_argument('--hess-min-h2', type=float, default=None, help='When estimating causal effect variance via HESS, exclude SNPs that tag less than this amount of heritability (default: None)')
+
+    # twas fine-mapping parameters
+    # comming soon
 
     # check package versions
     check_package_versions()
