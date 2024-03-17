@@ -23,6 +23,7 @@ import urllib.request
 from urllib.parse import urlparse
 from packaging.version import Version
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+from finemap_tools.plink import plink2_cal_LD
 
 
 def is_finemap_tools_installed():
@@ -663,6 +664,44 @@ class Fine_Mapping(object):
         X[:, is_polymorphic] /= X[:, is_polymorphic].std(axis=0)
         return X
 
+    def compute_ld_plink_pgen(self, locus_start, locus_end, verbose):
+
+        logging.info(
+            f"Computing LD from pgen fileset {self.genotypes_file} chromosome {self.chr} region {locus_start}-{locus_end}"
+        )
+        t0 = time.time()
+        from finemap_tools.reader.plink import read_pvar
+        from pathlib import Path
+
+        ld_snp_df = read_pvar(Path(self.genotypes_file).with_suffix(".pvar")).rename(
+            columns={
+                "#CHROM": "CHR",
+                "ID": "SNP",
+                "POS": "BP",
+                "REF": "A2",  # REF as A2 is to make sure the A1 is the minor allele and consistent with the sumstats later
+                "ALT": "A1",
+            }
+        )
+        logging.info(f"read {ld_snp_df.shape[0]} SNPs from pvar file")
+
+        # get_ld
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            print("created temporary directory", tmpdirname)
+            ld_df = plink2_cal_LD(
+                pgen=self.genotypes_file,
+                snplist=ld_snp_df["SNP"].tolist(),
+                outSuffix=tmpdirname + "/test",
+                thread=self.n_threads,
+                memory=self.memory * 1024,
+            )
+
+        assert ld_df.shape[0] == ld_snp_df.shape[0]
+        assert (
+            ld_df.index.tolist() == ld_snp_df["SNP"].tolist() == ld_df.columns.tolist()
+        )
+
+        return ld_df.values, ld_snp_df
+
     def compute_ld_plink(self, locus_start, locus_end, verbose):
         logging.info('Computing LD from plink fileset %s chromosome %s region %s-%s'%(self.genotypes_file, self.chr, locus_start, locus_end))
         t0 = time.time()
@@ -752,6 +791,10 @@ class Fine_Mapping(object):
                 # ld_file = self.compute_ld_bgen(locus_start, locus_end, verbose=verbose)
             elif os.path.exists(self.genotypes_file+'.bed'):
                 ld_arr, df_ld_snps = self.compute_ld_plink(locus_start, locus_end, verbose=verbose)
+            elif os.path.exists(self.genotypes_file + ".pgen"):
+                ld_arr, df_ld_snps = self.compute_ld_plink_pgen(
+                    locus_start, locus_end, verbose=verbose
+                )
             else:
                 raise ValueError('no suitable file found for: %s'%(self.genotypes_file))
 
