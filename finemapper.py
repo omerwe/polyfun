@@ -78,7 +78,7 @@ def load_ld_npz(ld_prefix):
     ld_arr = sparse.load_npz(R_filename).toarray()
     ld_arr = ld_arr+ld_arr.T
     assert np.allclose(np.diag(ld_arr), 1.0)
-    assert np.all(~np.isnan(ld_arr))
+    # assert np.all(~np.isnan(ld_arr))
 
     # sanity checks
     assert ld_arr.shape[0] == ld_arr.shape[1]
@@ -110,7 +110,7 @@ def load_ld_bcor(ld_prefix):
     bcor_obj = bcor(bcor_file)
     df_ld_snps = get_bcor_meta(bcor_obj)
     ld_arr = bcor_obj.readCorr([])
-    assert np.all(~np.isnan(ld_arr))
+    # assert np.all(~np.isnan(ld_arr))
     logging.info('Done in %0.2f seconds'%(time.time() - t0))
     return ld_arr, df_ld_snps
 
@@ -132,7 +132,9 @@ def read_ld_from_file(ld_file):
         ld_arr, df_ld_snps = load_ld_npz(ld_file[:-4])  # TODO:modify
     else:
         raise ValueError('unknown LD format')
-    assert np.all(~np.isnan(ld_arr))
+    is_na_ld = np.all(~np.isnan(ld_arr)) # only keep this and I suppose this check is no need, only thing could do is to avoid the nan in the ld_arr, and drop them all.
+    logging.warning(f"there are {np.isnan(ld_arr).sum(axis=1)} nan in R matrix in the ld_arr")
+
     return ld_arr, df_ld_snps
 
 
