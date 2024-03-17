@@ -133,7 +133,7 @@ def read_ld_from_file(ld_file):
     else:
         raise ValueError('unknown LD format')
     is_na_ld = np.all(~np.isnan(ld_arr)) # only keep this and I suppose this check is no need, only thing could do is to avoid the nan in the ld_arr, and drop them all.
-    logging.warning(f"there are {np.isnan(ld_arr).sum(axis=1)} nan in R matrix in the ld_arr")
+    logging.warning(f"there are {np.isnan(ld_arr).sum(axis=1).shape[0]} nan in R matrix in the ld_arr")
 
     return ld_arr, df_ld_snps
 
@@ -369,7 +369,8 @@ class Fine_Mapping(object):
             assert ld_arr.shape[0] == ld_arr.shape[1]
             df_ld = pd.DataFrame(ld_arr, index=df_ld_snps.index, columns=df_ld_snps.index)
         # TODO: rm some LD with NaNs
-        have_na_snp = df_ld[df_ld.isna().sum() == 1].index.tolist()
+
+        have_na_snp = df_ld[df_ld.isna().sum() >= 1].index.tolist()
         logging.info(
             f"remove {len(have_na_snp)} SNPs with NaNs in LD, this should be think carefully."
         )
