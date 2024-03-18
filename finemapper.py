@@ -23,13 +23,17 @@ import urllib.request
 from urllib.parse import urlparse
 from packaging.version import Version
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-from finemap_tools.plink import plink2_cal_LD
 
+from pathlib import Path
 
 def is_finemap_tools_installed():
     try:
         import finemap_tools
-
+        from finemap_tools.reader import is_tabix_installed
+        if  not is_tabix_installed():
+            logging.warning('finemap_tools is installed but tabix is not installed. Please install tabix to use the finemap_tools package to read tabix-indexed files')
+            return False
+        
         return True
     except:
         return False
@@ -229,7 +233,6 @@ def load_sumstats(sumstats_file, chr_num, allow_swapped_indel_alleles=False):
     logging.info("Loading sumstats file...")
     t0 = time.time()
 
-    from pathlib import Path
 
     if (
         sumstats_file.endswith(".gz")
@@ -665,13 +668,13 @@ class Fine_Mapping(object):
         return X
 
     def compute_ld_plink_pgen(self, locus_start, locus_end, verbose):
-
+        from finemap_tools.plink import plink2_cal_LD
+        from finemap_tools.reader.plink import read_pvar
         logging.info(
             f"Computing LD from pgen fileset {self.genotypes_file} chromosome {self.chr} region {locus_start}-{locus_end}"
         )
         t0 = time.time()
-        from finemap_tools.reader.plink import read_pvar
-        from pathlib import Path
+
 
         ld_snp_df = read_pvar(Path(self.genotypes_file).with_suffix(".pvar")).rename(
             columns={

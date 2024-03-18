@@ -1,0 +1,12 @@
+PLINK v2.00a6LM 64-bit Intel (2 Mar 2024)
+Options in effect:
+  --v
+
+Hostname: DESKTOP-JUVLFQO
+Working directory: /home/xutingfeng/github_code/others/polyfun
+Start time: Sun Mar 17 16:37:08 2024
+
+Error: Unrecognized flag ('--v').
+For more info, try "plink2 --help <flag name>" or "plink2 --help | more".
+
+End time: Sun Mar 17 16:37:08 2024
