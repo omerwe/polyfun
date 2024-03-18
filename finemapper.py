@@ -22,7 +22,6 @@ from polyfun import configure_logger, check_package_versions
 import urllib.request
 from urllib.parse import urlparse
 from packaging.version import Version
-# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
 from pathlib import Path
 
