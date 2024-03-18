@@ -17,7 +17,7 @@ def splash_screen():
     print('*********************************************************************')
     print('* PolyPred (POLYgenic risk PREDiction)')
     print('* Version 1.0.0')
-    print('* (C) 2020-2022 Omer Weissbrod')
+    print('* (C) 2020-2024 Omer Weissbrod')
     print('*********************************************************************')
     print()
     
