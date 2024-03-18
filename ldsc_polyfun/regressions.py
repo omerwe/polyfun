@@ -152,7 +152,8 @@ class LD_Score_Regression(object):
         skip_ridge_jackknife=True,
         num_chr_sets=2,
         evenodd_split=False,
-        nnls_exact=False
+        nnls_exact=False,
+        num_chr=22
         ):
         
         for i in [y, x, w, M, N]:
@@ -254,7 +255,7 @@ class LD_Score_Regression(object):
                     chr_num=chr_num, verbose=verbose, ridge_lambda=ridge_lambda,
                     has_intercept=(not self.constrain_intercept),
                     standardize=standardize_ridge, approx_ridge=approx_ridge,
-                    skip_ridge_jackknife=skip_ridge_jackknife, num_chr_sets=num_chr_sets)
+                    skip_ridge_jackknife=skip_ridge_jackknife, num_chr_sets=num_chr_sets, num_chr=num_chr)
                     
         else:
             assert not loco
@@ -393,7 +394,7 @@ class Hsq(LD_Score_Regression):
             twostep=None, old_weights=False, 
             chr_num=None, verbose=True,            
             approx_ridge=False, loco=False, ridge_lambda=None, standardize_ridge=True, skip_ridge_jackknife=True, keep_large=False,
-            num_chr_sets=22, evenodd_split=False, nn=False, nnls_exact=False):
+            num_chr_sets=22, evenodd_split=False, nn=False, nnls_exact=False, num_chr=22):
         step1_ii = None
         if twostep is not None:
             step1_ii = y < twostep
@@ -411,7 +412,8 @@ class Hsq(LD_Score_Regression):
                                      evenodd_split=evenodd_split,
                                      nn=nn,
                                      keep_large=keep_large,
-                                     nnls_exact=nnls_exact
+                                     nnls_exact=nnls_exact,
+                                     num_chr=num_chr
                                      )
         self.mean_chisq, self.lambda_gc = self._summarize_chisq(y)
         if not self.constrain_intercept:

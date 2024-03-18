@@ -124,13 +124,13 @@ def check_files(args):
     if args.compute_h2_L2:
         if not os.path.exists(args.sumstats):
             raise IOError('Cannot find sumstats file %s'%(args.sumstats))
-        for chr_num in range(1,23):
+        for chr_num in range(1, args.num_chr+1):
             get_file_name(args, 'ref-ld', chr_num, verify_exists=True, allow_multiple=True)
             get_file_name(args, 'w-ld', chr_num, verify_exists=True)
             get_file_name(args, 'annot', chr_num, verify_exists=True, allow_multiple=True)
             
     if args.compute_ldscores:
-        if args.chr is None: chr_range = range(1,23)            
+        if args.chr is None: chr_range = range(1, args.num_chr+1)            
         else: chr_range = range(args.chr, args.chr+1)
         
         for chr_num in chr_range:
@@ -143,7 +143,7 @@ def check_files(args):
                 get_file_name(args, 'bins', chr_num, verify_exists=True)
                 
     if args.compute_h2_bins and not args.compute_ldscores:
-        for chr_num in range(1,23):
+        for chr_num in range(1, args.num_chr+1):
             get_file_name(args, 'w-ld', chr_num, verify_exists=True)
             if not args.compute_h2_L2:
                 get_file_name(args, 'bins', chr_num, verify_exists=True)
@@ -228,7 +228,8 @@ class PolyFun:
             evenodd_split=evenodd_split,
             nn=nn,
             keep_large=keep_large,
-            nnls_exact=args.nnls_exact
+            nnls_exact=args.nnls_exact,
+            num_chr=args.num_chr
             )
             
         #save the results object
@@ -309,7 +310,7 @@ class PolyFun:
             #make sure that the chromosome exists in one set
             found_chrom = np.any([chr_num in chr_set for chr_set in jknife.chromosome_sets])
             if not found_chrom:
-                raise ValueError('not all chromosomes have a taus estimate - please make sure that the intersection of SNPs with sumstats and with annotations data spans all 22 human chromosomes')
+                raise ValueError('not all chromosomes have a taus estimate - please make sure that the intersection of SNPs with sumstats and with annotations data spans all chromosomes')
 
             #find the relevant set number
             set_num=None
@@ -326,8 +327,8 @@ class PolyFun:
         else:
             hsqhat = self.hsqhat
             jknife = hsqhat.jknife
-            if len(jknife.est_loco) != 22:
-                raise ValueError('not all chromosomes have a taus estimate - please make sure that the intersection of SNPs with sumstats and with annotations data spans all 22 human chromosomes')
+            if len(jknife.est_loco) != args.num_chr:
+                raise ValueError('not all chromosomes have a taus estimate - please make sure that the intersection of SNPs with sumstats and with annotations data spans all chromosomes')
             taus = jknife.est_loco[chr_num-1][:hsqhat.n_annot] / hsqhat.Nbar
             
         #save the taus to disk
@@ -349,7 +350,7 @@ class PolyFun:
         
         #iterate over chromosomes
         df_snpvar_chr_list = []
-        for chr_num in tqdm(range(1,23)):
+        for chr_num in tqdm(range(1, args.num_chr+1)):
             df_snpvar_chr = self.compute_snpvar_chr(args, chr_num, use_ridge=use_ridge)            
             df_snpvar_chr_list.append(df_snpvar_chr)
         df_snpvar = pd.concat(df_snpvar_chr_list, axis=0)
@@ -519,7 +520,7 @@ class PolyFun:
         
     def save_bins_to_disk(self, args):
         logging.info('Saving SNP-bins to disk')
-        for chr_num in tqdm(range(1,23)):
+        for chr_num in tqdm(range(1, args.num_chr+1)):
 
             #save bins file to disk
             df_bins_chr = self.df_bins.query('CHR==%d'%(chr_num))
@@ -576,7 +577,7 @@ class PolyFun:
                 raise ValueError(error_message + '. If you wish to omit the missing SNPs, please use the flag --allow-missing')
 
         #iterate over chromosomes 
-        for chr_num in tqdm(range(1,23)):
+        for chr_num in tqdm(range(1, args.num_chr+1)):
         
             #define output file name
             output_fname = 'snpvar'
@@ -616,7 +617,7 @@ class PolyFun:
     def compute_ld_scores(self, args):    
         #define the range of chromosomes to iterate over
         if args.chr is None:
-            chr_range = range(1,23)
+            chr_range = range(1, args.num_chr+1)
         else:
             chr_range = range(args.chr, args.chr+1)
         
@@ -818,6 +819,7 @@ if __name__ == '__main__':
     parser.add_argument('--ld-dir', default=None, help='The path of a directory with UKB LD files (if not specified PolyFun will create a temporary directory)')
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyFun output file names')    
     parser.add_argument('--allow-missing', default=False, action='store_true', help='If specified, PolyFun will not terminate if some SNPs with sumstats are not found in the annotations files')
+    parser.add_argument('--num-chr', type=int, default=22, help='Number of chromosomes for your target organism (default is 22)')
     
     #LDSC parameters
     parser.add_argument('--nnls-exact', default=False, action='store_true', help='If specified, S-LDSC will estimate non-negative taus using an exact instead of an approximate solver (this will be slower but slightly more accurate)')

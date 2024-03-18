@@ -93,7 +93,7 @@ def check_files(args):
         
     #check that required input files exist
     if args.compute_ldscores or args.compute_partitions:
-        if args.chr is None: chr_range = range(1,23)            
+        if args.chr is None: chr_range = range(1, args.num_chr+1)            
         else: chr_range = range(args.chr, args.chr+1)
         
         for chr_num in chr_range:
@@ -108,7 +108,7 @@ def check_files(args):
                 get_file_name(args, 'bins', chr_num, verify_exists=True)
                 
     if args.compute_polyloc:    
-        for chr_num in range(1,23):
+        for chr_num in range(1, args.num_chr+1):
             get_file_name(args, 'w-ld', chr_num, verify_exists=True)
             if not args.compute_partitions:
                 get_file_name(args, 'bins', chr_num, verify_exists=True)
@@ -152,7 +152,7 @@ class PolyLoc(PolyFun):
         #add another partition for all SNPs not in the posterior file
         if args.bfile_chr is not None:
             df_bim_list = []
-            for chr_num in range(1,23):
+            for chr_num in range(1, args.num_chr+1):
                 df_bim_chr = pd.read_table(args.bfile_chr+'%d.bim'%(chr_num), sep='\s+', names=['CHR', 'SNP', 'CM', 'BP', 'A1', 'A2'], header=None)
                 df_bim_list.append(df_bim_chr)
             df_bim = pd.concat(df_bim_list, axis=0)
@@ -328,6 +328,7 @@ if __name__ == '__main__':
     parser.add_argument('--output-prefix', required=True, help='Prefix of all PolyLoc out file names')    
     parser.add_argument('--ld-ukb', default=False, action='store_true', help='If specified, PolyLoc will use UKB LD matrices to compute LD-scores')
     parser.add_argument('--ld-dir', default=None, help='The path of a directory with UKB LD files (if not specified PolyLoc will create a temporary directory)')
+    parser.add_argument('--num-chr', type=int, default=22, help='Number of chromosomes for your target organism (default is 22)')
     
     
     

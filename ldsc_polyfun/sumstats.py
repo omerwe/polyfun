@@ -149,13 +149,13 @@ def _read_w_ld(args, log):
 
 
 def _read_chr_split_files(chr_arg, not_chr_arg, log, noun, parsefunc, **kwargs):
-    '''Read files split across 22 chromosomes (annot, ref_ld, w_ld).'''
+    '''Read files split across chromosomes (annot, ref_ld, w_ld).'''
     try:
         if not_chr_arg:
             log.log('Reading {N} from {F} ...'.format(F=not_chr_arg, N=noun))
             out = parsefunc(_splitp(not_chr_arg), **kwargs)
         elif chr_arg:
-            f = ps.sub_chr(chr_arg, '[1-22]')
+            f = ps.sub_chr(chr_arg, '[1-%d]'%(_N_CHR))
             log.log('Reading {N} from {F} ...'.format(F=f, N=noun))
             out = parsefunc(_splitp(chr_arg), _N_CHR, **kwargs)
     except ValueError as e:
@@ -282,6 +282,7 @@ def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
 def estimate_h2(args, log):
     '''Estimate h2 and partitioned h2.'''
     args = copy.deepcopy(args)
+    _N_CHR = args.num_chr
     if args.samp_prev is not None and args.pop_prev is not None:
         args.samp_prev, args.pop_prev = list(map(
             float, [args.samp_prev, args.pop_prev]))
@@ -334,7 +335,8 @@ def estimate_h2(args, log):
                     evenodd_split=args.evenodd_split,
                     nn=args.nn,
                     keep_large=args.keep_large,
-                    nnls_exact=args.nnls_exact
+                    nnls_exact=args.nnls_exact,
+                    num_chr=args.num_chr
                     )
 
     if args.print_cov:

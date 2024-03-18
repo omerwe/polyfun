@@ -573,7 +573,7 @@ class Jackknife_Ridge(Jackknife):
     def __init__(self, x, y, n_blocks=None, separators=None, chr_num=None, verbose=True,
         num_lambdas=100, approx_ridge=False, 
         ridge_lambda=None, use_1se=False, has_intercept=False, standardize=True,
-        skip_ridge_jackknife=True, num_chr_sets=2):
+        skip_ridge_jackknife=True, num_chr_sets=2, num_chr=22):
         
         #sanity checks
         assert chr_num is not None
@@ -586,6 +586,7 @@ class Jackknife_Ridge(Jackknife):
         self.use_1se = use_1se
         self.verbose=verbose        
         self.has_intercept = has_intercept
+        self.num_chr = num_chr
         
         ###define chromosome sets
         assert num_chr_sets>1
@@ -596,8 +597,8 @@ class Jackknife_Ridge(Jackknife):
             self.chromosome_sets = []
             self.chromosome_sets.append(chromosomes[chromosomes%2==0])
             self.chromosome_sets.append(chromosomes[chromosomes%2!=0])
-        elif num_chr_sets == 22:
-            self.chromosome_sets = [np.array([c]) for c in range(1,23)]
+        elif num_chr_sets == self.num_chr:
+            self.chromosome_sets = [np.array([c]) for c in range(1, self.num_chr+1)]
         else:        
             chr_sizes = np.bincount(chr_num)[1:]
             assert num_chr_sets<=len(chr_sizes)
@@ -705,7 +706,7 @@ class Jackknife_Ridge(Jackknife):
         
     def _divide_chromosomes_to_sets(self, chr_sizes, num_sets):
         chr_order = np.argsort(chr_sizes)[::-1]     #np.arange(len(chr_sizes))
-        chr_assignments = np.zeros(22, dtype=np.int64) - 1
+        chr_assignments = np.zeros(self.num_chr, dtype=np.int64) - 1
         chr_assignments[chr_order[:num_sets]] = np.arange(num_sets)
         set_sizes = chr_sizes[chr_order[:num_sets]].copy()    
         for c_i in chr_order[num_sets : len(chr_sizes)]:
