@@ -248,6 +248,7 @@ def _merge_and_log(ld, sumstats, noun, log):
 
 
 def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
+    _N_CHR = args.num_chr
     sumstats = _read_sumstats(args, log, fh, alleles=alleles, dropna=dropna)
     ref_ld = _read_ref_ld(args, log)
     n_annot = len(ref_ld.columns) - 2 #Changed to -2 because we also have chromosome column now

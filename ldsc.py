@@ -603,6 +603,9 @@ parser.add_argument('--loco', default=False, action='store_true',
 parser.add_argument('--num-chr-sets', type=int, default=22,
     help='Number of chromosome sets for loco computations')
     
+parser.add_argument('--num-chr', type=int, default=22,
+    help='Number of chromosomes for the target organism (default is 22)')
+
 
 parser.add_argument('--no-standardize-ridge', default=False, action='store_true', 
     help='disable Ridge standardization')    
