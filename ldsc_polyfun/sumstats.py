@@ -248,6 +248,7 @@ def _merge_and_log(ld, sumstats, noun, log):
 
 
 def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
+    global _N_CHR
     _N_CHR = args.num_chr
     sumstats = _read_sumstats(args, log, fh, alleles=alleles, dropna=dropna)
     ref_ld = _read_ref_ld(args, log)
@@ -283,6 +284,7 @@ def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
 def estimate_h2(args, log):
     '''Estimate h2 and partitioned h2.'''
     args = copy.deepcopy(args)
+    global _N_CHR
     _N_CHR = args.num_chr
     if args.samp_prev is not None and args.pop_prev is not None:
         args.samp_prev, args.pop_prev = list(map(
