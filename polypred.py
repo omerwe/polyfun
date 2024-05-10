@@ -12,6 +12,7 @@ import random
 from pandas.api.types import is_numeric_dtype
 from polyfun_utils import Logger, check_package_versions, set_snpid_index, configure_logger
 from sklearn.linear_model import LinearRegression
+import sklearn.metrics as metrics
 
 def splash_screen():
     print('*********************************************************************')
@@ -308,6 +309,8 @@ def estimate_mixing_weights(args):
     linreg = LinearRegression(positive = not args.allow_neg_mixweights)
     linreg.fit(df_prs_sum_all, df_pheno['PHENO'])
     mix_weights, intercept = linreg.coef_, linreg.intercept_
+    r2_score = metrics.r2_score(df_pheno['PHENO'], linreg.predict(df_prs_sum_all))
+    logging.info('In-sample R2: %0.3f'%(r2_score))
     
     #create and print df_coef, and save it to disk
     df_coef = pd.Series(mix_weights, index=beta_files)
