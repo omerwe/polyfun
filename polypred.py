@@ -190,7 +190,7 @@ def load_betas_files(betas_file, verbose=True):
     
     #subset SNPs according to extract file
     if args.extract is not None:
-        df_extract = pd.read_csv(args.extract, header=None, squeeze=True)
+        df_extract = pd.read_csv(args.extract, header=None).squeeze()
         df_betas = df_betas.loc[df_betas['SNP'].isin(df_extract)]
         if df_betas.shape[0]==0:
             raise ValueError('No SNPs remained after applying --extract')
@@ -250,10 +250,12 @@ def computs_prs_all_files(args, betas_file, disable_jackknife=False, keep_file=N
             df_prs_sum = df_prs_file
         else:
             assert np.all(df_prs_sum.index == df_prs_file.index)
-            for c in df_prs_file.columns:
-                if not c.startswith('SCORESUM'): continue
-                if not c in df_prs_sum.columns: df_prs_sum[c] = 0
-                df_prs_sum[c] += df_prs_file[c]
+            list_shared_columns = [c for c in df_prs_sum.columns.intersection(df_prs_file.columns).tolist() if c.startswith('SCORESUM')]
+            list_new_columns = [c for c in df_prs_file.columns if c not in list_shared_columns and c.startswith('SCORESUM')]
+            if len(list_shared_columns) > 0:
+                df_prs_sum[list_shared_columns] += df_prs_file[list_shared_columns]
+            if len(list_new_columns) > 0:
+                df_prs_sum = pd.concat([df_prs_sum, df_prs_file[list_new_columns]], axis=1)
     
     #compute jackknife-block PRS
     if args.num_jk > 0 and not disable_jackknife:
@@ -354,7 +356,7 @@ def compute_prs(args):
         #if there's more than one beta, take the linear combination
         else:            
             mixweights_file = args.mixweights_prefix +'.mixweights'
-            s_mixweights = pd.read_csv(mixweights_file, delim_whitespace=True, squeeze=True)
+            s_mixweights = pd.read_csv(mixweights_file, delim_whitespace=True).squeeze()
             if np.any(s_mixweights.index[:-1] != args.betas.split(',')):
                 raise ValueError('The provided betas file do not match the mix weights file')
             assert s_mixweights.index[-1] == 'intercept'            
@@ -369,7 +371,7 @@ def compute_prs(args):
         
         #handle jackknife        
         set_jk_columns = set([c for c in df_prs_all.columns if '.jk' in c])
-        df_prs_sum_jk = pd.DataFrame(index=df_prs_all.index, columns=set_jk_columns)
+        df_prs_sum_jk = pd.DataFrame(index=df_prs_all.index, columns=list(set_jk_columns))
         if df_prs_sum_jk.shape[1] > 1:
             for jk_column in set_jk_columns:                
                 if args.betas.count(',') == 0:
