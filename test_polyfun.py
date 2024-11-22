@@ -249,7 +249,7 @@ def test_finemapper_susie(tmpdir, python3_exe):
     #print(finemapper_cmd)
     retval = os.system(finemapper_cmd)
     if retval != 0:
-        raise ValueError('finemapper command failed when running the following command:\n%s'%(cmd))
+        raise ValueError('finemapper command failed when running the following command:\n%s'%(finemapper_cmd))
     compare_dfs(tmpdir, gold_dir, outfile, sort_column='SNP')
 
 
