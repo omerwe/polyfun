@@ -188,7 +188,7 @@ class PolyFun:
                 df_sumstats = pd.read_table(args.sumstats, sep='\s+')            
             ###merge everything together...
             
-        #prepare LD-scores for S-LDSC run
+        #prepare LD-scores for S-LDSC run        
         ref_ld = np.array(df_sumstats[ref_ld_cnames], dtype=np.float32)
         sumstats._check_ld_condnum(args, log, ref_ld_cnames)
         if df_sumstats.shape[0] < 200000:

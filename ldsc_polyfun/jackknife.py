@@ -574,7 +574,7 @@ class Jackknife_Ridge(Jackknife):
         num_lambdas=100, approx_ridge=False, 
         ridge_lambda=None, use_1se=False, has_intercept=False, standardize=True,
         skip_ridge_jackknife=True, num_chr_sets=2, num_chr=22):
-        
+                    
         #sanity checks
         assert chr_num is not None
         # # # chr_num[:100000]=1

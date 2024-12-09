@@ -32,12 +32,20 @@ def read_csv(fh, **kwargs):
     return df
     
 def set_snpid_index(df):
+    
+    def float_to_int(c):
+        try:
+            c = int(c)
+        except ValueError:
+            pass
+        return c
+    
     df['A1_first'] = (df['A1'] < df['A2']) | (df['A1'].str.len()>1) | (df['A2'].str.len()>1)
     df['A1s'] = df['A2'].copy()
     df.loc[df['A1_first'], 'A1s'] = df.loc[df['A1_first'], 'A1'].copy()
     df['A2s'] = df['A1'].copy()
     df.loc[df['A1_first'], 'A2s'] = df.loc[df['A1_first'], 'A2'].copy()
-    s_chr = df['CHR'].map(lambda c: int(c) if str(c)[0] in ['0','1','2','3','4','5,','6','7','8','9'] else c).astype(str)
+    s_chr = df['CHR'].map(float_to_int).astype(str)
     s_bp = df['BP'].astype(int).astype(str)
     df.index = s_chr + '.' + s_bp + '.' + df['A1s'] + '.' + df['A2s']
     df.index.name = 'snpid'
@@ -116,7 +124,7 @@ def sumstats(fh, alleles=True, dropna=True):
     if dropna:
         x = x.dropna(how='any')
         
-    x = set_snpid_index(x)
+    x = set_snpid_index(x)    
     x.drop(columns=['CHR', 'BP'], inplace=True)
 
 

@@ -236,7 +236,7 @@ def _print_part_delete_values(ldscore_reg, ofh, log):
 
 def _merge_and_log(ld, sumstats, noun, log):
     '''Wrap smart merge with log messages about # of SNPs.'''
-    sumstats = smart_merge(ld, sumstats)
+    sumstats = smart_merge(ld, sumstats)    
     msg = 'After merging with {F}, {N} SNPs remain.'
     if len(sumstats) == 0:
         msg += ' Please make sure that your annotation files include the SNPs in your sumstats files (please see the PolyFun wiki for details on downloading functional annotations)'
@@ -275,6 +275,7 @@ def _read_ld_sumstats(args, log, fh, alleles=True, dropna=True):
     
     M_annot, ref_ld, novar_cols = _check_variance(log, M_annot, ref_ld)
     w_ld = _read_w_ld(args, log)
+        
     sumstats = _merge_and_log(ref_ld, sumstats, 'reference panel LD', log)
     sumstats = _merge_and_log(sumstats, w_ld, 'regression SNP LD', log)
     w_ld_cname = sumstats.columns[-1]
