@@ -832,9 +832,9 @@ class SUSIE_Wrapper(Fine_Mapping):
         assert self.df_ld.notnull().all().all()
         if residual_var is not None: residual_var_init = residual_var
 
-        if hasattr(self.susieR, 'susie_suff_stat'):
-            logging.info('Using susieR::susie_suff_stat()')
-            susie_obj = self.susieR.susie_suff_stat(
+        if hasattr(self.susieR, 'susierss'):
+            logging.info('Using susieR::susierss()')
+            susie_obj = self.susieR.susierss(
                     bhat=bhat.reshape((m,1)),
                     shat=np.ones((m,1)),
                     R=self.df_ld.values,
@@ -865,7 +865,7 @@ class SUSIE_Wrapper(Fine_Mapping):
                     prior_weights=(prior_weights.reshape((m,1)) if use_prior_causal_prob else self.R_null)
                 )
         else:
-            raise NotImplementedError('Only susie_suff_stat() and susie_bhat() are supported. Check your version of susieR')
+            raise NotImplementedError('Only susierss() and susie_bhat() are supported. Check your version of susieR')
         susie_time = time.time()-t0        
         logging.info('Done in %0.2f seconds'%(susie_time))
 
